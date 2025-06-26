@@ -1,0 +1,22 @@
+{
+    "name": "mongalayer",
+    "private": true,
+    "scripts": {
+        "build": "npm --prefix ./packages/client run build && npm --prefix ./packages/server run build",
+        "test": "npm run build && npm --prefix ./packages/tests run test"
+    },
+    "workspaces": [
+        "./packages/server",
+        "./packages/client",
+        "./packages/tests"
+    ],
+    "dependencies": {
+        "mongodb": "^6.17.0",
+        "zod": "^3.25.67"
+    },
+    "devDependencies": {
+        "@types/jsonwebtoken": "^9.0.10",
+        "type-fest": "^4.41.0",
+        "typescript": "^5.8.3"
+    }
+}
