@@ -1,11 +1,15 @@
-import { JwtPayload } from "jsonwebtoken";
 import { Filter, Document } from "mongodb";
+import { iteratePrimitives } from "./utils/replacer.js";
 
 export const AccessFieldPermissions = {
     None: "x",
     Read: "r",
     Write: "w"
 } as const;
+
+function getValueByPath(obj: Record<string, any>, path: string) {
+    return path.split('.').reduce((acc, key) => (acc && acc[key] !== undefined) ? acc[key] : undefined, obj);
+}
 
 /**
  * Fields access only supports defining root level properties from the Document.
@@ -19,7 +23,7 @@ export type AccessDefinition<TSchema extends Document = Document> = {
 
 export type AccessConfig<TSchema extends Document = Document> = AccessDefinition<TSchema>[];
 
-export type AccessPayload = JwtPayload;
+export type AccessPayload = Record<string, any>;
 
 export class AccessService {
     constructor (
@@ -28,11 +32,22 @@ export class AccessService {
     ) {
     }
 
+    private hydrateAccessFilter (filter: Filter<Document>): Filter<Document> {
+        const hydratedFilter = structuredClone(filter);
+
+        iteratePrimitives(hydratedFilter, (key, value, replace) => {
+            if (typeof value === "string" && value.indexOf("%%") === 0) {
+                replace(getValueByPath(this.accessData, value.substring(2)));
+            }
+        });
+
+        return hydratedFilter;
+    }
+
     private buildAccessFilters (): Filter<Document> | null {
         const filters: Filter<Document>[] = [];
 
-        // TODO : use access data to build the filters based on the access config.
-        filters.push(...this.accessConfig.filter(access => access.filter !== void 0).map(access => access.filter!));
+        filters.push(...this.accessConfig.filter(access => access.filter !== void 0).map(access => this.hydrateAccessFilter(access.filter!)));
 
         if (filters.length === 0) return null;
 
