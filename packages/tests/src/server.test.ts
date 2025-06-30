@@ -132,7 +132,7 @@ describe('Access user', () => {
             access: [{
                 role: "self",
                 filter: {
-                    _id: "$user._id"
+                    _id: "%%user.sub"
                 }
             }]
         };
@@ -145,7 +145,9 @@ describe('Access user', () => {
         userOne = userObjects[1];
 
         userZeroAccessPayload = {
-            sub: userZero._id
+            user: {
+                sub: userZero._id
+            }
         };
     
         mongalayer = new Mongalayer(client, collections, {
@@ -177,6 +179,71 @@ describe('Access user', () => {
             payload: {
                 filter: {
                     _id: userOne._id
+                }
+            }
+        }, userZeroAccessPayload);
+
+        expect(result).toStrictEqual(null);
+    });
+});
+
+describe('Access project - user owner', () => {
+    let mongalayer: Mongalayer, userZero: User, userZeroAccessPayload: JwtPayload, projectWithoutUserAsOwner: Project, projectWithUserAsOwner: Project;
+
+    beforeAll(async () => {
+        const projectCollection: MongalayerCollection<Project> = {
+            schema: projectSchema,
+            access: [{
+                role: "owner",
+                filter: {
+                    "access.owners": {"$in": ["%%user.sub"]}
+                }
+            }]
+        };
+
+        const collections: MongalayerCollections = {
+            projects: projectCollection
+        }
+    
+        userZero = userObjects[0];
+        userZeroAccessPayload = {
+            user: {
+                sub: userZero._id
+            }
+        };
+
+        projectWithUserAsOwner = projectObjects.find(project => project.access.owners.includes(userZero._id))!;
+        projectWithoutUserAsOwner = projectObjects.find(project => !project.access.owners.includes(userZero._id))!;
+    
+        mongalayer = new Mongalayer(client, collections, {
+            debugging: true,
+            useSessions: true
+        });
+    });
+
+    test("findOne - project as owner = project", async () => {
+        const result = await mongalayer.execute<User>({
+            database: dbName,
+            collection: "projects",
+            operation: "findOne",
+            payload: {
+                filter: {
+                    _id: projectWithUserAsOwner._id
+                }
+            }
+        }, userZeroAccessPayload);
+
+        expect(result).toStrictEqual(projectWithUserAsOwner);
+    });
+
+    test("findOne - project not as owner = null", async () => {
+        const result = await mongalayer.execute<User>({
+            database: dbName,
+            collection: "projects",
+            operation: "findOne",
+            payload: {
+                filter: {
+                    _id: projectWithoutUserAsOwner._id
                 }
             }
         }, userZeroAccessPayload);
