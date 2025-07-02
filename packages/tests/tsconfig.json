@@ -15,7 +15,7 @@
         "./data",
         "./src",
         "./jest.config.ts",
-        "./jest.mongodb.config.ts",
+        "./jest.mongodb.config.ts"
     ],
     "exclude": [
         "./node_modules"

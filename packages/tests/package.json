@@ -3,7 +3,7 @@
     "type": "module",
     "private": true,
     "scripts": {
-        "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" npx jest --testPathPatterns=\"$PWD/src\""
+        "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" MONGOMS_DOWNLOAD_URL=\"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-8.0.11.tgz\" MONGOMS_VERSION=\"8.0.11\" npx jest --testPathPatterns=\"$PWD/src\""
     },
     "peerDependencies": {
         "mongodb": "^6.17.0"
