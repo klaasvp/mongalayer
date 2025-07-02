@@ -14,6 +14,8 @@ export type Action<TSchema extends Document, TOperation extends Operation = Oper
         never
 }
 
+export type * from "./types.js";
+
 export {
     find,
     findOne

@@ -1,7 +1,8 @@
 import { MongoClient, Document, Db, ClientSession } from "mongodb";
-import z, { ZodObject, ZodType } from "zod/v4";
+import { ZodType } from "zod/v4";
 import { Action, find, findOne } from "./actions/index.js";
 import { AccessConfig, AccessPayload, AccessService } from "./access.js";
+import z from "zod/v4";
 
 export type MongalayerCollection<TSchema extends Document = Document> = {
     schema: ZodType<TSchema>,
@@ -54,9 +55,23 @@ export class Mongalayer {
 
             const accessService = new AccessService(accessPayload, accessConfig);
 
-            switch (action.operation) {
-                case "findOne": result = await findOne<TSchema>(collection, accessService, action.payload); break;
-                case "find": result = await find<TSchema>(collection, accessService, action.payload); break;
+            try {
+                switch (action.operation) {
+                    case "findOne": result = await findOne<TSchema>(collection, accessService, action.payload); break;
+                    case "find": result = await find<TSchema>(collection, accessService, action.payload); break;
+                }
+            } catch (e) {
+                if (e instanceof z.ZodError) {
+                    if (this.options.debugging) {
+                        throw e;
+                    } else {
+                        console.log(z.prettifyError(e));
+                        // TODO: Added a nice error to report to the client (without exposing the schema)
+                        throw "Validation error";
+                    }
+                } else {
+                    throw e;
+                }
             }
         }  finally {
             database = null;
