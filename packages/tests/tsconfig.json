@@ -1,8 +1,7 @@
 {
     "compilerOptions": {
         "target": "esnext",
-        "module": "nodenext",        
-        "moduleResolution": "nodenext",      
+        "module": "preserve",        
         "strict": true,                               
         "esModuleInterop": true,                     
         "skipLibCheck": true,                         
@@ -11,6 +10,8 @@
         "composite": true
     },
     "include": [
+        "./global.d.ts",
+        "./global",
         "./data",
         "./src",
         "./jest.config.ts",

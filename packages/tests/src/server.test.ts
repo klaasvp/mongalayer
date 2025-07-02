@@ -1,46 +1,18 @@
 import { describe, expect, test, beforeAll } from "@jest/globals";
-import { MongoClient, ServerApiVersion } from "mongodb";
 import { Mongalayer, MongalayerCollection, MongalayerCollections } from "@mongalayer/server";
-import { getRandomUsers, User, userSchema } from "../data/user.js";
-import { getRandomProjects, Project, projectSchema } from "../data/project.js";
-import { AccessConfig } from "../../server/src/access.js";
+import { User, userSchema } from "../data/user.js";
+import { Project, projectSchema } from "../data/project.js";
 import { JwtPayload } from "jsonwebtoken";
 
-const dbName = "test";
-
-let client: MongoClient;
-
-const userObjects = getRandomUsers(20), projectObjects = getRandomProjects(50, userObjects);
-
-beforeAll(async () => {
-    client = new MongoClient(process.env.MONGO_URL!, {
-        serverApi: {
-            version: ServerApiVersion.v1,
-            strict: false,
-            deprecationErrors: true
-        },
-        retryWrites: true,
-    });
-
-    const database = client.db(dbName);
-
-    await database.collection<User>("users").insertMany(userObjects);
-    await database.collection<Project>("projects").insertMany(projectObjects); 
-});
-    
-afterAll(async () => {
-    await client.close();
-});
- 
 describe('Schema missing', () => {
     let mongalayer: Mongalayer, userZero: User;
 
     beforeAll(async () => {
         const collections: MongalayerCollections = {}
     
-        userZero = userObjects[0];
-    
-        mongalayer = new Mongalayer(client, collections, {
+        userZero = globalThis.$mdb.objects.users[0];
+
+        mongalayer = new Mongalayer(globalThis.$mdb.client, collections, {
             debugging: true,
             useSessions: true
         });
@@ -48,7 +20,7 @@ describe('Schema missing', () => {
 
     test("random test", async () => {
         const result = await mongalayer.execute<User>({
-            database: dbName,
+            database: globalThis.$mdb.db,
             collection: "users",
             operation: "findOne",
             payload: {
@@ -71,9 +43,9 @@ describe('Access empty', () => {
             }
         }
     
-        userZero = userObjects[0];
+        userZero = globalThis.$mdb.objects.users[0];
     
-        mongalayer = new Mongalayer(client, collections, {
+        mongalayer = new Mongalayer(globalThis.$mdb.client, collections, {
             debugging: true,
             useSessions: true
         });
@@ -81,7 +53,7 @@ describe('Access empty', () => {
 
     test("findOne - No filters", async () => {
         const result = await mongalayer.execute<User>({
-            database: dbName,
+            database: globalThis.$mdb.db,
             collection: "users",
             operation: "findOne",
             payload: {
@@ -94,7 +66,7 @@ describe('Access empty', () => {
 
     test("findOne - _id filter - existing", async () => {
         const result = await mongalayer.execute<User>({
-            database: dbName,
+            database: globalThis.$mdb.db,
             collection: "users",
             operation: "findOne",
             payload: {
@@ -109,7 +81,7 @@ describe('Access empty', () => {
 
     test("findOne - _id filter - non-existing", async () => {
         const result = await mongalayer.execute<User>({
-            database: dbName,
+            database: globalThis.$mdb.db,
             collection: "users",
             operation: "findOne",
             payload: {
@@ -141,8 +113,8 @@ describe('Access user', () => {
             users: userCollection
         }
     
-        userZero = userObjects[0];
-        userOne = userObjects[1];
+        userZero = globalThis.$mdb.objects.users[0];
+        userOne = globalThis.$mdb.objects.users[1];
 
         userZeroAccessPayload = {
             user: {
@@ -150,7 +122,7 @@ describe('Access user', () => {
             }
         };
     
-        mongalayer = new Mongalayer(client, collections, {
+        mongalayer = new Mongalayer(globalThis.$mdb.client, collections, {
             debugging: true,
             useSessions: true
         });
@@ -158,7 +130,7 @@ describe('Access user', () => {
 
     test("findOne - self filter", async () => {
         const result = await mongalayer.execute<User>({
-            database: dbName,
+            database: globalThis.$mdb.db,
             collection: "users",
             operation: "findOne",
             payload: {
@@ -173,7 +145,7 @@ describe('Access user', () => {
 
     test("findOne - other filter", async () => {
         const result = await mongalayer.execute<User>({
-            database: dbName,
+            database: globalThis.$mdb.db,
             collection: "users",
             operation: "findOne",
             payload: {
@@ -205,17 +177,17 @@ describe('Access project - user owner', () => {
             projects: projectCollection
         }
     
-        userZero = userObjects[0];
+        userZero = globalThis.$mdb.objects.users[0];
         userZeroAccessPayload = {
             user: {
                 sub: userZero._id
             }
         };
 
-        projectWithUserAsOwner = projectObjects.find(project => project.access.owners.includes(userZero._id))!;
-        projectWithoutUserAsOwner = projectObjects.find(project => !project.access.owners.includes(userZero._id))!;
+        projectWithUserAsOwner = globalThis.$mdb.objects.projects.find(project => project.access.owners.includes(userZero._id))!;
+        projectWithoutUserAsOwner = globalThis.$mdb.objects.projects.find(project => !project.access.owners.includes(userZero._id))!;
     
-        mongalayer = new Mongalayer(client, collections, {
+        mongalayer = new Mongalayer(globalThis.$mdb.client, collections, {
             debugging: true,
             useSessions: true
         });
@@ -223,7 +195,7 @@ describe('Access project - user owner', () => {
 
     test("findOne - project as owner = project", async () => {
         const result = await mongalayer.execute<User>({
-            database: dbName,
+            database: globalThis.$mdb.db,
             collection: "projects",
             operation: "findOne",
             payload: {
@@ -238,7 +210,7 @@ describe('Access project - user owner', () => {
 
     test("findOne - project not as owner = null", async () => {
         const result = await mongalayer.execute<User>({
-            database: dbName,
+            database: globalThis.$mdb.db,
             collection: "projects",
             operation: "findOne",
             payload: {

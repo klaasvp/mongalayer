@@ -5,13 +5,14 @@
     "scripts": {
         "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" npx jest --testPathPatterns=\"$PWD/src\""
     },
-    "dependencies": {
+    "peerDependencies": {
+        "mongodb": "^6.17.0"
     },
     "devDependencies": {
         "@faker-js/faker": "^9.8.0",
         "@jest/globals": "^30.0.2",
-        "@shelf/jest-mongodb": "^5.2.2",
         "jest": "^30.0.2",
+        "mongodb-memory-server": "^10.1.4",
         "ts-jest": "^29.4.0"
     },
     "engines": {
