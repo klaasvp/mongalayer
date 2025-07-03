@@ -80,8 +80,8 @@ export const $geometryBoundsSchema = z.union([
         properties: z.object({
             name: z.string()
         })
-    })
-}).optional());
+    }).optional()
+}));
 
 export const $geometryNearSchema = z.object({
     $geometry: pointSchema,
