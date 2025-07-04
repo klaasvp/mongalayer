@@ -15,7 +15,8 @@ declare global {
         db: string,
         objects: {
             users: User[],
-            projects: Project[]
+            projects: Project[],
+            filterTests: FilterTest[]
         }
     }
 }
