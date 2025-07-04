@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
 import { exampleObject1, exampleObject2, FilterTest } from '../../../../data/filterTest';
-import { getMongaLayerForFilterTest, isMongoServerError } from './helper';
+import { getMongaLayerForFilterTest, isMongoServerError } from '../helper';
 import { SchemaTest } from '../../../../data/schemaTest';
 
 describe('filter operators - $not', () => {

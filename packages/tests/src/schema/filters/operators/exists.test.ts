@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
 import { FilterTest} from '../../../../data/filterTest';
-import { getMongaLayerForFilterTest } from './helper';
+import { getMongaLayerForFilterTest } from '../helper';
 
 describe('filter operators - $exists', () => {
     let mongalayer: Mongalayer;

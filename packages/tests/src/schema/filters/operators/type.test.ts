@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer, MongalayerCollection, MongalayerCollections } from '@mongalayer/server';
 import { FilterTest } from '../../../../data/filterTest';
-import { getMongaLayerForFilterTest, isMongoServerError } from './helper';
+import { getMongaLayerForFilterTest, isMongoServerError } from '../helper';
 import { BSONType } from 'mongodb';
 
 const typesTable = [

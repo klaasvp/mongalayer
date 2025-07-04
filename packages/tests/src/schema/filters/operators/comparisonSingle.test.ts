@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
 import { exampleObject1, FilterTest } from '../../../../data/filterTest';
-import { getMongaLayerForFilterTest, isMongoServerError } from './helper';
+import { getMongaLayerForFilterTest, isMongoServerError } from '../helper';
 import { Filter } from 'mongodb';
 
 type Operator = "$eq" | "$gt" | "$gte" | "$lt" | "$lte" | "$ne";

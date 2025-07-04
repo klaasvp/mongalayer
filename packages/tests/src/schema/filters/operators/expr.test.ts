@@ -1,7 +1,7 @@
 import { z } from 'zod/v4';
 import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
-import { getMongaLayerForFilterTest } from './helper';
+import { getMongaLayerForFilterTest } from '../helper';
 import { SchemaTest } from '../../../../data/schemaTest';
 
 describe('filter operators - $expr', () => {
