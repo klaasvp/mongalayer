@@ -18,7 +18,7 @@ export function getFilterTests(): FilterTest[] {
 }
 
 // Example 1: Complex nested object
-export const exampleObject1: FilterTest = {
+export const exampleObject1 = {
     _id: "a",
     name: "Complex Object 1",
     details: {
@@ -48,10 +48,10 @@ export const exampleObject1: FilterTest = {
     ],
     status: true,
     extra: null
-};
+} satisfies FilterTest;
 
 // Example 2: Another complex nested object
-export const exampleObject2: FilterTest = {
+export const exampleObject2 = {
     _id: "b",
     name: "Complex Object 2",
     details: {
@@ -81,4 +81,4 @@ export const exampleObject2: FilterTest = {
     ],
     status: false,
     extra: null
-};
+} satisfies FilterTest;
