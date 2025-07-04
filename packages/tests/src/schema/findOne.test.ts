@@ -102,7 +102,7 @@ describe('Find One', () => {
             
             expect(zodError.issues[0].code).toBe("invalid_type");
             expect((zodError.issues[0] as unknown as ZodInvalidTypeIssue).expected).toBe("string");
-            expect((zodError.issues[0] as unknown as ZodInvalidTypeIssue).received).toBe("undefined");
+            expect((zodError.issues[0] as unknown as ZodInvalidTypeIssue).received).toBeUndefined();
         }
     });
 });
