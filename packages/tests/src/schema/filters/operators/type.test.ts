@@ -92,7 +92,7 @@ describe('filter operators - $type', () => {
             try {
                 const mongaResult = await mongalayer.execute<FilterTest>({
                     database: globalThis.$mdb.db,
-                    collection: "filterTest",
+                    collection: "schemaTest",
                     operation: "findOne",
                     payload: {
                         filter: {
