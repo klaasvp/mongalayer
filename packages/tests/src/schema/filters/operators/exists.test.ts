@@ -59,7 +59,7 @@ describe('filter operators - $exists', () => {
         { filter: { property: { $exists: false } }, success: true, message: `"property: false" should return _id a`},
     ];
 
-    describe('on database', () => {
+    describe('on filterTestSolo collection', () => {
         test.each(dbTestTable)('$message', async ({ filter, success }) => {
             const zodResult = filterSchema.safeParse(filter);
 

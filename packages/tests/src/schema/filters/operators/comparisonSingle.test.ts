@@ -107,7 +107,7 @@ describe('filter operators - Comparison single', () => {
             });
         });
         
-        describe('on database', () => {
+        describe('on filterTestSolo collection', () => {
             test.each(dbTestTables[$operator])('$message', async ({ filter, success }) => {
                 const zodResult = filterSchema.safeParse(filter);
     

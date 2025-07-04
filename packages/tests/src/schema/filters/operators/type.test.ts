@@ -131,7 +131,7 @@ describe('filter operators - $type', () => {
         { filter: { name: { $type: BSONType.int } }, success: false, message: `"name: BSONType.int" should not return anything`}
     ];
 
-    describe('on database', () => {
+    describe('on filterTestSolo collection', () => {
         test.each(dbTestTable)('$message', async ({ filter, success }) => {
             const zodResult = filterSchema.safeParse(filter);
 
