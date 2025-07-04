@@ -13,6 +13,7 @@ export const getMongaLayerForFilterTest = () => {
 
     const collections: MongalayerCollections = {
         filterTest: filterTestCollection,
+        filterTestSolo: filterTestCollection,
         schema: schemaCollection
     }
 
