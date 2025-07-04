@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { filterOperatorsSchema } from '../../../../../server/src/actions/schema';
+import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer, MongalayerCollection, MongalayerCollections } from '@mongalayer/server';
-import { FilterTest, filterTestsSchema } from '../../../../data/filterTests';
-import { isMongoServerError } from './helper';
-import { BSONType, BSONTypeAlias } from 'mongodb';
+import { FilterTest } from '../../../../data/filterTest';
+import { getMongaLayerForFilterTest, isMongoServerError } from './helper';
+import { BSONType } from 'mongodb';
 
 const typesTable = [
     { type: BSONType.double, success: true, message: 'should validate with double' },
@@ -73,64 +73,86 @@ describe('filter operators - $type', () => {
     let mongalayer: Mongalayer;
 
     beforeAll(async () => {
-        const filterTestsCollection: MongalayerCollection<FilterTest> = {
-            schema: filterTestsSchema,
-            access: []
-        };
-
-        const collections: MongalayerCollections = {
-            filterTests: filterTestsCollection
-        }
-
-        mongalayer = new Mongalayer(globalThis.$mdb.client, collections, {
-            //debugging: true,
-            useSessions: true
-        });
+        mongalayer = getMongaLayerForFilterTest();
     });
 
-    test.each(typesTable)('$message', async ({ type, success, message, exceptions }) => {
-        const operator = { $type: type };
+    describe('validation', () => {
+        test.each(typesTable)('$message', async ({ type, success, message, exceptions }) => {
+            const operator = { $type: type };
 
-        const zodResult = filterOperatorsSchema.safeParse(operator);
+            const zodResult = filterOperatorsSchema.safeParse(operator);
 
-        if (success) {
+            if (success) {
+                expect(zodResult.success).toBe(true);
+            } else {
+                expect(zodResult.success).toBe(false);
+                expect(zodResult.error!.issues[0]).toHaveProperty('code', z.ZodIssueCode.invalid_union);
+            }
+
+            try {
+                const mongaResult = await mongalayer.execute<FilterTest>({
+                    database: globalThis.$mdb.db,
+                    collection: "filterTest",
+                    operation: "findOne",
+                    payload: {
+                        filter: {
+                            property: operator
+                        }
+                    }
+                }, {});
+
+                if (success) {
+                    expect(mongaResult).toBeNull();
+                } else {
+                    throw "mongalayer.execute should have thrown an error";
+                }
+            } catch (e) {
+                if (!success && isMongoServerError(e)) {
+                    if (exceptions) {
+                        expect(e.code).toBe(exceptions.mongodb.code);
+                        expect(e.codeName).toBe(exceptions.mongodb.codeName);
+                        expect(e.message.startsWith(exceptions.mongodb.message)).toBe(true);
+                    } else {    
+                        expect(e.code).toBe(2);
+                        expect(e.codeName).toBe('BadValue');
+                        expect(e.message).toBe("");
+                    }
+                } else {
+                    throw e;
+                }
+            }
+        });
+    });
+    
+    const dbTestTable = [
+        { filter: { name: { $type: "string" } }, success: true, message: `"name: string" should return _id a`},
+        { filter: { name: { $type: BSONType.string } }, success: true, message: `"name: BSONType.string" should return _id a`},
+        { filter: { name: { $type: "int" } }, success: false, message: `"name: int" should not return anything`},
+        { filter: { name: { $type: BSONType.int } }, success: false, message: `"name: BSONType.int" should not return anything`}
+    ];
+
+    describe('on database', () => {
+        test.each(dbTestTable)('$message', async ({ filter, success }) => {
+            const zodResult = filterSchema.safeParse(filter);
+
+            // Database tests should always be a valid schema
             expect(zodResult.success).toBe(true);
-        } else {
-            expect(zodResult.success).toBe(false);
-            expect(zodResult.error!.issues[0]).toHaveProperty('code', z.ZodIssueCode.invalid_union);
-        }
 
-        try {
             const mongaResult = await mongalayer.execute<FilterTest>({
                 database: globalThis.$mdb.db,
-                collection: "filterTests",
+                collection: "filterTest",
                 operation: "findOne",
                 payload: {
-                    filter: {
-                        property: operator
-                    }
+                    filter
                 }
             }, {});
 
             if (success) {
+                expect(mongaResult).toBeDefined();
+                expect(mongaResult).toHaveProperty('_id', 'a');
+            } else {
                 expect(mongaResult).toBeNull();
-            } else {
-                throw "mongalayer.execute should have thrown an error";
             }
-        } catch (e) {
-            if (!success && isMongoServerError(e)) {
-                if (exceptions) {
-                    expect(e.code).toBe(exceptions.mongodb.code);
-                    expect(e.codeName).toBe(exceptions.mongodb.codeName);
-                    expect(e.message.startsWith(exceptions.mongodb.message)).toBe(true);
-                } else {    
-                    expect(e.code).toBe(2);
-                    expect(e.codeName).toBe('BadValue');
-                    expect(e.message).toBe("");
-                }
-            } else {
-                throw e;
-            }
-        }
+        });
     });
 });

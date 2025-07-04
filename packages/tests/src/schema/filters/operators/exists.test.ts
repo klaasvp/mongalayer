@@ -1,43 +1,32 @@
 import { z } from 'zod';
-import { filterOperatorsSchema } from '../../../../../server/src/actions/schema';
-import { Mongalayer, MongalayerCollection, MongalayerCollections } from '@mongalayer/server';
-import { FilterTest, filterTestsSchema } from '../../../../data/filterTests';
-import { isMongoServerError } from './helper';
-
-const valuesTable = [
-    { value: 42, success: false, message: `should not validate with number`},
-    { value: "a", success: false, message: `should not validate with string`},
-    { value: true, success: true, message: `should validate with true`},
-    { value: false, success: true, message: `should validate with false`},
-    { value: "false", success: false, message: `should not validate with "false"`},
-    { value: "true", success: false, message: `should not validate with "true"`},
-    { value: 0, success: false, message: `should not validate with 0`},
-    { value: null, success: false, message: `should not validate with null`},
-    { value: [1, 2, 3], success: false, message: `should not validate with array`},
-    { value: { key: 'value' }, success: false, message: `should not validate with object`},
-];
+import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
+import { Mongalayer } from '@mongalayer/server';
+import { FilterTest} from '../../../../data/filterTest';
+import { getMongaLayerForFilterTest } from './helper';
 
 describe('filter operators - $exists', () => {
     let mongalayer: Mongalayer;
 
     beforeAll(async () => {
-        const filterTestsCollection: MongalayerCollection<FilterTest> = {
-            schema: filterTestsSchema,
-            access: []
-        };
-
-        const collections: MongalayerCollections = {
-            filterTests: filterTestsCollection
-        }
-
-        mongalayer = new Mongalayer(globalThis.$mdb.client, collections, {
-            //debugging: true,
-            useSessions: true
-        });
+        mongalayer = getMongaLayerForFilterTest();
     });
 
-    test.each(valuesTable)('$message', async ({ value, success }) => {
-        const operator = { $exists: value };
+    const valuesTable = [
+        { value: 42, success: false, message: `should not validate with number`},
+        { value: "a", success: false, message: `should not validate with string`},
+        { value: true, success: true, message: `should validate with true`},
+        { value: false, success: true, message: `should validate with false`},
+        { value: "false", success: false, message: `should not validate with "false"`},
+        { value: "true", success: false, message: `should not validate with "true"`},
+        { value: 0, success: false, message: `should not validate with 0`},
+        { value: null, success: false, message: `should not validate with null`},
+        { value: [1, 2, 3], success: false, message: `should not validate with array`},
+        { value: { key: 'value' }, success: false, message: `should not validate with object`},
+    ];
+
+    describe('validation', () => {
+        test.each(valuesTable)('$message', async ({ value, success }) => {
+            const operator = { $exists: value };
 
             const zodResult = filterOperatorsSchema.safeParse(operator);
 
@@ -50,7 +39,7 @@ describe('filter operators - $exists', () => {
 
             const mongaResult = await mongalayer.execute<FilterTest>({
                 database: globalThis.$mdb.db,
-                collection: "filterTests",
+                collection: "schemaTest",
                 operation: "findOne",
                 payload: {
                     filter: {
@@ -61,5 +50,37 @@ describe('filter operators - $exists', () => {
 
             // Apparently the server does not return an error for weird values, but just an empty result
             expect(mongaResult).toBeNull();
+        });
+    });
+
+    const dbTestTable = [
+        { filter: { name: { $exists: true } }, success: true, message: `"name: true" should return _id a`},
+        { filter: { property: { $exists: true } }, success: false, message: `"property: true" should not return anything`},
+        { filter: { property: { $exists: false } }, success: true, message: `"property: false" should return _id a`},
+    ];
+
+    describe('on database', () => {
+        test.each(dbTestTable)('$message', async ({ filter, success }) => {
+            const zodResult = filterSchema.safeParse(filter);
+
+            // Database tests should always be a valid schema
+            expect(zodResult.success).toBe(true);
+
+            const mongaResult = await mongalayer.execute<FilterTest>({
+                database: globalThis.$mdb.db,
+                collection: "filterTest",
+                operation: "findOne",
+                payload: {
+                    filter
+                }
+            }, {});
+
+            if (success) {
+                expect(mongaResult).toBeDefined();
+                expect(mongaResult).toHaveProperty('_id', 'a');
+            } else {
+                expect(mongaResult).toBeNull();
+            }
+        });
     });
 });
