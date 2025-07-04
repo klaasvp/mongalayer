@@ -2,14 +2,18 @@ import z from "zod/v4";
 import { $geometryBoundsSchema, $geometryNearSchema, positionSchema } from "../schema/geo.js";
 import { BSONTypeAliasSchema, BSONTypeSchema } from "../schema/bson.js";
 
-type JSONValue = string | number | boolean | null | { [key: string]: JSONValue } | JSONValue[] | undefined;
+type JSONValue = string | number | boolean | null | { [key: string]: JSONValue } | JSONValue[];
 
-export const documentValueSchema = z.lazy(() => z.union([
+export const documentScalarSchema = z.union([
     z.string(),
     z.number(),
     z.boolean(),
     z.null(),
-    z.undefined(),
+    //z.undefined() -> JSON which will be the payload does not support undefined
+]);
+
+export const documentValueSchema = z.lazy(() => z.union([
+    documentScalarSchema,
     z.array(documentValueSchema),
     z.record(z.string(), documentValueSchema)
 ])) as z.ZodType<JSONValue>;
@@ -23,13 +27,13 @@ export const alternativeSchema = z.lazy(() => z.union([
     z.array(documentSchema)
 ]));
 
-const bitwiseSchema = z.union([
+const bitwiseSchema = z.union([ 
     z.number(),
     // z.instanceof(Binary), -> Binary not supported yet
     z.array(z.number()).readonly()
 ]);
 
-const filterOperatorsSchema = z.object({ // Not strict as it's combined with documentSchema
+export const filterOperatorsSchema = z.object({ // Not strict as it's combined with documentSchema
     get $eq (): typeof documentValueSchema { return documentValueSchema },
     get $gt (): typeof documentValueSchema { return documentValueSchema },
     get $gte (): typeof documentValueSchema { return documentValueSchema },
@@ -40,7 +44,7 @@ const filterOperatorsSchema = z.object({ // Not strict as it's combined with doc
     get $nin (): z.ZodArray<typeof documentValueSchema> { return z.array(documentValueSchema) },
     get $not (): z.ZodLazy<typeof filterOperatorsSchemaExcludingNot> {
         // z.instanceof(RegExp) excluded -> RegExp not supported yet
-        
+
         // Where omitting $not from the schema to avoid infinite recursion
         return z.lazy(() => filterOperatorsSchemaExcludingNot);
     },
@@ -50,11 +54,12 @@ const filterOperatorsSchema = z.object({ // Not strict as it's combined with doc
         BSONTypeAliasSchema
     ]),
     // $expr: documentSchema, -> $expr not supported yet, this is a highly complex one
+    $expr: z.never(),
     $jsonSchema: documentSchema,
     $mod: z.tuple([ z.number(), z.number() ]),
-    $regex: z.union([ 
+    $regex: z.union([
         // z.instanceof(RegExp), -> RegExp not supported yet
-        z.string() 
+        z.string()
     ]),
     $options: z.string(),
     $geoIntersects: z.strictObject({
@@ -81,7 +86,7 @@ const filterOperatorsSchema = z.object({ // Not strict as it's combined with doc
     ]),
     $maxDistance: z.number(),
     // Keep it basic for now
-    get $all(): z.ZodArray<typeof documentSchema> { return z.array(documentSchema) },
+    get $all(): z.ZodArray<typeof documentValueSchema> { return z.array(documentValueSchema) },
     get $elemMatch(): typeof documentSchema { return documentSchema },
     $size: z.number(),
     $bitsAllClear: bitwiseSchema,
