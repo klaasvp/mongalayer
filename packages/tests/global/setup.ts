@@ -2,7 +2,7 @@ import { MongoClient, ServerApiVersion } from "mongodb";
 import { getRandomUsers, User } from "../data/user";
 import { getRandomProjects, Project } from "../data/project";
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { FilterTest, getFilterTests } from "../data/filterTest";
+import { exampleObject1, FilterTest, getFilterTests } from "../data/filterTest";
 import { SchemaTest } from "../data/schemaTest";
 
 const dbName = "test";
@@ -31,6 +31,7 @@ export default async function (globalConfig: any, projectConfig: any) {
     await database.collection<User>("users").insertMany(userObjects);
     await database.collection<Project>("projects").insertMany(projectObjects); 
     await database.collection<FilterTest>("filterTest").insertMany(filterTestObjects);
+    await database.collection<FilterTest>("filterTestSolo").insertOne(exampleObject1);
     await database.createCollection<SchemaTest>("schemaTest");
 
     globalThis.$md = mongod;
