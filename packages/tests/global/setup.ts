@@ -28,6 +28,7 @@ export default async function (globalConfig: any, projectConfig: any) {
 
     await database.collection<User>("users").insertMany(userObjects);
     await database.collection<Project>("projects").insertMany(projectObjects); 
+    await database.createCollection("filterTests");
 
     globalThis.$md = mongod;
     globalThis.$mdb = {
