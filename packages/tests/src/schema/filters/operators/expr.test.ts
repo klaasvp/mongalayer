@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import { filterOperatorsSchema } from '../../../../../server/src/actions/schema';
+import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
 import { getMongaLayerForFilterTest } from './helper';
 import { SchemaTest } from '../../../../data/schemaTest';
@@ -24,7 +24,7 @@ describe('filter operators - $expr', () => {
         test.each(valuesTable)('$message', async ({ value, success }) => {
             const operator = { $expr: value };
 
-            const zodResult = filterOperatorsSchema.safeParse(operator);
+            const zodResult = filterSchema.safeParse(operator);
 
             if (success) { 
                 expect(zodResult.success).toBe(true);
