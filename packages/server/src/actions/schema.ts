@@ -33,7 +33,7 @@ const bitwiseSchema = z.union([
     z.array(z.number()).readonly()
 ]);
 
-export const filterOperatorsSchema = z.object({ // Not strict as it's combined with documentSchema
+export const filterOperatorsSchema = z.strictObject({ // Not strict as it's combined with documentSchema
     get $eq (): typeof documentValueSchema { return documentValueSchema },
     get $gt (): typeof documentValueSchema { return documentValueSchema },
     get $gte (): typeof documentValueSchema { return documentValueSchema },
