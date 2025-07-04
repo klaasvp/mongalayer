@@ -53,8 +53,6 @@ export const filterOperatorsSchema = z.object({ // Not strict as it's combined w
         BSONTypeSchema,
         BSONTypeAliasSchema
     ]),
-    // $expr: documentSchema, -> $expr not supported yet, this is a highly complex one
-    $expr: z.never(),
     $jsonSchema: documentSchema,
     $mod: z.tuple([ z.number(), z.number() ]),
     $regex: z.union([
@@ -108,6 +106,8 @@ export const filterSchema = filterConditionSchema.and(documentSchema).and(
         get $and (): z.ZodLazy<z.ZodArray<typeof filterSchema>> { return z.lazy(() => filterSchema.array()) },
         get $nor (): z.ZodLazy<z.ZodArray<typeof filterSchema>> { return z.lazy(() => filterSchema.array()) },
         get $or (): z.ZodLazy<z.ZodArray<typeof filterSchema>> { return z.lazy(() => filterSchema.array()) },
+        // $expr: documentSchema, -> $expr not supported yet, this is a highly complex one
+        $expr: z.never(),
         // No additional properties allowed here
         $text: z.strictObject({
             $search: z.string(),
