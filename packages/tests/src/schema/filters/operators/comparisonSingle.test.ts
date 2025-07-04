@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { filterOperatorsSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer, MongalayerCollection, MongalayerCollections } from '@mongalayer/server';
-import { FilterTests, filterTestsSchema } from '../../../../data/filterTests';
+import { FilterTest, filterTestsSchema } from '../../../../data/filterTests';
 import { isMongoServerError } from './helper';
 
 const operatorsTable = [
@@ -29,7 +29,7 @@ describe('filter operators - Comparison single', () => {
     let mongalayer: Mongalayer;
 
     beforeAll(async () => {
-        const filterTestsCollection: MongalayerCollection<FilterTests> = {
+        const filterTestsCollection: MongalayerCollection<FilterTest> = {
             schema: filterTestsSchema,
             access: []
         };
@@ -58,7 +58,7 @@ describe('filter operators - Comparison single', () => {
             }
 
             try { 
-                const mongaResult = await mongalayer.execute<FilterTests>({
+                const mongaResult = await mongalayer.execute<FilterTest>({
                     database: globalThis.$mdb.db,
                     collection: "filterTests",
                     operation: "findOne",
