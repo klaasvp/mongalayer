@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
 import { exampleObject1, exampleObject2, FilterTest } from '../../../../data/filterTest';
-import { getMongaLayerForFilterTest, isMongoServerError } from '../helper';
+import { getMongaLayerForFilterTest, isMongoServerError, MongoDBException, ZodException } from '../helper';
 import { SchemaTest } from '../../../../data/schemaTest';
 
 describe('filter operators - $not', () => {
@@ -12,22 +12,25 @@ describe('filter operators - $not', () => {
         mongalayer = getMongaLayerForFilterTest();
     });
 
-    const valuesTable = [
+    const valuesTable: { value: any, success: boolean, message: string, exceptions?: { zod?: ZodException, mongodb?: MongoDBException } }[] = [
         { value: { $eq: 42 }, success: true, message: 'should validate with $eq' },
         { value: { $in: [10] }, success: true, message: 'should validate with $in' },
-        { value: { $invalid: 42 }, success: false, message: 'should invalidate with invalid operator', zodError: "unrecognized_keys", exceptions: {
-            mongodb: { code: 2, codeName: "BadValue", message: "unknown operator: " }
+        { value: { $invalid: 42 }, success: false, message: 'should invalidate with invalid operator', exceptions: {
+            mongodb: { code: 2, codeName: "BadValue", message: "unknown operator: " },
+            zod: { code: "custom", message: 'Invalid filter operator' }
         }  },
-        { value: null, success: false, message: 'should invalidate with null', zodError: "invalid_type", exceptions: {
-            mongodb: { code: 2, codeName: "BadValue", message: "$not argument must be a regex or an object" }
+        { value: null, success: false, message: 'should invalidate with null', exceptions: {
+            mongodb: { code: 2, codeName: "BadValue", message: "$not argument must be a regex or an object" },
+            zod: { code: "invalid_type", message: 'Invalid input: expected object, received null' }
         }  },
-        { value: { $not: 42 }, success: false, message: 'should invalidate with nested $not', zodError: "unrecognized_keys", exceptions: {
-            mongodb: { code: 2, codeName: "BadValue", message: "$not argument must be a regex or an object" }
+        { value: { $not: 42 }, success: false, message: 'should invalidate with nested $not', exceptions: {
+            mongodb: { code: 2, codeName: "BadValue", message: "$not argument must be a regex or an object" },
+            zod: { code: "custom", message: 'Invalid filter operator' }
         } },
     ];
 
     describe('validation', () => {
-        test.each(valuesTable)('$message', async ({ value, success, message, zodError, exceptions }) => {
+        test.each(valuesTable)('$message', async ({ value, success, message, exceptions }) => {
             const operator = { $not: value };
 
             const zodResult = filterOperatorsSchema.safeParse(operator);
@@ -36,7 +39,8 @@ describe('filter operators - $not', () => {
                 expect(zodResult.success).toBe(true);
             } else {
                 expect(zodResult.success).toBe(false);
-                expect(zodResult.error!.issues[0]).toHaveProperty('code', zodError);
+                expect(zodResult.error!.issues[0]).toHaveProperty('code', exceptions?.zod?.code);
+                expect(zodResult.error!.issues[0].message).toBe(exceptions?.zod?.message);
             }
 
             try { 
@@ -58,7 +62,7 @@ describe('filter operators - $not', () => {
                 }
             } catch (e) {
                 if (!success && isMongoServerError(e)) {
-                    if (exceptions) {
+                    if (exceptions && exceptions.mongodb) {
                         expect(e.code).toBe(exceptions.mongodb.code);
                         expect(e.codeName).toBe(exceptions.mongodb.codeName);
                         expect(e.message.startsWith(exceptions.mongodb.message)).toBe(true);
