@@ -46,7 +46,7 @@ describe('filter - basis', () => {
 
             try {
                 const mongaResult = await mongalayer.execute<SchemaTest>({
-                    database: globalThis.$mdb.db,
+                    database: globalThis.$mdb.name,
                     collection: "schemaTest",
                     operation: "findOne",
                     payload: {

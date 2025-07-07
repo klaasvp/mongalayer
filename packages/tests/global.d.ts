@@ -12,7 +12,7 @@ declare global {
 
     var $mdb: {
         client: MongoClient,
-        db: string,
+        name: string,
         objects: {
             users: User[],
             projects: Project[],

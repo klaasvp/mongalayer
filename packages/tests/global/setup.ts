@@ -37,7 +37,7 @@ export default async function (globalConfig: any, projectConfig: any) {
     globalThis.$md = mongod;
     globalThis.$mdb = {
         client,
-        db: dbName,
+        name: dbName,
         objects: {
             users: userObjects,
             projects: projectObjects,

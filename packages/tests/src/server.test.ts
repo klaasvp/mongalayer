@@ -20,7 +20,7 @@ describe('Schema missing', () => {
 
     test("random test", async () => {
         const result = await mongalayer.execute<User>({
-            database: globalThis.$mdb.db,
+            database: globalThis.$mdb.name,
             collection: "users",
             operation: "findOne",
             payload: {
@@ -53,7 +53,7 @@ describe('Access empty', () => {
 
     test("findOne - No filters", async () => {
         const result = await mongalayer.execute<User>({
-            database: globalThis.$mdb.db,
+            database: globalThis.$mdb.name,
             collection: "users",
             operation: "findOne",
             payload: {
@@ -66,7 +66,7 @@ describe('Access empty', () => {
 
     test("findOne - _id filter - existing", async () => {
         const result = await mongalayer.execute<User>({
-            database: globalThis.$mdb.db,
+            database: globalThis.$mdb.name,
             collection: "users",
             operation: "findOne",
             payload: {
@@ -81,7 +81,7 @@ describe('Access empty', () => {
 
     test("findOne - _id filter - non-existing", async () => {
         const result = await mongalayer.execute<User>({
-            database: globalThis.$mdb.db,
+            database: globalThis.$mdb.name,
             collection: "users",
             operation: "findOne",
             payload: {
@@ -130,7 +130,7 @@ describe('Access user', () => {
 
     test("findOne - self filter", async () => {
         const result = await mongalayer.execute<User>({
-            database: globalThis.$mdb.db,
+            database: globalThis.$mdb.name,
             collection: "users",
             operation: "findOne",
             payload: {
@@ -145,7 +145,7 @@ describe('Access user', () => {
 
     test("findOne - other filter", async () => {
         const result = await mongalayer.execute<User>({
-            database: globalThis.$mdb.db,
+            database: globalThis.$mdb.name,
             collection: "users",
             operation: "findOne",
             payload: {
@@ -195,7 +195,7 @@ describe('Access project - user owner', () => {
 
     test("findOne - project as owner = project", async () => {
         const result = await mongalayer.execute<User>({
-            database: globalThis.$mdb.db,
+            database: globalThis.$mdb.name,
             collection: "projects",
             operation: "findOne",
             payload: {
@@ -210,7 +210,7 @@ describe('Access project - user owner', () => {
 
     test("findOne - project not as owner = null", async () => {
         const result = await mongalayer.execute<User>({
-            database: globalThis.$mdb.db,
+            database: globalThis.$mdb.name,
             collection: "projects",
             operation: "findOne",
             payload: {

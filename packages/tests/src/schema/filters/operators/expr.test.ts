@@ -34,7 +34,7 @@ describe('filter operators - $expr', () => {
             }
 
             const mongaResult = await mongalayer.execute<SchemaTest>({
-                database: globalThis.$mdb.db,
+                database: globalThis.$mdb.name,
                 collection: "schemaTest",
                 operation: "findOne",
                 payload: {

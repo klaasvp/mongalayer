@@ -38,7 +38,7 @@ describe('filter operators - $exists', () => {
             }
 
             const mongaResult = await mongalayer.execute<FilterTest>({
-                database: globalThis.$mdb.db,
+                database: globalThis.$mdb.name,
                 collection: "schemaTest",
                 operation: "findOne",
                 payload: {
@@ -67,7 +67,7 @@ describe('filter operators - $exists', () => {
             expect(zodResult.success).toBe(true);
 
             const mongaResult = await mongalayer.execute<FilterTest>({
-                database: globalThis.$mdb.db,
+                database: globalThis.$mdb.name,
                 collection: "filterTest",
                 operation: "findOne",
                 payload: {

@@ -28,7 +28,7 @@ describe('Find One', () => {
 
     test("filter - _id = _id", async () => {
         const result = await mongalayer.execute<User>({
-            database: globalThis.$mdb.db,
+            database: globalThis.$mdb.name,
             collection: "projects",
             operation: "findOne",
             payload: {
@@ -43,7 +43,7 @@ describe('Find One', () => {
 
     test("filter - _id $in [ _id ]", async () => {
         const result = await mongalayer.execute<User>({
-            database: globalThis.$mdb.db,
+            database: globalThis.$mdb.name,
             collection: "projects",
             operation: "findOne",
             payload: {
@@ -59,7 +59,7 @@ describe('Find One', () => {
     test("filter - $text.[idontexistprop] _id", async () => {
         try {
             await mongalayer.execute<User>({
-                database: globalThis.$mdb.db,
+                database: globalThis.$mdb.name,
                 collection: "projects",
                 operation: "findOne",
                 payload: {
@@ -85,7 +85,7 @@ describe('Find One', () => {
     test("filter - $text.$search missing", async () => {
         try {
             await mongalayer.execute<User>({
-                database: globalThis.$mdb.db,
+                database: globalThis.$mdb.name,
                 collection: "projects",
                 operation: "findOne",
                 payload: {

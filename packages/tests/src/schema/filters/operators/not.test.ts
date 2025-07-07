@@ -41,7 +41,7 @@ describe('filter operators - $not', () => {
 
             try { 
                 const mongaResult = await mongalayer.execute<SchemaTest>({
-                    database: globalThis.$mdb.db,
+                    database: globalThis.$mdb.name,
                     collection: "schemaTest",
                     operation: "findOne",
                     payload: {
@@ -86,7 +86,7 @@ describe('filter operators - $not', () => {
             expect(zodResult.success).toBe(true);
 
             const mongaResult = await mongalayer.execute<FilterTest>({
-                database: globalThis.$mdb.db,
+                database: globalThis.$mdb.name,
                 collection: "filterTestSolo",
                 operation: "findOne",
                 payload: {

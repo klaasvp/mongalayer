@@ -68,7 +68,7 @@ describe("filter operators - Comparison multiple", () => {
 
                 try { 
                     const mongaResult = await mongalayer.execute<FilterTest>({
-                        database: globalThis.$mdb.db,
+                        database: globalThis.$mdb.name,
                         collection: "schemaTest",
                         operation: "findOne",
                         payload: {
@@ -103,7 +103,7 @@ describe("filter operators - Comparison multiple", () => {
                 expect(zodResult.success).toBe(true);
     
                 const mongaResult = await mongalayer.execute<FilterTest>({
-                    database: globalThis.$mdb.db,
+                    database: globalThis.$mdb.name,
                     collection: "filterTestSolo",
                     operation: "findOne",
                     payload: {
