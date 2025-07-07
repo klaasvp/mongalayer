@@ -38,6 +38,7 @@ export default async function (globalConfig: any, projectConfig: any) {
     globalThis.$mdb = {
         client,
         name: dbName,
+        db: database,
         objects: {
             users: userObjects,
             projects: projectObjects,

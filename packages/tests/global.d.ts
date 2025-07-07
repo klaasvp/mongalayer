@@ -1,4 +1,4 @@
-import { MongoClient } from "mongodb";
+import { Db, MongoClient } from "mongodb";
 import { User } from "./data/user.ts";
 import { Project } from "./data/project.ts";
 import { MongoMemoryServer } from "mongodb-memory-server";
@@ -13,6 +13,7 @@ declare global {
     var $mdb: {
         client: MongoClient,
         name: string,
+        db: Db,
         objects: {
             users: User[],
             projects: Project[],
