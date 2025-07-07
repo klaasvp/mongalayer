@@ -4,28 +4,32 @@ import { BSONTypeAliasSchema, BSONTypeSchema } from "../schema/bson.js";
 
 type JSONValue = string | number | boolean | null | { [key: string]: JSONValue } | JSONValue[];
 
-export const documentScalarSchema = z.union([
+const operatorKeys = [
+    "$eq", "$gt", "$gte", "$in", "$lt", "$lte", "$ne", "$nin", "$not", 
+    "$exists", "$type", "$jsonSchema", "$mod", "$regex", "$options", "$all", "$elemMatch", "$size",
+    "$bitsAllClear", "$bitsAllSet", "$bitsAnyClear", "$bitsAnySet", "$rand", 
+    "$geoIntersects", "$geoWithin", "$near", "$nearSphere", "$maxDistance" 
+];
+
+const rootOperatorKeys = [ "$text", "$and", "$or", "$nor" ];
+
+const withoutOperatorKeys = z.string().regex(/^[^$]/);
+
+/*export const documentScalarSchema = z.union([
+    
+]);*/
+
+export const documentValueSchema = z.lazy(() => z.union([
     z.string(),
     z.number(),
     z.boolean(),
     z.null(),
-    //z.undefined() -> JSON which will be the payload does not support undefined
-]);
-
-export const documentValueSchema = z.lazy(() => z.union([
-    documentScalarSchema,
+    //z.undefined() -> JSON which will be the payload does not support undefined,
     z.array(documentValueSchema),
-    z.record(z.string(), documentValueSchema)
+    z.record(withoutOperatorKeys, documentValueSchema)
 ])) as z.ZodType<JSONValue>;
 
-export const documentSchema = z.record(z.string(), documentValueSchema);
-
-export const alternativeSchema = z.lazy(() => z.union([
-    documentSchema,
-    // z.instanceof(RegExp), -> RegExp not supported yet
-    z.string(),
-    z.array(documentSchema)
-]));
+export const documentSchema = z.record(withoutOperatorKeys, documentValueSchema);
 
 const bitwiseSchema = z.union([ 
     z.number(),
@@ -33,7 +37,7 @@ const bitwiseSchema = z.union([
     z.array(z.number()).readonly()
 ]);
 
-export const filterOperatorsSchema = z.strictObject({ // Not strict as it's combined with documentSchema
+const filterOperatorsSchemaBase = z.object({ // Not strict as it's combined with documentSchema
     get $eq (): typeof documentValueSchema { return documentValueSchema },
     get $gt (): typeof documentValueSchema { return documentValueSchema },
     get $gte (): typeof documentValueSchema { return documentValueSchema },
@@ -53,7 +57,7 @@ export const filterOperatorsSchema = z.strictObject({ // Not strict as it's comb
         BSONTypeSchema,
         BSONTypeAliasSchema
     ]),
-    $jsonSchema: documentSchema,
+    get $jsonSchema(): z.ZodLazy<typeof documentSchema> { return z.lazy(() => documentSchema) },
     $mod: z.tuple([ z.number(), z.number() ]),
     $regex: z.union([
         // z.instanceof(RegExp), -> RegExp not supported yet
@@ -85,7 +89,7 @@ export const filterOperatorsSchema = z.strictObject({ // Not strict as it's comb
     $maxDistance: z.number(),
     // Keep it basic for now
     get $all(): z.ZodArray<typeof documentValueSchema> { return z.array(documentValueSchema) },
-    get $elemMatch(): typeof documentSchema { return documentSchema },
+    get $elemMatch(): z.ZodLazy<typeof documentSchema> { return z.lazy(() => documentSchema) },
     $size: z.number(),
     $bitsAllClear: bitwiseSchema,
     $bitsAllSet: bitwiseSchema,
@@ -94,18 +98,27 @@ export const filterOperatorsSchema = z.strictObject({ // Not strict as it's comb
     $rand: z.strictObject({})
 }).partial();
 
-const filterOperatorsSchemaExcludingNot = filterOperatorsSchema.omit({ $not: true });
+export const filterOperatorsSchema = filterOperatorsSchemaBase.catchall(documentValueSchema).refine(
+    (data) => Object.keys(data).every(key => !key.startsWith("$") || operatorKeys.includes(key)),
+    { message: "Invalid filter operator" }
+)
 
-const filterOperatorsDocumentSchema = filterOperatorsSchema.and(documentSchema);
+const filterOperatorsSchemaExcludingNot = filterOperatorsSchemaBase.omit({ $not: true }).catchall(documentValueSchema).refine(
+    (data) => Object.keys(data).every(key => !key.startsWith("$") || (key !== "$not" && operatorKeys.includes(key))),
+    { message: "Invalid filter operator" }
+)
 
-export const filterConditionSchema = z.record(z.string(), documentValueSchema.or(filterOperatorsDocumentSchema));
-
-export const filterSchema = filterConditionSchema.and(documentSchema).and(
+/*
+export declare type Filter<TSchema> = {
+    [P in keyof WithId<TSchema>]?: Condition<WithId<TSchema>[P]>;
+} & RootFilterOperators<WithId<TSchema>>;
+*/
+export const filterSchema = 
     // Not strict as it's combined with documentSchema which is Record<string, ...>
     z.object({
-        get $and (): z.ZodLazy<z.ZodArray<typeof filterSchema>> { return z.lazy(() => filterSchema.array()) },
-        get $nor (): z.ZodLazy<z.ZodArray<typeof filterSchema>> { return z.lazy(() => filterSchema.array()) },
-        get $or (): z.ZodLazy<z.ZodArray<typeof filterSchema>> { return z.lazy(() => filterSchema.array()) },
+        get $and (): z.ZodLazy<z.ZodArray<typeof filterSchema>> { return z.lazy(() => filterSchema.array().min(1)) },
+        get $nor (): z.ZodLazy<z.ZodArray<typeof filterSchema>> { return z.lazy(() => filterSchema.array().min(1)) },
+        get $or (): z.ZodLazy<z.ZodArray<typeof filterSchema>> { return z.lazy(() => filterSchema.array().min(1)) },
         // $expr: documentSchema, -> $expr not supported yet, this is a highly complex one
         $expr: z.never(),
         // No additional properties allowed here
@@ -117,8 +130,12 @@ export const filterSchema = filterConditionSchema.and(documentSchema).and(
         })
         // $where is excluded
         // $comment is excluded
-    }).partial()
-)
+    }).partial().catchall(documentValueSchema.or(filterOperatorsSchema)).refine(
+        (data) => Object.keys(data).every(key => !key.startsWith("$") || rootOperatorKeys.includes(key)),
+        { message: "Invalid filter root operator" }
+    )
+
+type Test1 = z.infer<typeof filterSchema>
 
 export type Projection = { [key: string]: 0 | 1 | boolean | Projection }
 
