@@ -2,9 +2,28 @@ import { z } from 'zod';
 import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
 import { FilterTest} from '../../../../data/filterTest';
-import { getMongaLayerForFilterTest } from '../helper';
+import { DbTest, getMongaLayerForFilterTest, ValueTest } from '../helper';
 import { beforeAll, describe, expect, test } from '@jest/globals';
 import { SchemaTest } from '../../../../data/schemaTest';
+
+const valuesTable: ValueTest[] = [
+    { value: 42, success: false, message: `should not validate with number`},
+    { value: "a", success: false, message: `should not validate with string`},
+    { value: true, success: true, message: `should validate with true`},
+    { value: false, success: true, message: `should validate with false`},
+    { value: "false", success: false, message: `should not validate with "false"`},
+    { value: "true", success: false, message: `should not validate with "true"`},
+    { value: 0, success: false, message: `should not validate with 0`},
+    { value: null, success: false, message: `should not validate with null`},
+    { value: [1, 2, 3], success: false, message: `should not validate with array`},
+    { value: { key: 'value' }, success: false, message: `should not validate with object`},
+];
+
+const dbTestTable: DbTest[] = [
+    { filter: { name: { $exists: true } }, success: true, message: `"name: true" should return _id a`},
+    { filter: { property: { $exists: true } }, success: false, message: `"property: true" should not return anything`},
+    { filter: { property: { $exists: false } }, success: true, message: `"property: false" should return _id a`},
+];
 
 describe('filter operators - $exists', () => {
     let mongalayer: Mongalayer, database = globalThis.$mdb.db;
@@ -12,19 +31,6 @@ describe('filter operators - $exists', () => {
     beforeAll(async () => {
         mongalayer = getMongaLayerForFilterTest({ debugging: true });
     });
-
-    const valuesTable = [
-        { value: 42, success: false, message: `should not validate with number`},
-        { value: "a", success: false, message: `should not validate with string`},
-        { value: true, success: true, message: `should validate with true`},
-        { value: false, success: true, message: `should validate with false`},
-        { value: "false", success: false, message: `should not validate with "false"`},
-        { value: "true", success: false, message: `should not validate with "true"`},
-        { value: 0, success: false, message: `should not validate with 0`},
-        { value: null, success: false, message: `should not validate with null`},
-        { value: [1, 2, 3], success: false, message: `should not validate with array`},
-        { value: { key: 'value' }, success: false, message: `should not validate with object`},
-    ];
 
     describe('validation', () => {
         test.each(valuesTable)('$message', async ({ value, success }) => {
@@ -47,12 +53,6 @@ describe('filter operators - $exists', () => {
             expect(result).toBeNull();
         });
     });
-
-    const dbTestTable = [
-        { filter: { name: { $exists: true } }, success: true, message: `"name: true" should return _id a`},
-        { filter: { property: { $exists: true } }, success: false, message: `"property: true" should not return anything`},
-        { filter: { property: { $exists: false } }, success: true, message: `"property: false" should return _id a`},
-    ];
 
     describe('on filterTestSolo collection', () => {
         test.each(dbTestTable)('$message', async ({ filter, success }) => {

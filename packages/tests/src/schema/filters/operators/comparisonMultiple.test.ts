@@ -2,7 +2,7 @@ import { z } from 'zod/v4';
 import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
 import { exampleObject1, FilterTest } from '../../../../data/filterTest';
-import { getMongaLayerForFilterTest, isMongoServerError } from '../helper';
+import { DbTest, getMongaLayerForFilterTest, isMongoServerError, ValueTest } from '../helper';
 import { Filter } from 'mongodb';
 import { beforeAll, describe, expect, test } from '@jest/globals';
 import { SchemaTest } from '../../../../data/schemaTest';
@@ -14,7 +14,7 @@ const operatorsTable: [Operator][] = [
     ["$nin"]
 ];
 
-const valuesTable = [
+const valuesTable: ValueTest[] = [
     { value: [1, 2, 3], success: true, message: `should validate with numbers array`},
     { value: ["a", "b", "c"], success: true, message: `should validate with strings array`},
     { value: [true, false], success: true, message: `should validate with booleans array`},
@@ -28,7 +28,7 @@ const valuesTable = [
     { value: { key: 'value' }, success: false, message: `should invalidate with object`},
 ];
 
-const dbTestTables: Record<Operator, { filter: Filter<FilterTest>, success: boolean, message: string }[]> = {
+const dbTestTables: Record<Operator, DbTest[]> = {
     $in: [
         // Match scaler
         { filter: { _id: { $in: [exampleObject1._id, ""] } }, success: true, message: `"_id in list" should return _id a`},

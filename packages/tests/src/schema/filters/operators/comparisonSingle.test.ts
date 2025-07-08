@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
 import { exampleObject1, FilterTest } from '../../../../data/filterTest';
-import { getMongaLayerForFilterTest, isMongoServerError } from '../helper';
+import { DbTest, getMongaLayerForFilterTest, isMongoServerError, ValueTest } from '../helper';
 import { Filter } from 'mongodb';
 import { beforeAll, describe, expect, test } from '@jest/globals';
 import { SchemaTest } from '../../../../data/schemaTest';
@@ -18,7 +18,7 @@ const operatorsTable: [Operator][] = [
     ["$ne"]
 ];
 
-const valuesTable = [
+const valuesTable: ValueTest[] = [
     { value: 42, success: true, message: `should validate with number`},
     { value: "a", success: true, message: `should validate with string`},
     { value: true, success: true, message: `should validate with boolean`},
@@ -30,7 +30,7 @@ const valuesTable = [
     { value: [1, "a", true, null, [1, 2, 3], { key: 'value' }], success: true, message: `should validate with mixed array`},
 ];
 
-const dbTestTables: Record<Operator, { filter: Filter<FilterTest>, success: boolean, message: string }[]> = {
+const dbTestTables: Record<Operator, DbTest[]> = {
     $eq: [
         { filter: { name: { $eq: exampleObject1.name } }, success: true, message: `"name === name" should return _id a`},
         { filter: { name: { $eq: "" } }, success: false, message: `"name !== ''" should not return anything`}

@@ -2,9 +2,31 @@ import { z } from 'zod/v4';
 import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
 import { exampleObject1, exampleObject2, FilterTest } from '../../../../data/filterTest';
-import { getMongaLayerForFilterTest, isMongoServerError, MongoDBException, ZodException } from '../helper';
+import { DbTest, getMongaLayerForFilterTest, isMongoServerError, ValueTest } from '../helper';
 import { SchemaTest } from '../../../../data/schemaTest';
 import { beforeAll, describe, expect, test } from '@jest/globals';
+
+const valuesTable: ValueTest[] = [
+    { value: { $eq: 42 }, success: true, message: 'should validate with $eq' },
+    { value: { $in: [10] }, success: true, message: 'should validate with $in' },
+    { value: { $invalid: 42 }, success: false, message: 'should invalidate with invalid operator', exceptions: {
+        mongodb: { code: 2, codeName: "BadValue", message: "unknown operator: " },
+        zod: { code: "custom", message: 'Invalid filter operator' }
+    }  },
+    { value: null, success: false, message: 'should invalidate with null', exceptions: {
+        mongodb: { code: 2, codeName: "BadValue", message: "$not argument must be a regex or an object" },
+        zod: { code: "invalid_type", message: 'Invalid input: expected object, received null' }
+    }  },
+    { value: { $not: 42 }, success: false, message: 'should invalidate with nested $not', exceptions: {
+        mongodb: { code: 2, codeName: "BadValue", message: "$not argument must be a regex or an object" },
+        zod: { code: "custom", message: 'Invalid filter operator' }
+    } },
+];
+
+const dbTestTable: DbTest[] = [
+    { filter: { name: { $not: { $eq: exampleObject2.name } } }, success: true, message: 'should validate with $not $eq' },
+    { filter: { name: { $not: { $eq: exampleObject1.name } } }, success: false, message: 'should not validate with $not $eq' }
+];
 
 describe('filter operators - $not', () => {
     let mongalayer: Mongalayer, database = globalThis.$mdb.db;
@@ -12,23 +34,6 @@ describe('filter operators - $not', () => {
     beforeAll(async () => {
         mongalayer = getMongaLayerForFilterTest({ debugging: true });
     });
-
-    const valuesTable: { value: any, success: boolean, message: string, exceptions?: { zod?: ZodException, mongodb?: MongoDBException } }[] = [
-        { value: { $eq: 42 }, success: true, message: 'should validate with $eq' },
-        { value: { $in: [10] }, success: true, message: 'should validate with $in' },
-        { value: { $invalid: 42 }, success: false, message: 'should invalidate with invalid operator', exceptions: {
-            mongodb: { code: 2, codeName: "BadValue", message: "unknown operator: " },
-            zod: { code: "custom", message: 'Invalid filter operator' }
-        }  },
-        { value: null, success: false, message: 'should invalidate with null', exceptions: {
-            mongodb: { code: 2, codeName: "BadValue", message: "$not argument must be a regex or an object" },
-            zod: { code: "invalid_type", message: 'Invalid input: expected object, received null' }
-        }  },
-        { value: { $not: 42 }, success: false, message: 'should invalidate with nested $not', exceptions: {
-            mongodb: { code: 2, codeName: "BadValue", message: "$not argument must be a regex or an object" },
-            zod: { code: "custom", message: 'Invalid filter operator' }
-        } },
-    ];
 
     describe('validation', () => {
         test.each(valuesTable)('$message', async ({ value, success, message, exceptions }) => {
@@ -71,11 +76,6 @@ describe('filter operators - $not', () => {
             }
         });
     });
-
-    const dbTestTable = [
-        { filter: { name: { $not: { $eq: exampleObject2.name } } }, success: true, message: 'should validate with $not $eq' },
-        { filter: { name: { $not: { $eq: exampleObject1.name } } }, success: false, message: 'should not validate with $not $eq' }
-    ];
 
     describe('on filterTestSolo collection', () => {
         test.each(dbTestTable)('$message', async ({ filter, success, message }) => {

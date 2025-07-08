@@ -1,6 +1,6 @@
 import { filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
-import { getMongaLayerForFilterTest } from '../helper';
+import { getMongaLayerForFilterTest, ValueTest } from '../helper';
 import { SchemaTest } from '../../../../data/schemaTest';
 import { beforeAll, describe, expect, test } from '@jest/globals';
 
@@ -11,7 +11,7 @@ describe('filter operators - $expr', () => {
         mongalayer = getMongaLayerForFilterTest({ debugging: true });
     });
 
-    const valuesTable = [
+    const valuesTable: ValueTest[] = [
         { value: 42, success: false, message: `should not validate with number`},
         { value: "a", success: false, message: `should not validate with string`},
         { value: true, success: false, message: `should not validate with boolean`},
