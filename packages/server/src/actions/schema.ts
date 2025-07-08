@@ -53,7 +53,8 @@ const filterOperatorsSchemaBase = z.object({ // Not strict as it's combined with
         BSONTypeSchema,
         BSONTypeAliasSchema
     ]),
-    $mod: z.tuple([ z.number(), z.number() ]),
+    // The $mod expression rounds decimal input towards zero. (So min 1 for the divisor to avoid division by zero)
+    $mod: z.tuple([ z.number().min(1), z.number() ]),
     $regex: z.union([
         // z.instanceof(RegExp), -> RegExp not supported yet
         z.string()
