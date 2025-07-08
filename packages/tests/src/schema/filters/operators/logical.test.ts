@@ -1,10 +1,10 @@
-import { z } from 'zod/v4';
-import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
+import { filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
 import { exampleObject1, FilterTest } from '../../../../data/filterTest';
-import { getMongaLayerForFilterTest, isMongoServerError, isZodError, MongoDBException, ZodException } from '../helper';
+import { DbTest, getMongaLayerForFilterTest, isMongoServerError, isZodError, MongoDBException, ValueTest, ZodException } from '../helper';
 import { Filter } from 'mongodb';
 import { SchemaTest } from '../../../../data/schemaTest';
+import { beforeAll, describe, expect, test } from '@jest/globals';
 
 type Operator = "$and" | "$or" | "$nor";
 
@@ -14,7 +14,7 @@ const operatorsTable: [Operator][] = [
     ["$nor"]
 ];
 
-const valuesTable: { value: any, success: boolean, message: string, exceptions?: { zod?: ZodException, mongodb?: MongoDBException } }[] = [
+const valuesTable: ValueTest[] = [
     { value: [{ name: 'John' }, { age: 30 }], success: true, message: `should validate with array of objects`},
     { value: [{ valid: true }], success: true, message: `should validate with array of a object`},
     { value: [], success: false, message: `should invalidate with empty array`, exceptions: {
@@ -50,7 +50,7 @@ const valuesTable: { value: any, success: boolean, message: string, exceptions?:
     }}
 ];
 
-const dbTestTables: Record<Operator, { filter: Filter<FilterTest>, success: boolean, message: string }[]> = {
+const dbTestTables: Record<Operator, DbTest[]> = {
     $and: [
         { filter: { $and: [{ name: exampleObject1.name }, { status: exampleObject1.status }] }, success: true, message: `"$and with valid conditions" should return _id a`},
         { filter: { $and: [{ name: "" }, { status: exampleObject1.status }] }, success: false, message: `"$and with invalid conditions" should not return anything`}
@@ -77,13 +77,11 @@ describe('filter operators - Logical', () => {
     describe.each(operatorsTable)('%s', ($operator) => {
         describe('validation', () => {
             test.each(valuesTable)('$message', async ({value, success, message, exceptions}) => {
-                const filter = { [$operator]: value };
+                const filter: Filter<SchemaTest> = { [$operator]: value };
 
                 const zodResult = filterSchema.safeParse(filter);
 
                 if (success) {
-                    if (!zodResult.success) 
-                        debugger;
                     expect(zodResult.success).toBe(true);
                 } else {
                     expect(zodResult.success).toBe(false);
