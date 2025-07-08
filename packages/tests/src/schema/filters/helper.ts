@@ -1,4 +1,4 @@
-import { MongoServerError } from "mongodb";
+import { Filter, MongoAPIError, MongoServerError } from "mongodb";
 import { Mongalayer, MongalayerCollection, MongalayerCollections } from "@mongalayer/server";
 import { FilterTest, filterTestsSchema } from "../../../data/filterTest";
 import { SchemaTest, schemaTestSchema } from "../../../data/schemaTest";
@@ -10,13 +10,43 @@ export type MongoDBException = {
     message: string
 };
 
+export type MongoAPIException = {
+    message: string
+};
+
 export type ZodException = {
     code: string,
     message: string
 }
 
+export type ValueTest = ({
+    filter: any,
+    value?: never
+} | {
+    filter?: never,
+    value: any,
+}) & { 
+    success: boolean, 
+    message: string, 
+    exceptions?: { 
+        zod?: ZodException, 
+        mongodb?: MongoDBException 
+        mongoapi?: MongoAPIException
+    } 
+};
+
+export type DbTest = { 
+    filter: Filter<FilterTest>, 
+    success: boolean, 
+    message: string 
+}
+
 export const isMongoServerError = (e: any): e is MongoServerError => {
     return Object.prototype.toString.call(e) === '[object Error]' && e.name === "MongoServerError"
+}; 
+
+export const isMongoInvalidArgumentError = (e: any): e is MongoAPIError => {
+    return Object.prototype.toString.call(e) === '[object Error]' && e.name === "MongoInvalidArgumentError";
 }; 
 
 export const isZodError = (e: any): e is z.ZodError => {
