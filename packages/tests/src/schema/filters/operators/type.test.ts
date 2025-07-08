@@ -1,9 +1,11 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
-import { Mongalayer, MongalayerCollection, MongalayerCollections } from '@mongalayer/server';
+import { Mongalayer } from '@mongalayer/server';
 import { FilterTest } from '../../../../data/filterTest';
-import { getMongaLayerForFilterTest, isMongoServerError } from '../helper';
+import { DbTest, getMongaLayerForFilterTest, isMongoServerError } from '../helper';
 import { BSONType } from 'mongodb';
+import { beforeAll, describe, expect, test } from '@jest/globals';
+import { SchemaTest } from '../../../../data/schemaTest';
 
 const typesTable = [
     { type: BSONType.double, success: true, message: 'should validate with double' },
@@ -70,10 +72,10 @@ const typesTable = [
 ];
 
 describe('filter operators - $type', () => {
-    let mongalayer: Mongalayer;
+    let mongalayer: Mongalayer, database = globalThis.$mdb.db;
 
     beforeAll(async () => {
-        mongalayer = getMongaLayerForFilterTest();
+        mongalayer = getMongaLayerForFilterTest({ debugging: true });
     });
 
     describe('validation', () => {
@@ -90,19 +92,12 @@ describe('filter operators - $type', () => {
             }
 
             try {
-                const mongaResult = await mongalayer.execute<FilterTest>({
-                    database: globalThis.$mdb.name,
-                    collection: "schemaTest",
-                    operation: "findOne",
-                    payload: {
-                        filter: {
-                            property: operator
-                        }
-                    }
+                const result = await database.collection<SchemaTest>("schemaTest").findOne({
+                    property: operator
                 }, {});
 
                 if (success) {
-                    expect(mongaResult).toBeNull();
+                    expect(result).toBeNull();
                 } else {
                     throw "mongalayer.execute should have thrown an error";
                 }
@@ -124,7 +119,7 @@ describe('filter operators - $type', () => {
         });
     });
     
-    const dbTestTable = [
+    const dbTestTable: DbTest[] = [
         { filter: { name: { $type: "string" } }, success: true, message: `"name: string" should return _id a`},
         { filter: { name: { $type: BSONType.string } }, success: true, message: `"name: BSONType.string" should return _id a`},
         { filter: { name: { $type: "int" } }, success: false, message: `"name: int" should not return anything`},

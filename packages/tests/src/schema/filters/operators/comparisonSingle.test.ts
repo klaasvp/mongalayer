@@ -4,6 +4,8 @@ import { Mongalayer } from '@mongalayer/server';
 import { exampleObject1, FilterTest } from '../../../../data/filterTest';
 import { getMongaLayerForFilterTest, isMongoServerError } from '../helper';
 import { Filter } from 'mongodb';
+import { beforeAll, describe, expect, test } from '@jest/globals';
+import { SchemaTest } from '../../../../data/schemaTest';
 
 type Operator = "$eq" | "$gt" | "$gte" | "$lt" | "$lte" | "$ne";
 
@@ -58,10 +60,10 @@ const dbTestTables: Record<Operator, { filter: Filter<FilterTest>, success: bool
 };
 
 describe('filter operators - Comparison single', () => {
-    let mongalayer: Mongalayer;
+    let mongalayer: Mongalayer, database = globalThis.$mdb.db;
 
     beforeAll(async () => {
-        mongalayer = getMongaLayerForFilterTest();
+        mongalayer = getMongaLayerForFilterTest({ debugging: true });
     });
 
     describe.each(operatorsTable)('%s', ($operator) => {
@@ -79,19 +81,12 @@ describe('filter operators - Comparison single', () => {
                 }
 
                 try { 
-                    const mongaResult = await mongalayer.execute<FilterTest>({
-                        database: globalThis.$mdb.name,
-                        collection: "schemaTest",
-                        operation: "findOne",
-                        payload: {
-                            filter: {
-                                property: operator
-                            }
-                        }
+                    const result = await database.collection<SchemaTest>("schemaTest").findOne({
+                        property: operator
                     }, {});
 
                     if (success) {
-                        expect(mongaResult).toBeNull();
+                        expect(result).toBeNull();
                     } else {
                         throw "mongalayer.execute should have thrown an error";
                     }

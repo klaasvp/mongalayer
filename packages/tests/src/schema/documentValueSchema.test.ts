@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { documentValueSchema } from '../../../server/src/actions/schema.js'; // Adjust the import path as needed
+import { describe, expect, test } from '@jest/globals';
 
 describe('documentValueSchema', () => {
   test('should validate a string', () => {
@@ -42,9 +42,9 @@ describe('documentValueSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  test('should validate an undefined value', () => {
+  test('should invalidate an undefined value', () => {
     const result = documentValueSchema.safeParse(undefined);
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
   test('should invalidate a function', () => {

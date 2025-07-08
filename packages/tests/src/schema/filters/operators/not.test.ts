@@ -4,12 +4,13 @@ import { Mongalayer } from '@mongalayer/server';
 import { exampleObject1, exampleObject2, FilterTest } from '../../../../data/filterTest';
 import { getMongaLayerForFilterTest, isMongoServerError, MongoDBException, ZodException } from '../helper';
 import { SchemaTest } from '../../../../data/schemaTest';
+import { beforeAll, describe, expect, test } from '@jest/globals';
 
 describe('filter operators - $not', () => {
-    let mongalayer: Mongalayer;
+    let mongalayer: Mongalayer, database = globalThis.$mdb.db;
 
     beforeAll(async () => {
-        mongalayer = getMongaLayerForFilterTest();
+        mongalayer = getMongaLayerForFilterTest({ debugging: true });
     });
 
     const valuesTable: { value: any, success: boolean, message: string, exceptions?: { zod?: ZodException, mongodb?: MongoDBException } }[] = [
@@ -44,19 +45,12 @@ describe('filter operators - $not', () => {
             }
 
             try { 
-                const mongaResult = await mongalayer.execute<SchemaTest>({
-                    database: globalThis.$mdb.name,
-                    collection: "schemaTest",
-                    operation: "findOne",
-                    payload: {
-                        filter: {
-                            property: operator
-                        }
-                    }
+                const result = await database.collection<SchemaTest>("schemaTest").findOne({
+                    property: operator
                 }, {});
 
                 if (success) {
-                    expect(mongaResult).toBeNull();
+                    expect(result).toBeNull();
                 } else {
                     throw "mongalayer.execute should have thrown an error";
                 }

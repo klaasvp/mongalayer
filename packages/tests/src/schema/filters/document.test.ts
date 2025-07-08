@@ -1,32 +1,36 @@
-import { z } from 'zod/v4';
-import { filterOperatorsSchema, filterSchema } from '../../../../server/src/actions/schema';
+import { filterSchema } from '../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
-import { getMongaLayerForFilterTest, isMongoServerError, isZodError, MongoDBException, ZodException } from './helper';
+import { getMongaLayerForFilterTest, isMongoInvalidArgumentError, isMongoServerError, isZodError, MongoDBException, ValueTest, ZodException } from './helper';
 import { SchemaTest } from '../../../data/schemaTest';
-import { Document, Filter } from 'mongodb';
+import { beforeAll, describe, expect, test } from '@jest/globals';
 
 describe('filter - basis', () => {
-    let mongalayer: Mongalayer;
+    let mongalayer: Mongalayer, database = globalThis.$mdb.db;
 
     beforeAll(async () => {
         mongalayer = getMongaLayerForFilterTest({ debugging: true });
     });
 
-    const valuesTable: { filter: any, success: boolean, message: string, exceptions?: { zod?: ZodException, mongodb?: MongoDBException } }[] = [
+    const valuesTable: ValueTest[] = [
         { filter: 42, success: false, message: `should not validate with number`, exceptions: {
-            zod: { code: "invalid_type", message: 'Invalid input: expected record, received number' }
+            mongoapi: { message: "Query filter must be a plain object or ObjectId" },
+            zod: { code: "invalid_type", message: 'Invalid input: expected object, received number' }
         }  },
         { filter: "a", success: false, message: `should not validate with string`, exceptions: {
-            zod: { code: "invalid_type", message: 'Invalid input: expected record, received string' }
+            mongoapi: { message: "Query filter must be a plain object or ObjectId" },
+            zod: { code: "invalid_type", message: 'Invalid input: expected object, received string' }
         }  },
         { filter: true, success: false, message: `should not validate with boolean`, exceptions: {
-            zod: { code: "invalid_type", message: 'Invalid input: expected record, received boolean' }
+            mongoapi: { message: "Query filter must be a plain object or ObjectId" },
+            zod: { code: "invalid_type", message: 'Invalid input: expected object, received boolean' }
         }  },
         { filter: null, success: false, message: `should not validate with null`, exceptions: {
-            zod: { code: "invalid_type", message: 'Invalid input: expected record, received null' }
+            mongodb: { code: 14, codeName: "TypeMismatch", message: "Expected field filterto be of type object" },
+            zod: { code: "invalid_type", message: 'Invalid input: expected object, received null' }
         }  },
         { filter: [], success: false, message: `should not validate with array`, exceptions: {
-            zod: { code: "invalid_type", message: 'Invalid input: expected record, received array' }
+            mongoapi: { message: "Query filter must be a plain object or ObjectId" },
+            zod: { code: "invalid_type", message: 'Invalid input: expected object, received array' }
         }  },
         { filter: { key: "value" }, success: true, message: `should validate with object`},
         { filter: { child: { key: "value" } }, success: true, message: `should validate with nested object`},
@@ -41,29 +45,22 @@ describe('filter - basis', () => {
                 expect(zodResult.success).toBe(true);
             } else {
                 expect(zodResult.success).toBe(false);
-                expect(zodResult.error!.issues[0]).toHaveProperty('code', "invalid_type");
+                expect(zodResult.error!.issues[0].code).toBe(exceptions?.zod?.code);
+                expect(zodResult.error!.issues[0].message).toBe(exceptions?.zod?.message);
             }
 
             try {
-                const mongaResult = await mongalayer.execute<SchemaTest>({
-                    database: globalThis.$mdb.name,
-                    collection: "schemaTest",
-                    operation: "findOne",
-                    payload: {
-                        filter
-                    }
-                }, {});
+                const result = await database.collection<SchemaTest>("schemaTest").findOne(filter, {});
 
                 // Apparently the server does not return an error for weird values, but just an empty result
-                expect(mongaResult).toBeNull();
+                expect(result).toBeNull();
             } catch (e) {
                 if (!success && isMongoServerError(e)) {
-                    expect(e.code).toBe(2);
-                    expect(e.codeName).toBe('BadValue');
-                    expect(e.message).toBe(`x needs an array`);
-                } else if (!success && isZodError(e)) {
-                    expect(e.issues[0].code).toBe(exceptions?.zod?.code);
-                    expect(e.issues[0].message).toBe(exceptions?.zod?.message);
+                    expect(e.code).toBe(exceptions?.mongodb?.code);
+                    expect(e.codeName).toBe(exceptions?.mongodb?.codeName);
+                    expect(e.message).toBe(exceptions?.mongodb?.message);
+                } else if (!success && isMongoInvalidArgumentError(e)) {
+                    expect(e.message).toBe(exceptions?.mongoapi?.message);
                 } else {
                     throw e;
                 }

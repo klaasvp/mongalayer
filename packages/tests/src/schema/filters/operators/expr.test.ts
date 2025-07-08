@@ -1,14 +1,14 @@
-import { z } from 'zod/v4';
-import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/actions/schema';
+import { filterSchema } from '../../../../../server/src/actions/schema';
 import { Mongalayer } from '@mongalayer/server';
 import { getMongaLayerForFilterTest } from '../helper';
 import { SchemaTest } from '../../../../data/schemaTest';
+import { beforeAll, describe, expect, test } from '@jest/globals';
 
 describe('filter operators - $expr', () => {
-    let mongalayer: Mongalayer;
+    let mongalayer: Mongalayer, database = globalThis.$mdb.db;
 
     beforeAll(async () => {
-        mongalayer = getMongaLayerForFilterTest();
+        mongalayer = getMongaLayerForFilterTest({ debugging: true });
     });
 
     const valuesTable = [
@@ -33,17 +33,10 @@ describe('filter operators - $expr', () => {
                 expect(zodResult.error!.issues[0]).toHaveProperty('code', "invalid_type");
             }
 
-            const mongaResult = await mongalayer.execute<SchemaTest>({
-                database: globalThis.$mdb.name,
-                collection: "schemaTest",
-                operation: "findOne",
-                payload: {
-                    filter: operator
-                }
-            }, {});
+            const result = await database.collection<SchemaTest>("schemaTest").findOne(operator, {});
 
             // Apparently the server does not return an error for weird values, but just an empty result
-            expect(mongaResult).toBeNull();
+            expect(result).toBeNull();
         });
     });
 });

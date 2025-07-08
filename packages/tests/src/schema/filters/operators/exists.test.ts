@@ -3,12 +3,14 @@ import { filterOperatorsSchema, filterSchema } from '../../../../../server/src/a
 import { Mongalayer } from '@mongalayer/server';
 import { FilterTest} from '../../../../data/filterTest';
 import { getMongaLayerForFilterTest } from '../helper';
+import { beforeAll, describe, expect, test } from '@jest/globals';
+import { SchemaTest } from '../../../../data/schemaTest';
 
 describe('filter operators - $exists', () => {
-    let mongalayer: Mongalayer;
+    let mongalayer: Mongalayer, database = globalThis.$mdb.db;
 
     beforeAll(async () => {
-        mongalayer = getMongaLayerForFilterTest();
+        mongalayer = getMongaLayerForFilterTest({ debugging: true });
     });
 
     const valuesTable = [
@@ -37,19 +39,12 @@ describe('filter operators - $exists', () => {
                 expect(zodResult.error!.issues[0]).toHaveProperty('code', z.ZodIssueCode.invalid_type);
             }
 
-            const mongaResult = await mongalayer.execute<FilterTest>({
-                database: globalThis.$mdb.name,
-                collection: "schemaTest",
-                operation: "findOne",
-                payload: {
-                    filter: {
-                        property: operator
-                    }
-                }
+            const result = await database.collection<SchemaTest>("schemaTest").findOne({
+                property: operator
             }, {});
 
             // Apparently the server does not return an error for weird values, but just an empty result
-            expect(mongaResult).toBeNull();
+            expect(result).toBeNull();
         });
     });
 
