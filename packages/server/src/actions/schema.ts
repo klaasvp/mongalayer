@@ -1,4 +1,4 @@
-import z from "zod/v4";
+import { z } from "zod/v4";
 import { $geometryBoundsSchema, $geometryNearSchema, positionSchema } from "../schema/geo.js";
 import { BSONTypeAliasSchema, BSONTypeSchema } from "../schema/bson.js";
 
@@ -11,15 +11,11 @@ const operatorKeys = [
     "$geoIntersects", "$geoWithin", "$near", "$nearSphere", "$maxDistance" 
 ];
 
-const rootOperatorKeys = [ "$text", "$and", "$or", "$nor" ];
+const rootOperatorKeys = [ "$text", "$and", "$or", "$nor" ]; // $expr
 
 const withoutOperatorKeys = z.string().regex(/^[^$]/);
 
-/*export const documentScalarSchema = z.union([
-    
-]);*/
-
-export const documentValueSchema = z.lazy(() => z.union([
+export const documentValueSchema: z.ZodType<JSONValue> = z.lazy(() => z.union([
     z.string(),
     z.number(),
     z.boolean(),
@@ -27,7 +23,7 @@ export const documentValueSchema = z.lazy(() => z.union([
     //z.undefined() -> JSON which will be the payload does not support undefined,
     z.array(documentValueSchema),
     z.record(withoutOperatorKeys, documentValueSchema)
-])) as z.ZodType<JSONValue>;
+]))
 
 export const documentSchema = z.record(withoutOperatorKeys, documentValueSchema);
 
@@ -108,17 +104,30 @@ const filterOperatorsSchemaExcludingNot = filterOperatorsSchemaBase.omit({ $not:
     { message: "Invalid filter operator" }
 )
 
-/*
-export declare type Filter<TSchema> = {
-    [P in keyof WithId<TSchema>]?: Condition<WithId<TSchema>[P]>;
-} & RootFilterOperators<WithId<TSchema>>;
-*/
-export const filterSchema = 
+// Simplified version of Filter<TSchema> from mongodb
+export type FilterSchema = {
+    $and?: FilterSchema[],
+    $nor?: FilterSchema[],
+    $or?: FilterSchema[],
+    $expr?: never,
+    $text?: {
+        $search: string,
+        $language?: string,
+        $caseSensitive?: boolean,
+        $diacriticSensitive?: boolean
+    }
+} & {
+    [prop: string]: JSONValue | typeof filterOperatorsSchema
+}
+
+export const filterSchemaArray: z.ZodType<FilterSchema[]> = z.lazy(() => z.array(filterSchema).min(1));
+
+export const filterSchema: z.ZodType<FilterSchema> = 
     // Not strict as it's combined with documentSchema which is Record<string, ...>
     z.object({
-        get $and (): z.ZodLazy<z.ZodArray<typeof filterSchema>> { return z.lazy(() => filterSchema.array().min(1)) },
-        get $nor (): z.ZodLazy<z.ZodArray<typeof filterSchema>> { return z.lazy(() => filterSchema.array().min(1)) },
-        get $or (): z.ZodLazy<z.ZodArray<typeof filterSchema>> { return z.lazy(() => filterSchema.array().min(1)) },
+        get $and () { return filterSchemaArray },
+        get $nor () { return filterSchemaArray },
+        get $or () { return filterSchemaArray },
         // $expr: documentSchema, -> $expr not supported yet, this is a highly complex one
         $expr: z.never(),
         // No additional properties allowed here
@@ -130,12 +139,13 @@ export const filterSchema =
         })
         // $where is excluded
         // $comment is excluded
-    }).partial().catchall(documentValueSchema.or(filterOperatorsSchema)).refine(
+    }).partial().catchall(z.union([
+        documentValueSchema,
+        filterOperatorsSchema
+    ])).refine(
         (data) => Object.keys(data).every(key => !key.startsWith("$") || rootOperatorKeys.includes(key)),
         { message: "Invalid filter root operator" }
     )
-
-type Test1 = z.infer<typeof filterSchema>
 
 export type Projection = { [key: string]: 0 | 1 | boolean | Projection }
 
