@@ -38,14 +38,20 @@ export const multiLineStringSchema = z.object({
   coordinates: z.array(z.array(positionSchema))
 }) as z.ZodType<MultiLineString>;
 
+const checkClosedLoop = (positions: Position[]): boolean => {
+    const first = positions[0], last = positions[positions.length - 1];
+
+    return first[0] === last[0] && first[1] === last[1];
+};
+
 export const polygonSchema = z.object({
   type: z.literal("Polygon"),
-  coordinates: z.array(z.array(positionSchema))
+  coordinates: z.array(z.array(positionSchema).min(3).refine(checkClosedLoop)).min(1)
 }) as z.ZodType<Polygon>;
 
 export const multiPolygonSchema = z.object({
   type: z.literal("MultiPolygon"),
-  coordinates: z.array(z.array(z.array(positionSchema)))
+  coordinates: z.array(z.array(z.array(positionSchema).min(3).refine(checkClosedLoop)).min(1)).min(1)
 }) as z.ZodType<MultiPolygon>;
 
 // GeometryCollection
@@ -65,6 +71,7 @@ const geometryCollectionSchema = z.object({
 
 // Top-level GeoJSON object
 export const geoJSONSchema = geometrySchema.or(geometryCollectionSchema);
+export const geoJSONAndCoodinatesSchema = geometrySchema.or(geometryCollectionSchema).or(positionSchema);
 
 export const coordinatesSchema = z.union([
     positionSchema,
