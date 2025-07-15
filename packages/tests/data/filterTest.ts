@@ -47,7 +47,39 @@ export const exampleObject1 = {
         { id: 3, value: "value3", nested: { key: "value3", value: 300 } }
     ],
     status: true,
-    extra: null
+    extra: null,
+    point: {
+        type: "Point",
+        coordinates: [0, 0]
+    },
+    multiPoint: {
+        type: "MultiPoint",
+        coordinates: [[0, 0], [1, 1], [1, 0]]
+    },
+    lineString: {
+        type: "LineString",
+        coordinates: [[0, -0.5], [0.5, 1]]
+    },
+    multiLineString: {
+        type: "MultiLineString",
+        coordinates: [[[0, -0.5], [0.5, 1]], [[2, 2], [3, 3], [3, 2]]]
+    },
+    polygon: {
+        type: "Polygon",
+        coordinates: [[[0, 0], [1, 1], [1, 0], [0, 0]]]
+    },
+    multiPolygon: {
+        type: "MultiPolygon",
+        coordinates: [[[[0, 0], [1, 1], [1, 0], [0, 0]]], [[[2, 2], [3, 3], [3, 2], [2, 2]]]]
+    },
+    geometryCollection: {
+        type: "GeometryCollection",
+        geometries: [
+            { type: "Point", coordinates: [0, 0] },
+            { type: "Polygon", coordinates: [[[0, 0], [1, 1], [1, 0], [0, 0]]] }
+        ]
+    },
+    coordinates: [0, 0]
 } satisfies FilterTest;
 
 // Example 2: Another complex nested object
@@ -80,5 +112,37 @@ export const exampleObject2 = {
         { id: 3, value: "value6", nested: { key: "value6", value: 600 } }
     ],
     status: false,
-    extra: null
+    extra: null,
+    point: {
+        type: "Point",
+        coordinates: [2, 2]
+    },
+    multiPoint: {
+        type: "MultiPoint",
+        coordinates: [[2, 2], [3, 3], [3, 2]]
+    },
+    lineString: {
+        type: "LineString",
+        coordinates: [[2, 2], [3, 3], [3, 2]]
+    },
+    multiLineString: {
+        type: "MultiLineString",
+        coordinates: [[[2, 2], [3, 3], [3, 2]], [[4, 4], [5, 5], [5, 4]]]
+    },
+    polygon: {
+        type: "Polygon",
+        coordinates: [[[2, 2], [3, 3], [3, 2], [2, 2]]]
+    },
+    multiPolygon: {
+        type: "MultiPolygon",
+        coordinates: [[[[2, 2], [3, 3], [3, 2], [2, 2]]], [[[4, 4], [5, 5], [5, 4], [4, 4]]]]
+    },
+    geometryCollection: {
+        type: "GeometryCollection",
+        geometries: [
+            { type: "Point", coordinates: [2, 2] },
+            { type: "Polygon", coordinates: [[[2, 2], [3, 3], [3, 2], [2, 2]]] }
+        ]
+    },
+    coordinates: [2, 2]
 } satisfies FilterTest;
