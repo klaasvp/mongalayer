@@ -59,7 +59,7 @@ const filterOperatorsSchemaBase = z.object({ // Not strict as it's combined with
         // z.instanceof(RegExp), -> RegExp not supported yet
         z.string()
     ]),
-    $options: z.string(),
+    $options: z.string().regex(/^(?!.*(.).*\1)[imsxu]*$/),
     $geoIntersects: z.strictObject({
         $geometry: $geometryBoundsSchema
     }),

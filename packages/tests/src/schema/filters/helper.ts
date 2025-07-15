@@ -1,4 +1,4 @@
-import { Filter, MongoAPIError, MongoServerError } from "mongodb";
+import { Document, Filter, MongoAPIError, MongoServerError } from "mongodb";
 import { Mongalayer, MongalayerCollection, MongalayerCollections } from "@mongalayer/server";
 import { FilterTest, filterTestsSchema } from "../../../data/filterTest";
 import { SchemaTest, schemaTestSchema } from "../../../data/schemaTest";
@@ -20,7 +20,7 @@ export type ZodException = {
 }
 
 export type ValueTest = ({
-    filter: any,
+    filter: any | Filter<Document>,
     value?: never
 } | {
     filter?: never,
