@@ -138,8 +138,9 @@ export const filterSchema: z.ZodType<FilterSchema> =
             $language: z.string().optional(),
             $caseSensitive: z.boolean().optional(),
             $diacriticSensitive: z.boolean().optional()
-        })
+        }),
         // $where is excluded
+        $where: z.never(),
         // $comment is excluded
     }).partial().catchall(z.union([
         documentValueSchema,
