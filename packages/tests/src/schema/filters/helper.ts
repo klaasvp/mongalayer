@@ -25,15 +25,23 @@ export type ValueTest = ({
 } | {
     filter?: never,
     value: any,
-}) & { 
+}) & {
+    message: string
+} & ({ 
     success: boolean, 
-    message: string, 
     exceptions?: { 
         zod?: ZodException, 
         mongodb?: MongoDBException 
         mongoapi?: MongoAPIException
     } 
-};
+} | {
+    success?: never, 
+    exceptions: { 
+        zod?: ZodException, 
+        mongodb?: MongoDBException 
+        mongoapi?: MongoAPIException
+    } 
+});
 
 export type DbTest = { 
     filter: Filter<FilterTest>, 
