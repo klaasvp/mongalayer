@@ -7,26 +7,26 @@ import { SchemaTest } from '../../../../data/schemaTest';
 import { beforeAll, describe, expect, test } from '@jest/globals';
 import { getValuesTable } from './near';
 
-const valuesTable: ValueTest[] = getValuesTable('$near');
+const valuesTable: ValueTest[] = getValuesTable('$nearSphere');
 
 const dbTestTable: DbTest[] = [
-    { filter: { point: { $near: { $geometry: exampleObject1.point } } }, success: true, message: 'should validate with $near point' },
-    { filter: { point: { $near: { $geometry: { type: "Point", coordinates: [20, 20] }, $maxDistance: 1 } } }, success: false, message: 'should not validate with $near point (no intersection)' },
-    { filter: { multiPoint: { $near: { $geometry: exampleObject1.point } } }, success: true, message: 'should invalidate with $near multi-point' },
-    { filter: { lineString: { $near: { $geometry: exampleObject1.point } } }, success: true, message: 'should invalidate with $near line string' },
-    { filter: { multiLineString: { $near: { $geometry: exampleObject1.point } } }, success: true, message: 'should invalidate with $near multi-line string' },
-    { filter: { polygon: { $near: { $geometry: exampleObject1.point } } }, success: true, message: 'should invalidate with $near polygon' },
-    { filter: { multiPolygon: { $near: { $geometry: exampleObject1.point } } }, success: true, message: 'should invalidate with $near multi-polygon' },
-    { filter: { geometryCollection: { $near: { $geometry: exampleObject1.point } } }, success: true, message: 'should invalidate with $near geometry collection' },
-    { filter: { coordinates: { $near: { $geometry: exampleObject1.point } } }, success: true, message: 'should validate on $near coordinates' },
-    { filter: { coordinates: { $near: [0, 0] } }, success: true, message: 'should validate with $near coordinates' },
-    { filter: { coordinates: { $near: [0, 0], $maxDistance: 10 } }, success: true, message: 'should validate with $near coordinates and < maxDistance' },
-    { filter: { coordinates: { $near: [5, 5], $maxDistance: 1 } }, success: false, message: 'should invalidate with $near coordinates and > maxDistance' },
-    { filter: { point: { $near: { $geometry: exampleObject1.point, $minDistance: 10 } } }, success: false, message: 'should invalidate with $near point with > minDistance' },
-    { filter: { point: { $near: { $geometry: exampleObject1.point, $maxDistance: 10 } } }, success: true, message: 'should validate with $near point with < maxDistance' },
+    { filter: { point: { $nearSphere: { $geometry: exampleObject1.point } } }, success: true, message: 'should validate with $nearSphere point' },
+    { filter: { point: { $nearSphere: { $geometry: { type: "Point", coordinates: [20, 20] }, $maxDistance: 1 } } }, success: false, message: 'should not validate with $nearSphere point (no intersection)' },
+    { filter: { multiPoint: { $nearSphere: { $geometry: exampleObject1.point } } }, success: true, message: 'should invalidate with $nearSphere multi-point' },
+    { filter: { lineString: { $nearSphere: { $geometry: exampleObject1.point } } }, success: true, message: 'should invalidate with $nearSphere line string' },
+    { filter: { multiLineString: { $nearSphere: { $geometry: exampleObject1.point } } }, success: true, message: 'should invalidate with $nearSphere multi-line string' },
+    { filter: { polygon: { $nearSphere: { $geometry: exampleObject1.point } } }, success: true, message: 'should invalidate with $nearSphere polygon' },
+    { filter: { multiPolygon: { $nearSphere: { $geometry: exampleObject1.point } } }, success: true, message: 'should invalidate with $nearSphere multi-polygon' },
+    { filter: { geometryCollection: { $nearSphere: { $geometry: exampleObject1.point } } }, success: true, message: 'should invalidate with $nearSphere geometry collection' },
+    { filter: { coordinates: { $nearSphere: { $geometry: exampleObject1.point } } }, success: true, message: 'should validate on $nearSphere coordinates' },
+    { filter: { coordinates: { $nearSphere: [0, 0] } }, success: true, message: 'should validate with $nearSphere coordinates' },
+    { filter: { coordinates: { $nearSphere: [0, 0], $maxDistance: 10 } }, success: true, message: 'should validate with $nearSphere coordinates and < maxDistance' },
+    { filter: { coordinates: { $nearSphere: [5, 5], $maxDistance: 0.001 } }, success: false, message: 'should invalidate with $nearSphere coordinates and > maxDistance' },
+    { filter: { point: { $nearSphere: { $geometry: exampleObject1.point, $minDistance: 1000 } } }, success: false, message: 'should invalidate with $nearSphere point with > minDistance' },
+    { filter: { point: { $nearSphere: { $geometry: exampleObject1.point, $maxDistance: 1000 } } }, success: true, message: 'should validate with $nearSphere point with < maxDistance' },
 ];
 
-describe('filter operators - $near', () => {
+describe('filter operators - $nearSphere', () => {
     let mongalayer: Mongalayer, database = globalThis.$mdb.db;
 
     beforeAll(async () => {
@@ -35,7 +35,7 @@ describe('filter operators - $near', () => {
 
     describe('validation', () => {
         test.each(valuesTable)('$message', async ({ value, filter, success, message, exceptions }) => {
-            const operator = filter ?? { $near: value };
+            const operator = filter ?? { $nearSphere: value };
 
             const zodResult = filterOperatorsSchema.safeParse(operator);
 
