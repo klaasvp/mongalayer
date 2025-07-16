@@ -105,4 +105,14 @@ export const $geometryNearSchema = z.strictObject({
     $geometry: pointSchema,
     $minDistance: z.number().gt(0).optional(),
     $maxDistance: z.number().gt(0).optional()
-})
+}).check((ctx) => {
+    if (ctx.value.$minDistance && ctx.value.$maxDistance && ctx.value.$minDistance > ctx.value.$maxDistance) {
+        ctx.issues.push({
+            code: "too_big",
+            maximum: ctx.value.$maxDistance,
+            origin: "$minDistance",
+            message: "$minDistance can't be larger than $maxDistance",
+            input: ctx.value
+        })
+    }
+});
