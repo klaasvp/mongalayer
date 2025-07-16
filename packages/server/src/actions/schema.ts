@@ -1,5 +1,5 @@
 import { z } from "zod/v4";
-import { $geometryBoundsSchema, $geometryIntersectsSchema, $geometryNearSchema, positionSchema } from "../schema/geo.js";
+import { $geometryIntersectsSchema, $geometryNearSchema, $geometryWithinSchema, polygonSchema, positionSchema } from "../schema/geo.js";
 import { BSONTypeAliasSchema, BSONTypeSchema } from "../schema/bson.js";
 
 type JSONValue = string | number | boolean | null | { [key: string]: JSONValue } | JSONValue[];
@@ -64,15 +64,11 @@ const filterOperatorsSchemaBase = z.object({ // Not strict as it's combined with
         $geometry: $geometryIntersectsSchema
     }),
     $geoWithin: z.union([
-        z.strictObject({
-            $geometry: $geometryBoundsSchema
-        }),
-        z.strictObject({
-            $box: z.tuple([ positionSchema, positionSchema ]),
-            $polygon: z.array(positionSchema),
-            $center: z.tuple([ positionSchema, z.number() ]),
-            $centerSphere: z.tuple([ positionSchema, z.number() ])
-        }).partial()
+        z.strictObject({ $geometry: $geometryWithinSchema }),
+        z.strictObject({ $box: z.tuple([ positionSchema, positionSchema ]) }),
+        z.strictObject({ $polygon: polygonSchema }),
+        z.strictObject({ $center: z.tuple([ positionSchema, z.number() ]) }),
+        z.strictObject({ $centerSphere: z.tuple([ positionSchema, z.number() ]) })
     ]),
     $near: z.union([
         positionSchema,

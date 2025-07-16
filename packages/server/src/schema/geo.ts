@@ -55,15 +55,18 @@ const crsProperty = z.strictObject({
     }).optional()
 });
 
-export const polygonSchema = z.strictObject({
+export const polygonSchema = z.array(positionSchema).min(3);
+export const geometryPolygonSchema = z.array(polygonSchema.refine(checkClosedLoop)).min(1);
+
+export const geoPolygonTypeSchema = z.strictObject({
     type: z.literal("Polygon"),
-    coordinates: z.array(z.array(positionSchema).min(3).refine(checkClosedLoop)).min(1),
+    coordinates: geometryPolygonSchema,
     ...crsProperty.shape
 }) as z.ZodType<Polygon>;
 
-export const multiPolygonSchema = z.strictObject({
+export const geoMultiPolygonTypeSchema = z.strictObject({
     type: z.literal("MultiPolygon"),
-    coordinates: z.array(z.array(z.array(positionSchema).min(3).refine(checkClosedLoop)).min(1)).min(1),
+    coordinates: z.array(geometryPolygonSchema).min(1),
     ...crsProperty.shape
 }) as z.ZodType<MultiPolygon>;
 
@@ -73,8 +76,8 @@ const geometrySchema = z.union([
     multiPointSchema,
     lineStringSchema,
     multiLineStringSchema,
-    polygonSchema,
-    multiPolygonSchema
+    geoPolygonTypeSchema,
+    geoMultiPolygonTypeSchema
 ]) as z.ZodType<Geometry>;
 
 const geometryCollectionSchema = z.strictObject({
@@ -92,10 +95,10 @@ export const coordinatesSchema = z.union([
 
 export const $geometryIntersectsSchema = geometrySchema.or(geometryCollectionSchema).or(positionSchema)
 
-export const $geometryBoundsSchema = z.union([
-    pointSchema,
-    polygonSchema,
-    multiPolygonSchema
+export const $geometryWithinSchema = z.union([
+    geoPolygonTypeSchema,
+    geoMultiPolygonTypeSchema,
+    geometryCollectionSchema
 ]);
 
 export const $geometryNearSchema = z.strictObject({
