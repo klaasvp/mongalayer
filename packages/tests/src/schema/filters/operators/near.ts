@@ -1,9 +1,7 @@
 export const getValuesTable = (operator: "$near" | "$nearSphere") => [
     // Test with positionSchema
     { filter: { [operator]: [0, 0] }, message: 'should validate with valid position', exceptions: {} },
-    { filter: { [operator]: [0, 0], $minDistance: 0.1 }, message: 'should invalidate with valid position and $minDistance', exceptions: {
-        zod: { code: "custom", message: 'Invalid filter operator' }
-    } },
+    { filter: { [operator]: [0, 0], $minDistance: 0.1 }, message: 'should validate with valid position and $minDistance', exceptions: {} },
     { filter: { [operator]: [0, 0], $maxDistance: 0.1 }, message: 'should validate with valid position and $maxDistance', exceptions: {} },
     { value: { $geometry: { type: "Point", coordinates: [0, 0] } }, message: 'should validate with valid geometry', exceptions: {} },
     { value: { $geometry: { type: "Point", coordinates: [0, 0] }, $minDistance: 1 }, message: 'should validate with valid geometry and minDistance', exceptions: {} },

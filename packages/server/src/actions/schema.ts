@@ -8,7 +8,7 @@ const operatorKeys = [
     "$eq", "$gt", "$gte", "$in", "$lt", "$lte", "$ne", "$nin", "$not", 
     "$exists", "$type", "$jsonSchema", "$mod", "$regex", "$options", "$all", "$elemMatch", "$size",
     "$bitsAllClear", "$bitsAllSet", "$bitsAnyClear", "$bitsAnySet", "$rand", 
-    "$geoIntersects", "$geoWithin", "$near", "$nearSphere", "$maxDistance" 
+    "$geoIntersects", "$geoWithin", "$near", "$nearSphere", "$maxDistance", "$minDistance" 
 ];
 
 const rootOperatorKeys = [ "$text", "$and", "$or", "$nor" ]; // $expr
@@ -78,6 +78,7 @@ const filterOperatorsSchemaBase = z.object({ // Not strict as it's combined with
         positionSchema,
         $geometryNearSchema
     ]),
+    $minDistance: z.number().gt(0),
     $maxDistance: z.number().gt(0),
     // Keep it basic for now
     get $all(): z.ZodArray<typeof documentValueSchema> { return z.array(documentValueSchema) },
