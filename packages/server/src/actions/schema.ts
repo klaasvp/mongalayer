@@ -1,5 +1,5 @@
 import { z } from "zod/v4";
-import { $geometryBoundsSchema, $geometryNearSchema, geoJSONAndCoodinatesSchema, positionSchema } from "../schema/geo.js";
+import { $geometryBoundsSchema, $geometryIntersectsSchema, $geometryNearSchema, positionSchema } from "../schema/geo.js";
 import { BSONTypeAliasSchema, BSONTypeSchema } from "../schema/bson.js";
 
 type JSONValue = string | number | boolean | null | { [key: string]: JSONValue } | JSONValue[];
@@ -61,7 +61,7 @@ const filterOperatorsSchemaBase = z.object({ // Not strict as it's combined with
     ]),
     $options: z.string().regex(/^(?!.*(.).*\1)[imsxu]*$/),
     $geoIntersects: z.strictObject({
-        $geometry: geoJSONAndCoodinatesSchema
+        $geometry: $geometryIntersectsSchema
     }),
     $geoWithin: z.union([
         z.strictObject({
