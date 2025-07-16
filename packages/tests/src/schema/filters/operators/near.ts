@@ -2,7 +2,15 @@ export const getValuesTable = (operator: "$near" | "$nearSphere") => [
     // Test with positionSchema
     { filter: { [operator]: [0, 0] }, message: 'should validate with valid position', exceptions: {} },
     { filter: { [operator]: [0, 0], $minDistance: 0.1 }, message: 'should validate with valid position and $minDistance', exceptions: {} },
+    { filter: { [operator]: [0, 0], $minDistance: -0.1 }, message: 'should invalidate with valid position and negative $minDistance', exceptions: {
+        mongodb: { code: 16894, codeName: "Location16894", message: "$minDistance must be non-negative" },
+        zod: { code: "too_small", message: 'Too small: expected number to be >0' }
+    } },
     { filter: { [operator]: [0, 0], $maxDistance: 0.1 }, message: 'should validate with valid position and $maxDistance', exceptions: {} },
+    { filter: { [operator]: [0, 0], $maxDistance: -0.1 }, message: 'should invalidate with valid position and negative $maxDistance', exceptions: {
+        mongodb: { code: 16896, codeName: "Location16896", message: "$maxDistance must be non-negative" },
+        zod: { code: "too_small", message: 'Too small: expected number to be >0' }
+    } },
     { value: { $geometry: { type: "Point", coordinates: [0, 0] } }, message: 'should validate with valid geometry', exceptions: {} },
     { value: { $geometry: { type: "Point", coordinates: [0, 0] }, $minDistance: 1 }, message: 'should validate with valid geometry and minDistance', exceptions: {} },
     { value: { $geometry: { type: "Point", coordinates: [0, 0] }, $maxDistance: 10 }, message: 'should validate with valid geometry and maxDistance', exceptions: {} },
