@@ -13,6 +13,21 @@ const valuesTable: ValueTest[] = [
     { value: { $geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 1], [1, 0], [0, 0]], [[2, 2], [3, 3], [3, 2], [2, 2]]] } }, message: 'should invalidate with invalid multi ring polygon', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "Secondary loops not contained by first exterior loop - secondary loops must be holes:" },
     } },
+    { value: { $geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 1], [1, 0], [0, 0]]],
+        crs: {
+            type: "name",
+            properties: { name: "urn:x-mongodb:crs:strictwinding:EPSG:4326" }
+        } 
+    } }, message: 'should validate with valid polygon & crs', exceptions: {} },
+    { value: { $geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 1], [1, 0], [0, 0]]],
+        crs: {
+            type: "x",
+            properties: { name: "urn:x-mongodb:crs:strictwinding:EPSG:4326" }
+        } 
+    } }, message: 'should invalidate with invalid crs ', exceptions: {
+        mongodb: { code: 2, codeName: "BadValue", message: `GeoJSON CRS must have field "type": "name"` },
+        zod: { code: "invalid_union", message: 'Invalid input' }
+    } },
     { value: { $geometry: { type: "MultiPolygon", coordinates: [[[[0, 0], [1, 1], [1, 0], [0, 0]]], [[[2, 2], [3, 3], [3, 2], [2, 2]]]] } }, message: 'should validate with valid multi-polygon', exceptions: {} },
     { value: { $geometry: { type: "LineString", coordinates: [[0, 0], [1, 1], [1, 0]] } }, message: 'should validate with LineString', exceptions: {} },
     { value: { $geometry: { type: "MultiLineString", coordinates: [[[0, 0], [1, 1], [1, 0]], [[2, 2], [3, 3], [3, 2]]] } }, message: 'should validate with MultiLineString', exceptions: {} },
