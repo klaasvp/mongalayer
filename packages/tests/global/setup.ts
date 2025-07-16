@@ -34,6 +34,25 @@ export default async function (globalConfig: any, projectConfig: any) {
     await database.collection<FilterTest>("filterTestSolo").insertOne(exampleObject1);
     await database.createCollection<SchemaTest>("schemaTest");
 
+    await database.collection<SchemaTest>("schemaTest").createIndexes([
+        { key: { "property": "2dsphere" } },
+        { key: { "property": "2d" } }
+    ]);
+
+    for (const collectionName of ["filterTest", "filterTestSolo"]) {
+        await database.collection<FilterTest>(collectionName).createIndexes([
+            { key: { "point": "2dsphere" } },
+            { key: { "multiPoint": "2dsphere" } },
+            { key: { "lineString": "2dsphere" } },
+            { key: { "multiLineString": "2dsphere" } },
+            { key: { "polygon": "2dsphere" } },
+            { key: { "multiPolygon": "2dsphere" } },
+            { key: { "geometryCollection": "2dsphere" } },
+            { key: { "coordinates": "2dsphere" } },
+            { key: { "coordinates": "2d" } }
+        ])
+    };
+
     globalThis.$md = mongod;
     globalThis.$mdb = {
         client,
