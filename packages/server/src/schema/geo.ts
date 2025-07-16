@@ -103,6 +103,6 @@ export const $geometryWithinSchema = z.union([
 
 export const $geometryNearSchema = z.strictObject({
     $geometry: pointSchema,
-    $minDistance: z.number().optional(),
-    $maxDistance: z.number().optional()
+    $minDistance: z.number().gt(0).optional(),
+    $maxDistance: z.number().gt(0).optional()
 })

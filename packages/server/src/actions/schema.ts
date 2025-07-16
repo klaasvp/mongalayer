@@ -78,7 +78,7 @@ const filterOperatorsSchemaBase = z.object({ // Not strict as it's combined with
         positionSchema,
         $geometryNearSchema
     ]),
-    $maxDistance: z.number(),
+    $maxDistance: z.number().gt(0),
     // Keep it basic for now
     get $all(): z.ZodArray<typeof documentValueSchema> { return z.array(documentValueSchema) },
     get $elemMatch(): z.ZodLazy<typeof documentSchema> { return z.lazy(() => documentSchema) },
