@@ -112,7 +112,9 @@ export type FilterSchema = {
         $language?: string,
         $caseSensitive?: boolean,
         $diacriticSensitive?: boolean
-    }
+    },
+    $where?: never,
+    $jsonSchema?: never
 } & {
     [prop: string]: JSONValue | typeof filterOperatorsSchema
 }
