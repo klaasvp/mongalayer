@@ -12,6 +12,7 @@ const operatorKeys = [
 ];
 
 const rootOperatorKeys = [ "$text", "$and", "$or", "$nor" ]; // $expr
+const elemMatchOperatorKeys = [ "$and", "$or", "$nor" ];
 
 const withoutOperatorKeys = z.string().regex(/^[^$]/);
 
@@ -82,7 +83,12 @@ const filterOperatorsSchemaBase = z.object({ // Not strict as it's combined with
     $maxDistance: z.number().gt(0),
     // Keep it basic for now
     get $all(): z.ZodArray<typeof documentValueSchema> { return z.array(documentValueSchema) },
-    get $elemMatch(): z.ZodLazy<typeof documentSchema> { return z.lazy(() => documentSchema) },
+    get $elemMatch(): z.ZodLazy<typeof filterOperatorsSchemaExcludingElemMatch | typeof elemMatchFilterSchema> { 
+        return z.lazy(() => z.union([
+            elemMatchFilterSchema,
+            filterOperatorsSchemaExcludingElemMatch
+        ])) 
+    },
     $size: z.number(),
     $bitsAllClear: bitwiseSchema,
     $bitsAllSet: bitwiseSchema,
@@ -101,11 +107,21 @@ const filterOperatorsSchemaExcludingNot = filterOperatorsSchemaBase.omit({ $not:
     { message: "Invalid filter operator" }
 )
 
+const filterOperatorsSchemaExcludingElemMatch = filterOperatorsSchemaBase.omit({ $elemMatch: true }).catchall(documentValueSchema).refine(
+    (data) => Object.keys(data).every(key => !key.startsWith("$") || (key !== "$elemMatch" && operatorKeys.includes(key))),
+    { message: "Invalid filter operator" }
+)
+
 // Simplified version of Filter<TSchema> from mongodb
-export type FilterSchema = {
+export type FilterSchemaBase = {
     $and?: FilterSchema[],
     $nor?: FilterSchema[],
     $or?: FilterSchema[],
+} & {
+    [prop: string]: JSONValue | typeof filterOperatorsSchema
+}
+
+export type FilterSchema = FilterSchemaBase & {
     $expr?: never,
     $text?: {
         $search: string,
@@ -115,13 +131,10 @@ export type FilterSchema = {
     },
     $where?: never,
     $jsonSchema?: never
-} & {
-    [prop: string]: JSONValue | typeof filterOperatorsSchema
 }
 
 export const filterSchemaArray: z.ZodType<FilterSchema[]> = z.lazy(() => z.array(filterSchema).min(1));
-
-export const filterSchema: z.ZodType<FilterSchema> = 
+export const filterSchema = 
     // Not strict as it's combined with documentSchema which is Record<string, ...>
     z.object({
         get $and () { return filterSchemaArray },
@@ -146,6 +159,20 @@ export const filterSchema: z.ZodType<FilterSchema> =
         filterOperatorsSchema
     ])).refine(
         (data) => Object.keys(data).every(key => !key.startsWith("$") || rootOperatorKeys.includes(key)),
+        { message: "Invalid filter root operator" }
+    )
+
+export const elemMatchFilterSchemaArray: z.ZodType<FilterSchema[]> = z.lazy(() => z.array(elemMatchFilterSchema).min(1));
+export const elemMatchFilterSchema: z.ZodType<FilterSchemaBase> = 
+    z.object({
+        get $and () { return elemMatchFilterSchemaArray },
+        get $nor () { return elemMatchFilterSchemaArray },
+        get $or () { return elemMatchFilterSchemaArray },
+    }).partial().catchall(z.union([
+        documentValueSchema,
+        filterOperatorsSchema
+    ])).refine(
+        (data) => Object.keys(data).every(key => !key.startsWith("$") || elemMatchOperatorKeys.includes(key)),
         { message: "Invalid filter root operator" }
     )
 
