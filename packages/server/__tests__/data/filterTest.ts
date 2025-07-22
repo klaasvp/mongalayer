@@ -41,6 +41,7 @@ export const exampleObject1 = {
             property5: ["nestedString", 456, false]
         }
     },
+    flags: 77,
     data: [
         { id: 1, value: "value1", nested: { key: "value1", value: 100 } },
         { id: 2, value: "value2", nested: { key: "value2", value: 200 } },
@@ -106,6 +107,7 @@ export const exampleObject2 = {
             property5: ["nestedString", 101, true]
         }
     },
+    flags: 11,
     data: [
         { id: 1, value: "value4", nested: { key: "value4", value: 400 } },
         { id: 2, value: "value5", nested: { key: "value5", value: 500 } },
