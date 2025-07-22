@@ -7,7 +7,7 @@ type JSONValue = string | number | boolean | null | { [key: string]: JSONValue }
 const operatorKeys = [
     "$eq", "$gt", "$gte", "$in", "$lt", "$lte", "$ne", "$nin", "$not", 
     "$exists", "$type", "$jsonSchema", "$mod", "$regex", "$options", "$all", "$elemMatch", "$size",
-    "$bitsAllClear", "$bitsAllSet", "$bitsAnyClear", "$bitsAnySet", "$rand", 
+    "$bitsAllClear", "$bitsAllSet", "$bitsAnyClear", "$bitsAnySet", /*"$rand",*/
     "$geoIntersects", "$geoWithin", "$near", "$nearSphere", "$maxDistance", "$minDistance" 
 ];
 
@@ -94,7 +94,7 @@ const filterOperatorsSchemaBase = z.object({ // Not strict as it's combined with
     $bitsAllSet: bitwiseSchema,
     $bitsAnyClear: bitwiseSchema,
     $bitsAnySet: bitwiseSchema,
-    $rand: z.strictObject({})
+    //$rand: z.strictObject({})
 }).partial();
 
 export const filterOperatorsSchema = filterOperatorsSchemaBase.catchall(documentValueSchema).refine(
