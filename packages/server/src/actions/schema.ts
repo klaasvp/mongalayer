@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import { $geometryIntersectsSchema, $geometryNearSchema, $geometryWithinSchema, polygonSchema, positionSchema } from "../schema/geo.js";
 import { BSONTypeAliasSchema, BSONTypeSchema } from "../schema/bson.js";
+import { iteratePrimitives } from "#src/utils/replacer.js";
 
 type JSONValue = string | number | boolean | null | { [key: string]: JSONValue } | JSONValue[];
 
@@ -178,4 +179,22 @@ export const elemMatchFilterSchema: z.ZodType<FilterSchemaBase> =
 
 export type Projection = { [key: string]: 0 | 1 | boolean | Projection }
 
-export const projectionSchema = z.lazy(() => z.record(z.string(), z.union([z.literal(0), z.literal(1), z.boolean(), projectionSchema]))) as z.ZodType<Projection>
+// MongoDB also support certain operators for projection, we don't support that yet.
+export const projectionSchema = z.lazy(() => z.record(z.string(), z.union([z.literal(0), z.literal(1), z.boolean(), projectionSchema]))).check((ctx) => {
+    let firstProjectionType: 0 | 1 | boolean | undefined = undefined;
+    
+    iteratePrimitives(ctx.value, (key, value, replace) => {
+        if (key !== "_id") {
+            if (firstProjectionType === undefined) {
+                firstProjectionType = value;
+            } else if (firstProjectionType !== value) {
+                ctx.issues.push({
+                    code: "invalid_value",
+                    message: "Projection cannot mix inclusion and exclusion.",
+                    input: ctx.value,
+                    values: []
+                });
+            }
+        }
+    });
+}) as z.ZodType<Projection>

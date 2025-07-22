@@ -49,6 +49,15 @@ export type DbTest = {
     message: string 
 }
 
+export type DbProjectTest = { 
+    projection: Document,
+    properties: {
+        present: string[],
+        missing: string[]
+    }, 
+    message: string 
+}
+
 export const isMongoServerError = (e: any): e is MongoServerError => {
     return Object.prototype.toString.call(e) === '[object Error]' && e.name === "MongoServerError"
 }; 
