@@ -7,12 +7,11 @@
     },
     "workspaces": [
         "./packages/server",
-        "./packages/client",
-        "./packages/tests"
+        "./packages/client"
     ],
     "dependencies": {
         "mongodb": "^6.17.0",
-        "zod": "^3.25.76"
+        "zod": "^4.0.5"
     },
     "devDependencies": {
         "@types/jsonwebtoken": "^9.0.10",

@@ -11,13 +11,33 @@
         }
     },
     "scripts": {
-        "build": "tsc"
+        "build": "tsc --project tsconfig.build.json",
+        "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" MONGOMS_DOWNLOAD_URL=\"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-8.0.11.tgz\" MONGOMS_VERSION=\"8.0.11\" npx vitest --run",
+        "test-specific": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" MONGOMS_DOWNLOAD_URL=\"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-8.0.11.tgz\" MONGOMS_VERSION=\"8.0.11\" npx vitest --run $npm_config_pattern"
     },
-    "dependencies": {
+    "peerDependencies": {
+        "mongodb": "^6.17.0"
     },
     "devDependencies": {
+        "@faker-js/faker": "^9.9.0",
+        "mongodb-memory-server": "^10.1.4",
+        "vitest": "^3.2.4"
     },
     "engines": {
         "node": ">=20"
+    },
+    "imports": {
+        "#src/*": [
+            "./src/*",
+            "./src/*.ts"
+        ],
+        "#test/data/*": [
+            "./__tests__/data/*",
+            "./__tests__/data/*.ts"
+        ],
+        "#test/lib/*": [
+            "./__tests__/lib/*",
+            "./__tests__/lib/*.ts"
+        ]
     }
 }
