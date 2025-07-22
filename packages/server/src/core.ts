@@ -39,7 +39,6 @@ export class Mongalayer {
             database = this.mongodbClient.db(action.database);
 
             if (this.options.useSessions) {
-                console.debug("Mongalayer - Execute - Using session");
                 session = this.mongodbClient.startSession()
             };
 
