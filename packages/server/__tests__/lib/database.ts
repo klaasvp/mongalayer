@@ -3,7 +3,7 @@ import { getRandomUsers, User } from "#test/data/user";
 import { getRandomProjects, Project } from "#test/data/project";
 import { exampleObject1, FilterTest, filterTestsSchema, getFilterTests } from "#test/data/filterTest";
 import { SchemaTest, schemaTestSchema } from "#test/data/schemaTest";
-import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/core";
+import { Mongalayer, MongalayerCollection, MongalayerCollections, MongalayerOptions } from "#src/core";
 
 let client: MongoClient | null = null;
 
@@ -70,18 +70,16 @@ export const getMongaLayerForFilterTest = async (options?: { debugging: boolean 
     });
 }
 
-export const getMongaLayerForCollections= async (collections: MongalayerCollections, options?: { debugging: boolean }): Promise<Mongalayer> => {
+export const getMongaLayerForCollections= async (collections: MongalayerCollections, options?: MongalayerOptions): Promise<Mongalayer> => {
     options = {
         debugging: false,
+        useSessions: true,
         ...options
     };
 
     await getMongoDBClient();
 
-    return new Mongalayer(client!, collections, {
-        debugging: options.debugging,
-        useSessions: true
-    });
+    return new Mongalayer(client!, collections, options);
 }
 
 process.on('SIGTERM', async () => {    
