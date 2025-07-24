@@ -1,8 +1,7 @@
-import { z } from 'zod/v4';
-import { filterOperatorsSchema, filterSchema, projectionSchema } from '#src/actions/schema';
-import { Mongalayer } from '#src/core';
-import { exampleObject1, FilterTest } from '#test/data/filterTest';
-import { DbProjectTest, DbTest, isMongoServerError, ValueTest } from './filters/helper.js';
+import { projectionSchema } from '#src/actions/schema';
+import { Mongalayer, MongalayerCollectionType } from '#src/core';
+import { FilterTest } from '#test/data/filterTest';
+import { DbProjectTest, isMongoServerError, ValueTest } from './filters/helper.js';
 import { SchemaTest } from '#test/data/schemaTest';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { dbName, getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/lib/database';
@@ -146,15 +145,14 @@ describe('projection', () => {
 
             expect(zodResult.success).toBe(true);
 
-            const mongaResult = await mongalayer.execute<FilterTest>({
+            const mongaResult = await mongalayer.execute({
                 database: dbName,
-                collection: "filterTestSolo",
+                collection: "filterTestSolo" as MongalayerCollectionType<FilterTest>,
                 operation: "findOne",
-                payload: {
-                    filter: {},
-                    options: {
-                        projection
-                    }
+            }, {
+                filter: {},
+                options: {
+                    projection
                 }
             }, {});
 

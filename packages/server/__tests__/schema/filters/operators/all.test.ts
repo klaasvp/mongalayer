@@ -1,4 +1,3 @@
-import { z } from 'zod/v4';
 import { filterOperatorsSchema, filterSchema } from '#src/actions/schema';
 import { exampleObject1, FilterTest } from '#test/data/filterTest';
 import { DbTest, isMongoServerError, ValueTest } from '../helper.js';
@@ -6,7 +5,7 @@ import { SchemaTest } from '#test/data/schemaTest';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { Db } from 'mongodb';
 import { dbName, getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/lib/database';
-import { Mongalayer } from '#src/core';
+import { Mongalayer, MongalayerCollectionType } from '#src/core';
 
 const valuesTable: ValueTest[] = [
     { value: [1, 2, 3], success: true, message: 'should validate with array of numbers' },
@@ -97,14 +96,11 @@ describe('filter operators - $all', () => {
 
             expect(zodResult.success).toBe(true);
 
-            const mongaResult = await mongalayer.execute<FilterTest>({
+            const mongaResult = await mongalayer.execute({
                 database: dbName,
-                collection: "filterTestSolo",
-                operation: "findOne",
-                payload: {
-                    filter
-                }
-            }, {});
+                collection: "filterTestSolo" as MongalayerCollectionType<FilterTest>,
+                operation: "findOne"
+            }, { filter }, {});
 
             if (success) {
                 expect(mongaResult).toBeDefined();

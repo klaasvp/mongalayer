@@ -1,6 +1,6 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { filterOperatorsSchema, filterSchema } from '#src/actions/schema';
-import { Mongalayer } from '#src/core';
+import { Mongalayer, MongalayerCollectionType } from '#src/core';
 import { FilterTest} from '#test/data/filterTest';
 import { DbTest, ValueTest } from '../helper.js';
 import { beforeAll, describe, expect, test } from 'vitest';
@@ -65,14 +65,11 @@ describe('filter operators - $exists', () => {
             // Database tests should always be a valid schema
             expect(zodResult.success).toBe(true);
 
-            const mongaResult = await mongalayer.execute<FilterTest>({
+            const mongaResult = await mongalayer.execute({
                 database: dbName,
-                collection: "filterTest",
-                operation: "findOne",
-                payload: {
-                    filter
-                }
-            }, {});
+                collection: "filterTestSolo" as MongalayerCollectionType<FilterTest>,
+                operation: "findOne"
+                }, { filter }, {});
 
             if (success) {
                 expect(mongaResult).toBeDefined();

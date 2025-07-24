@@ -1,7 +1,6 @@
-import { z } from 'zod/v4';
 import { filterOperatorsSchema, filterSchema } from '#src/actions/schema';
-import { Mongalayer } from '#src/core';
-import { exampleObject1, exampleObject2, FilterTest } from '#test/data/filterTest';
+import { Mongalayer, MongalayerCollectionType } from '#src/core';
+import { exampleObject1, FilterTest } from '#test/data/filterTest';
 import { DbTest, isMongoServerError, ValueTest } from '../helper.js';
 import { SchemaTest } from '#test/data/schemaTest';
 import { beforeAll, describe, expect, test } from 'vitest';
@@ -78,14 +77,11 @@ describe('filter operators - $near', () => {
 
             expect(zodResult.success).toBe(true);
 
-            const mongaResult = await mongalayer.execute<FilterTest>({
+            const mongaResult = await mongalayer.execute({
                 database: dbName,
-                collection: "filterTestSolo",
-                operation: "findOne",
-                payload: {
-                    filter
-                }
-            }, {});
+                collection: "filterTestSolo" as MongalayerCollectionType<FilterTest>,
+                operation: "findOne"
+                }, { filter }, {});
 
             if (success) {
                 expect(mongaResult).toBeDefined();

@@ -1,9 +1,9 @@
 import { z } from 'zod/v4';
 import { filterOperatorsSchema, filterSchema } from '#src/actions/schema';
-import { Mongalayer } from '#src/core';
+import { Mongalayer, MongalayerCollectionType } from '#src/core';
 import { exampleObject1, FilterTest } from '#test/data/filterTest';
 import { DbTest, isMongoServerError, ValueTest } from '../helper.js';
-import { Db, Filter } from 'mongodb';
+import { Db } from 'mongodb';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { SchemaTest } from '#test/data/schemaTest';
 import { dbName, getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/lib/database';
@@ -99,14 +99,11 @@ describe("filter operators - Comparison multiple", () => {
                 // Database tests should always be a valid schema
                 expect(zodResult.success).toBe(true);
     
-                const mongaResult = await mongalayer.execute<FilterTest>({
+                const mongaResult = await mongalayer.execute({
                     database: dbName,
-                    collection: "filterTestSolo",
-                    operation: "findOne",
-                    payload: {
-                        filter
-                    }
-                }, {});
+                    collection: "filterTestSolo" as MongalayerCollectionType<FilterTest>,
+                    operation: "findOne"
+                }, { filter }, {});
     
                 if (success) {
                     expect(mongaResult).toBeDefined();

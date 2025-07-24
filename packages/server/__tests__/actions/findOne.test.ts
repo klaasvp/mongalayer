@@ -4,7 +4,7 @@ import { User } from "#test/data/user";
 import { z } from "zod/v4";
 import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects } from "#test/lib/database";
 import { Db } from "mongodb";
-import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/core";
+import { Mongalayer, MongalayerCollection, MongalayerCollections, MongalayerCollectionType } from "#src/core";
 import { $ZodIssueInvalidType, $ZodIssueUnrecognizedKeys } from "zod/v4/core";
 
 describe('Find One', () => {
@@ -24,14 +24,13 @@ describe('Find One', () => {
     });
 
     test("filter - _id = _id", async () => {
-        const result = await mongalayer.execute<User>({
+        const result = await mongalayer.execute({
             database: dbName,
-            collection: "projects",
-            operation: "findOne",
-            payload: {
-                filter: {
-                    _id: projectZero._id
-                }
+            collection: "projects" as MongalayerCollectionType<Project>,
+            operation: "findOne"
+        }, {
+            filter: {
+                _id: projectZero._id
             }
         }, {});
 
@@ -39,14 +38,13 @@ describe('Find One', () => {
     });
 
     test("filter - _id $in [ _id ]", async () => {
-        const result = await mongalayer.execute<User>({
+        const result = await mongalayer.execute({
             database: dbName,
-            collection: "projects",
-            operation: "findOne",
-            payload: {
-                filter: {
-                    _id: { $in: [ projectZero._id ] }
-                }
+            collection: "projects" as MongalayerCollectionType<Project>,
+            operation: "findOne"
+        }, {
+            filter: {
+                _id: { $in: [ projectZero._id ] }
             }
         }, {});
 
@@ -55,17 +53,16 @@ describe('Find One', () => {
 
     test("filter - $text.[idontexistprop] _id", async () => {
         try {
-            await mongalayer.execute<User>({
+            await mongalayer.execute({
                 database: dbName,
-                collection: "projects",
-                operation: "findOne",
-                payload: {
-                    filter: {
-                        $text: { 
-                            $search: "test",
-                            // @ts-expect-error - This is supposed to trigger a validation error
-                            idontexistprop: projectZero._id
-                        }
+                collection: "projects" as MongalayerCollectionType<Project>,
+                operation: "findOne"
+            }, {
+                filter: {
+                    $text: { 
+                        $search: "test",
+                        // @ts-expect-error - This is supposed to trigger a validation error
+                        idontexistprop: projectZero._id
                     }
                 }
             }, {});
@@ -81,15 +78,14 @@ describe('Find One', () => {
 
     test("filter - $text.$search missing", async () => {
         try {
-            await mongalayer.execute<User>({
+            await mongalayer.execute({
                 database: dbName,
-                collection: "projects",
+                collection: "projects" as MongalayerCollectionType<Project>,
                 operation: "findOne",
-                payload: {
-                    filter: {
-                        // @ts-expect-error - This is supposed to trigger a validation error
-                        $text: { }
-                    }
+            }, {
+                filter: {
+                    // @ts-expect-error - This is supposed to trigger a validation error
+                    $text: { }
                 }
             }, {});
         } catch (e) {
