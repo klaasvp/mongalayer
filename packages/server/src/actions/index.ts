@@ -1,18 +1,30 @@
 import { Document } from "mongodb"
-import find, { FindPayload } from "./find.js"
-import findOne, { FindOnePayload } from "./findOne.js"
+import find, { FindPayload, FindReturnType } from "./find.js"
+import findOne, { FindOnePayload, FindOneReturnType } from "./findOne.js"
 
-export type Operation = "findOne" | "find"
+export type Operation = "findOne" | "find";
 
-export type Action<TSchema extends Document, TOperation extends Operation = Operation> = {
+export type Action<TCollection extends MongalayerCollectionType = MongalayerCollectionType, TOperation extends Operation = Operation> = {
     database: string,
-    collection: string,
-    operation: TOperation,
-    payload: 
-        TOperation extends "findOne" ? FindOnePayload<TSchema> : 
-        TOperation extends "find" ? FindPayload<TSchema> :
-        never
+    collection: TCollection,
+    operation: TOperation
 }
+
+export type InferActionPayload<TAction extends Action> = TAction extends { operation: infer TOperation, collection: infer TCollection }  ? 
+    TOperation extends "findOne" ? FindOnePayload<GetCollectionSchema<TCollection>> : 
+    TOperation extends "find" ? FindPayload<GetCollectionSchema<TCollection>> :
+    never : never;
+
+export type InferActionReturnType<TAction extends Action> = TAction extends { operation: infer TOperation, collection: infer TCollection }  ? 
+    TOperation extends "findOne" ? FindOneReturnType<GetCollectionSchema<TCollection>> : 
+    TOperation extends "find" ? FindReturnType<GetCollectionSchema<TCollection>> :
+    never : never;
+
+export type MongalayerCollectionType <TSchema extends Document = Document> = string & {
+  __schema?: TSchema;
+};
+
+type GetCollectionSchema<T> = T extends MongalayerCollectionType<infer U> ? U : never;
 
 export type * from "./types.js";
 

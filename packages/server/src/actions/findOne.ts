@@ -11,6 +11,8 @@ export type FindOnePayload<TSchema extends Document> = {
     }
 }
 
+export type FindOneReturnType<TSchema extends Document> = TSchema | Partial<TSchema> | null;
+
 const payloadSchema = z.object({
     filter: filterSchema,
     options: z.object({
@@ -18,7 +20,7 @@ const payloadSchema = z.object({
     }).optional()
 });
 
-export default function <TSchema extends Document> (collection: Collection<TSchema>, accessService: AccessService, payload: FindOnePayload<TSchema>): Promise<TSchema | null> {
+export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: AccessService, payload: FindOnePayload<TSchema>): Promise<FindOneReturnType<TSchema>> {
     payloadSchema.parse(payload);
 
     const filterWithAccess = accessService.getFilter(payload.filter as Filter<Document>);

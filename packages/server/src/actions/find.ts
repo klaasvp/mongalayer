@@ -8,7 +8,9 @@ export type FindPayload <TSchema extends Document> = {
     }
 }
 
-export default function <TSchema extends Document> (collection: Collection<TSchema>, accessService: AccessService, payload: FindPayload<TSchema>): Promise<TSchema[]> {
+export type FindReturnType<TSchema extends Document> = TSchema[] | Partial<TSchema>[];
+
+export default function <TSchema extends Document> (collection: Collection<TSchema>, accessService: AccessService, payload: FindPayload<TSchema>): Promise<FindReturnType<TSchema>> {
     const filterWithAccess = accessService.getFilter(payload.filter as Filter<Document>);
 
     return collection.find(filterWithAccess, payload.options).toArray() as Promise<TSchema[]>;
