@@ -8,7 +8,7 @@ export interface FilterTest extends Record<string, BSONValue> {
 
 export const filterTestsSchema = z.object({
     _id: z.string()
-}).and(z.record(z.string(), z.any())) satisfies ZodType<FilterTest>;
+}).catchall(z.record(z.string(), z.any())) satisfies ZodType<FilterTest>;
 
 export function getFilterTests(): FilterTest[] {
     return [
