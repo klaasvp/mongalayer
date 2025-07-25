@@ -70,7 +70,7 @@ export const getMongaLayerForFilterTest = async (options?: { debugging: boolean 
     });
 }
 
-export const getMongaLayerForCollections= async (collections: MongalayerCollections, options?: MongalayerOptions): Promise<Mongalayer> => {
+export const getMongaLayerForCollections= async (collections: MongalayerCollections, options?: Partial<MongalayerOptions>): Promise<Mongalayer> => {
     options = {
         debugging: false,
         useSessions: true,
