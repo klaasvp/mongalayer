@@ -96,7 +96,7 @@ describe('Access - Filter', () => {
                 access: [{
                     role: "self",
                     filter: {
-                        _id: "%%user.sub"
+                        $eq: ["$_id", "%%user.sub"]
                     }
                 }]
             };
@@ -155,7 +155,7 @@ describe('Access - Filter', () => {
                 access: [{
                     role: "owner",
                     filter: {
-                        "access.owners": {"$in": ["%%user.sub"]}
+                        "$in": ["%%user.sub", "$access.owners"]
                     }
                 }]
             };
