@@ -31,6 +31,13 @@ export default async function <TSchema extends Document> (collection: Collection
     const pipeline: Document[] = [stages.$query];
 
     if (stages.$role) pipeline.push(stages.$role);
+
+    if (payload.options?.projection) pipeline.push({ $project: payload.options.projection });
+
+    // Sort?
+
+    if (payload.options?.limit) pipeline.push({ $limit: payload.options.limit });
+    if (payload.options?.skip) pipeline.push({ $skip: payload.options.skip });
     
     const result = await collection.aggregate(pipeline).toArray() as TSchema[];
 
