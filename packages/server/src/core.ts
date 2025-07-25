@@ -1,7 +1,7 @@
 import { MongoClient, Document, Db, ClientSession } from "mongodb";
-import { ZodType } from "zod/v4";
+import { ZodObject, ZodType } from "zod/v4";
 import { Action, find, findOne, InferActionPayload, InferActionReturnType, MongalayerCollectionType } from "./actions/index.js";
-import { AccessConfig, AccessPayload, AccessService } from "./access.js";
+import { AccessConfig, AccessFieldPermission, AccessFieldPermissions, AccessPayload, AccessService } from "./access.js";
 import z from "zod/v4";
 import { FindOneReturnType } from "./actions/findOne.js";
 import { FindReturnType } from "./actions/find.js";
@@ -9,36 +9,43 @@ import { FindReturnType } from "./actions/find.js";
 export type { MongalayerCollectionType };
 
 export type MongalayerCollection<TSchema extends Document = Document> = {
-    schema: ZodType<TSchema>,
+    schema: ZodObject,
     access: AccessConfig<TSchema>
 }
 
-export type MongalayerCollections = Record<string, MongalayerCollection<any>>;
+export type MongalayerCollections = Record<string, MongalayerCollection<Document>>;
 
 export type MongalayerOptions = {
     /**
      * @description Enable MongoDB sessions for transactions.
      * @default true
      */
-    useSessions?: boolean,
+    useSessions: boolean,
     /**
      * @description Enable debugging mode. This will log all actions to the console.
      * @default false
      */
-    debugging?: boolean
+    debugging: boolean,
+    /**
+     * @description Default access field permission for all fields not explicitly defined in the access config. 
+     * @default {AccessFieldPermissions.Read}
+     */
+    accessFieldsDefault: AccessFieldPermission
 };
 
 export class Mongalayer {
+    private options: MongalayerOptions;
 
     constructor (
         private mongodbClient: MongoClient,
         private collections: MongalayerCollections,
-        private options: MongalayerOptions
+        providedOptions?: Partial<MongalayerOptions>
     ) { 
-        options = {
+        this.options = {
             useSessions: true,
             debugging: false,
-            ...options
+            accessFieldsDefault: AccessFieldPermissions.Read,
+            ...providedOptions
         };
     }
 
@@ -59,15 +66,16 @@ export class Mongalayer {
 
             const collection = database.collection(action.collection);
 
-            let accessConfig: AccessConfig = [];
+            let accessConfig: AccessConfig<Document> = [], schema: ZodObject = z.object({});
 
             if (this.collections[action.collection] !== void 0) {
                 accessConfig = this.collections[action.collection].access;
+                schema = this.collections[action.collection].schema;
             } else {
                 console.debug("Mongalayer - Execute - No config found, using public access");
             }
 
-            const accessService = new AccessService(accessPayload, accessConfig);
+            const accessService = new AccessService(accessPayload, accessConfig, schema, this.options.accessFieldsDefault);
 
             try {
                 switch (action.operation) {

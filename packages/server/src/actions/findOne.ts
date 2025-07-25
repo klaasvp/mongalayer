@@ -2,7 +2,7 @@ import { Collection, Document, Filter } from "mongodb";
 import { AccessService } from "../access.js";
 import z, { ZodObject } from "zod/v4";
 import { filterSchema, projectionSchema } from "./schema.js";
-import { MongaLayerPayloadError } from "./types.js";
+import find, { FindPayload } from "./find.js";
 
 export type FindOnePayload<TSchema extends Document> = {
     filter: Filter<TSchema>,
@@ -13,7 +13,7 @@ export type FindOnePayload<TSchema extends Document> = {
 
 export type FindOneReturnType<TSchema extends Document> = TSchema | Partial<TSchema> | null;
 
-const payloadSchema = z.object({
+const payloadSchema: z.ZodType<FindOnePayload<Document>> = z.object({
     filter: filterSchema,
     options: z.object({
         projection: projectionSchema.optional()
@@ -23,7 +23,16 @@ const payloadSchema = z.object({
 export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: AccessService, payload: FindOnePayload<TSchema>): Promise<FindOneReturnType<TSchema>> {
     payloadSchema.parse(payload);
 
-    const filterWithAccess = accessService.getFilter(payload.filter as Filter<Document>);
+    const findPayload: FindPayload<TSchema> = structuredClone(payload);
+    
+    findPayload.options = {
+        ...findPayload.options,
+        limit: 1
+    };
 
-    return collection.findOne(filterWithAccess, payload.options);
+    const result = await find(collection, accessService, findPayload);
+
+    if (result.length === 0) return null;
+
+    return result[0] as Partial<TSchema>;
 }
