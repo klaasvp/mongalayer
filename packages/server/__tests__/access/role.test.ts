@@ -4,9 +4,10 @@ import { User, userSchema } from "#test/data/user";
 import { Project, projectSchema } from "#test/data/project";
 import { JwtPayload } from "jsonwebtoken";
 import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects, userObjects } from "#test/lib/database";
-import { AccessConfig, AccessFieldPermissions, AccessService, WithAccessRole } from "#src/access";
+import { AccessConfig, AccessFieldPermissions, WithAccessRole } from "#src/access";
 import { Db, Document } from "mongodb";
 import { ZodObject } from "zod/v4";
+import { QueryService } from "#src/query";
 
 describe('Access - Roles', () => {
     let database: Db, userZero = userObjects[0], userOne = userObjects[0];
@@ -21,13 +22,13 @@ describe('Access - Roles', () => {
             access: []
         }
 
-        const accessService = new AccessService({}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
+        const accessService = new QueryService({}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
 
         const stages = accessService.getStages({});
 
         const pipeline: Document[] = [ { $match: {} } ];
 
-        if (stages.$role) pipeline.push({ $addFields: stages.$role });
+        if (stages.$role) pipeline.push(stages.$role);
 
         pipeline.push({ $limit: 1 });
         
@@ -49,13 +50,13 @@ describe('Access - Roles', () => {
             }]
         }
 
-        const accessService = new AccessService({user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
+        const accessService = new QueryService({user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
 
         const stages = accessService.getStages({});
 
         const pipeline: Document[] = [ { $match: { _id: userZero._id } } ];
 
-        if (stages.$role) pipeline.push({ $addFields: stages.$role });
+        if (stages.$role) pipeline.push(stages.$role);
 
         pipeline.push({ $limit: 1 });
         
@@ -101,13 +102,13 @@ describe('Access - Roles', () => {
             return mapping;
         }, {} as Record<string, string | null>);
 
-        const accessService = new AccessService({user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
+        const accessService = new QueryService({user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
 
         const stages = accessService.getStages({});
 
         const pipeline: Document[] = [ { $match: {} } ];
 
-        if (stages.$role) pipeline.push({ $addFields: stages.$role });
+        if (stages.$role) pipeline.push(stages.$role);
         
         const result = await database.collection("projects").aggregate<WithAccessRole<Project>>(pipeline).toArray();
 
