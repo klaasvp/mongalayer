@@ -1,10 +1,11 @@
 import { MongoClient, Document, Db, ClientSession } from "mongodb";
 import { ZodObject, ZodType } from "zod/v4";
 import { Action, find, findOne, InferActionPayload, InferActionReturnType, MongalayerCollectionType } from "./actions/index.js";
-import { AccessConfig, AccessFieldPermission, AccessFieldPermissions, AccessPayload, AccessService } from "./access.js";
+import { AccessConfig, AccessFieldPermission, AccessFieldPermissions, AccessPayload } from "./access.js";
 import z from "zod/v4";
 import { FindOneReturnType } from "./actions/findOne.js";
 import { FindReturnType } from "./actions/find.js";
+import { QueryService } from "./query.js";
 
 export type { MongalayerCollectionType };
 
@@ -75,7 +76,7 @@ export class Mongalayer {
                 console.debug("Mongalayer - Execute - No config found, using public access");
             }
 
-            const accessService = new AccessService(accessPayload, accessConfig, schema, this.options.accessFieldsDefault);
+            const accessService = new QueryService(accessPayload, accessConfig, schema, this.options.accessFieldsDefault);
 
             try {
                 switch (action.operation) {

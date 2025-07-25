@@ -1,5 +1,5 @@
 import { Collection, Document, Filter } from "mongodb";
-import { AccessService } from "../access.js";
+import { QueryService } from "../query.js";
 import z, { ZodObject } from "zod/v4";
 import { filterSchema, projectionSchema } from "./schema.js";
 
@@ -23,18 +23,14 @@ const payloadSchema: z.ZodType<FindPayload<Document>> = z.object({
     }).optional()
 });
 
-export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: AccessService, payload: FindPayload<TSchema>): Promise<FindReturnType<TSchema>> {
+export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: QueryService, payload: FindPayload<TSchema>): Promise<FindReturnType<TSchema>> {
     payloadSchema.parse(payload);
     
     const stages = accessService.getStages(payload.filter as Filter<Document>);
 
-    const pipeline: Document[] = [
-        { $match: stages.$match }
-    ];
+    const pipeline: Document[] = [stages.$query];
 
-    if (stages.$role) pipeline.push({ 
-        $addFields: stages.$role
-    });
+    if (stages.$role) pipeline.push(stages.$role);
     
     const result = await collection.aggregate(pipeline).toArray() as TSchema[];
 
