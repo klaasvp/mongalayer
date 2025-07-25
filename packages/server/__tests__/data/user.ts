@@ -12,7 +12,10 @@ export interface User {
     email: string,
     roles: UserRoles[],
     createdAt: Date,
-    updatedAt: Date
+    updatedAt: Date,
+    settings: {
+        theme: "light" | "dark"
+    }
 }
 
 export const userSchema = z.object({
@@ -21,7 +24,10 @@ export const userSchema = z.object({
     email: z.string(),
     roles: z.array(z.enum([UserRoles.ADMIN, UserRoles.USER])),
     createdAt: z.date(),
-    updatedAt: z.date()
+    updatedAt: z.date(),
+    settings: z.object({
+        theme: z.enum(["light", "dark"])
+    })
 }) satisfies ZodType<User>;
 
 export function getRandomUser (): User {
@@ -31,7 +37,10 @@ export function getRandomUser (): User {
         email: faker.internet.email(),
         roles: faker.helpers.arrayElements([UserRoles.ADMIN, UserRoles.USER]),
         createdAt: faker.date.past(),
-        updatedAt: faker.date.recent()
+        updatedAt: faker.date.recent(),
+        settings: {
+            theme: faker.helpers.arrayElement(["light", "dark"])
+        }
     };
 }
 
