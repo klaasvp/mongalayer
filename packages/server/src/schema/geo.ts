@@ -12,6 +12,7 @@ type MultiPolygon = { type: "MultiPolygon", coordinates: Position[][][] } & Crs;
 
 type Geometry = Point | MultiPoint | LineString | MultiLineString | Polygon | MultiPolygon;
 type GeometryCollection = { type: "GeometryCollection", geometries: Geometry[] };
+type GeometryNearSchema = { $geometry: Point, $maxDistance?: number, $minDistance?: number };
 
 // [longitude, latitude]
 export const positionSchema = z.tuple([
@@ -115,4 +116,4 @@ export const $geometryNearSchema = z.strictObject({
             input: ctx.value
         })
     }
-});
+}) as z.ZodType<GeometryNearSchema>;
