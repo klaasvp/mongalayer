@@ -1,10 +1,9 @@
+import { isArray, isObject } from "./core.js";
+
 type IterateCallbackReplacer = (newValue: any) => void;
 export type IterateCallback = (key: string | number, value: any, replace: IterateCallbackReplacer) => void;
 
 type IteratePrimitives = "string" | "number" | "boolean";
-
-const isArray = (array: unknown): array is unknown[] => Array.isArray(array);
-const isObject = (obj: unknown): obj is Record<string, unknown> => Object.prototype.toString.call(obj) === "[object Object]";
 
 export function iteratePrimitives (instance: any[] | Record<string, unknown>, callback: IterateCallback, primitives: IteratePrimitives[] = ["string", "number", "boolean"]) {
     const entries: [string | number, any][] = [];
