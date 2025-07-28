@@ -97,6 +97,8 @@ const dbTestTable: DbProjectTest[] = [
     { projection: { "details.description": 1, "details.metadata": 1 }, properties: { present: [ "_id", "details.description", "details.metadata" ], missing: [  ] }, message: 'include details.description & details.metadata - dot notation' },
     { projection: { details: { description: 1 } }, properties: { present: [ "_id", "details.description" ], missing: [ "details.metadata" ] }, message: 'include details.description - object notation' },
     { projection: { details: { description: 1, metadata: 1 } }, properties: { present: [ "_id", "details.description", "details.metadata" ], missing: [  ] }, message: 'include details.description & details.metadata - object notation' },
+    { projection: { "details.nestedObject": 0 }, properties: { present: [ "_id", "details.description", "details.metadata" ], missing: [ "details.nestedObject" ] }, message: 'exclude details.nestedObject - dot notation' },
+    { projection: { details: { nestedObject: 0 } }, properties: { present: [ "_id", "details.description", "details.metadata" ], missing: [ "details.nestedObject" ] }, message: 'exclude details.nestedObject - object notation' },
 ];
 
 describe('projection', () => {
