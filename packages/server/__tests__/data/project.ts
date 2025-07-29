@@ -14,7 +14,18 @@ export type Project = {
     description: string,
     access: ProjectAccess,
     createdAt: Date,
-    updatedAt: Date
+    updatedAt: Date,
+    config: {
+        secret: string,
+        tags: string[]
+    },
+    data: {
+        location: {
+            coordinates: [number, number],
+            city: string,
+            street: string
+        }
+    }
 };
 
 export const projectSchema = z.object({
@@ -27,7 +38,18 @@ export const projectSchema = z.object({
         readers: z.array(z.string())
     }),
     createdAt: z.date(),
-    updatedAt: z.date()
+    updatedAt: z.date(),
+    config: z.object({
+        secret: z.string(),
+        tags: z.array(z.string())
+    }),
+    data: z.object({
+        location: z.object({
+            coordinates: z.tuple([z.number(), z.number()]),
+            city: z.string(),
+            street: z.string()
+        })   
+    })
 }) satisfies ZodType<Project>;
 
 export function getRandomProject (users: User[]): Project {
@@ -47,7 +69,18 @@ export function getRandomProject (users: User[]): Project {
             readers: randomReaders.filter(id => !randomOwners.includes(id) && !randomContributors.includes(id))
         },
         createdAt: faker.date.past(),
-        updatedAt: faker.date.recent()
+        updatedAt: faker.date.recent(),
+        config: {
+            secret: faker.string.alphanumeric(10),
+            tags: faker.helpers.arrayElements(["tag1", "tag2", "tag3"], 2)
+        },
+        data: {
+            location: {
+                coordinates: [faker.location.latitude(), faker.location.longitude()],
+                city: faker.location.city(),
+                street: faker.location.street()
+            }
+        }
     };
 }
 
