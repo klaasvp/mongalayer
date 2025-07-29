@@ -1,4 +1,4 @@
-import { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType } from "#server";
+import { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType } from "@mongalayer/server/client";
 import { Db } from "./db";
 
 export class Collection {

@@ -18,10 +18,5 @@
     },
     "devDependencies": {
         
-    },
-    "imports": {
-        "#server": {
-            "types": "@mongalayer/server/client"
-        }
     }
 }
