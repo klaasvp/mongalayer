@@ -2,7 +2,7 @@
     "name": "@mongalayer/client",
     "type": "module",
     "private": true,
-    "module": "./dist/index.js",
+    "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
@@ -11,12 +11,17 @@
         }
     },
     "scripts": {
-        "build": "tsc"
+        "build": "tsc --project tsconfig.build.json"
     },
     "dependencies": {
 
     },
     "devDependencies": {
         
+    },
+    "imports": {
+        "#server": {
+            "types": "@mongalayer/server/client"
+        }
     }
 }
