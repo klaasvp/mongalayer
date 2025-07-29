@@ -8,6 +8,7 @@ export const AccessFieldPermissions = {
      */
     None: "x",
     Read: "r",
+    Create: "c",
     Write: "w"
 } as const;
 
