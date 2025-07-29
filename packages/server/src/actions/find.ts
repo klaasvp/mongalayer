@@ -1,15 +1,15 @@
 import { Collection, Document, Filter } from "mongodb";
 import { QueryService } from "../query.js";
 import z, { ZodObject } from "zod/v4";
-import { filterSchema, projectionSchema, sortSchema } from "./schema.js";
+import { FilterSchema, filterSchema, Projection, projectionSchema, Sort, sortSchema } from "./schema.js";
 
 export type FindPayload <TSchema extends Document> = {
-    filter: Filter<TSchema>,
+    filter: FilterSchema,
     options?: {
-        projection?: Document,
+        projection?: Projection,
         limit?: number,
         skip?: number,
-        sort?: Document
+        sort?: Sort
     }
 }
 
