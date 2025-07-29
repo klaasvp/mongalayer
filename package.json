@@ -2,7 +2,7 @@
     "name": "mongalayer",
     "private": true,
     "scripts": {
-        "build": "npm --prefix ./packages/client run build && npm --prefix ./packages/server run build",
+        "build": "npm --prefix ./packages/server run build && npm --prefix ./packages/client run build",
         "test": "npm run build && npm --prefix ./packages/tests run test"
     },
     "workspaces": [
