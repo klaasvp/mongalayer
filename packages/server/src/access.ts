@@ -20,7 +20,7 @@ export type AccessFieldPermission = AccessFieldPermissionsType[keyof AccessField
 export type AccessDefinition<TSchema extends Document = Document> = {
     role: string,
     filter?: Document,
-    fields?: Record<keyof TSchema, AccessFieldPermission>,
+    fields?: Partial<Record<keyof TSchema, AccessFieldPermission>>,
     fieldsDefault?: AccessFieldPermission,
     delete?: boolean
 };
