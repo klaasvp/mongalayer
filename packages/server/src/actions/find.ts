@@ -1,14 +1,15 @@
 import { Collection, Document, Filter } from "mongodb";
 import { QueryService } from "../query.js";
 import z, { ZodObject } from "zod/v4";
-import { filterSchema, projectionSchema } from "./schema.js";
+import { filterSchema, projectionSchema, sortSchema } from "./schema.js";
 
 export type FindPayload <TSchema extends Document> = {
     filter: Filter<TSchema>,
     options?: {
         projection?: Document,
         limit?: number,
-        skip?: number
+        skip?: number,
+        sort?: Document
     }
 }
 
@@ -19,7 +20,8 @@ const payloadSchema: z.ZodType<FindPayload<Document>> = z.object({
     options: z.object({
         projection: projectionSchema.optional(),
         limit: z.number().optional(),
-        skip: z.number().optional()
+        skip: z.number().optional(),
+        sort: sortSchema.optional()
     }).optional()
 });
 
@@ -36,6 +38,7 @@ export default async function <TSchema extends Document> (collection: Collection
 
     if (stages.$project) pipeline.push(stages.$project);
 
+    if (payload.options?.sort) pipeline.push({ $sort: payload.options.sort });
     if (payload.options?.limit) pipeline.push({ $limit: payload.options.limit });
     if (payload.options?.skip) pipeline.push({ $skip: payload.options.skip });
     

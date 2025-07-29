@@ -198,3 +198,7 @@ export const projectionSchema = z.lazy(() => z.record(z.string(), z.union([z.lit
         }
     });
 }) as z.ZodType<Projection>
+
+export type Sort = { [key: string]: -1 | 1 | boolean | Projection }
+
+export const sortSchema = z.record(z.string(), z.union([z.literal(-1), z.literal(1)])) as z.ZodType<Sort>

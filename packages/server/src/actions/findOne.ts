@@ -1,13 +1,14 @@
 import { Collection, Document, Filter } from "mongodb";
 import { QueryService } from "../query.js";
 import z, { ZodObject } from "zod/v4";
-import { filterSchema, projectionSchema } from "./schema.js";
+import { filterSchema, projectionSchema, sortSchema } from "./schema.js";
 import find, { FindPayload } from "./find.js";
 
 export type FindOnePayload<TSchema extends Document> = {
     filter: Filter<TSchema>,
     options?: {
         projection?: Document
+        sort?: Document
     }
 }
 
@@ -16,7 +17,8 @@ export type FindOneReturnType<TSchema extends Document> = TSchema | Partial<TSch
 const payloadSchema: z.ZodType<FindOnePayload<Document>> = z.object({
     filter: filterSchema,
     options: z.object({
-        projection: projectionSchema.optional()
+        projection: projectionSchema.optional(),
+        sort: sortSchema.optional()
     }).optional()
 });
 
