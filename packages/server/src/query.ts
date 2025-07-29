@@ -107,6 +107,11 @@ export class QueryService {
                     }
                 });
 
+                // This is an edge case, if only _id is excluded we want to type to be exclusive
+                if (Object.keys(projection).length === 1 && projection["_id"] === 0) {
+                    return 0;
+                }
+
                 return 1;
             } catch (e) {
                 if (e !== "exit") throw e;
