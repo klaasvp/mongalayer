@@ -1,13 +1,11 @@
 import { MongoClient, Document, Db, ClientSession } from "mongodb";
 import { ZodObject, ZodType } from "zod/v4";
-import { Action, find, findOne, InferActionPayload, InferActionReturnType, MongalayerCollectionType } from "./actions/index.js";
+import { Action, find, findOne, InferActionPayload, InferActionReturnType } from "./actions/index.js";
 import { AccessConfig, AccessFieldPermission, AccessFieldPermissions, AccessPayload } from "./access.js";
 import z from "zod/v4";
 import { FindOneReturnType } from "./actions/findOne.js";
 import { FindReturnType } from "./actions/find.js";
 import { QueryService } from "./query.js";
-
-export type { MongalayerCollectionType };
 
 export type MongalayerCollection<TSchema extends Document = Document> = {
     schema: ZodObject,
