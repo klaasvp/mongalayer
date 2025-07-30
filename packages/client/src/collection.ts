@@ -45,12 +45,12 @@ export class Collection {
     public async findOne <TSchema extends Document> (filter: FindOnePayload<TSchema>["filter"], options?: FindOnePayload<TSchema>["options"]): Promise<FindOneReturnType<TSchema>> {
         const response = await this.request("findOne", { filter, options });
 
-        return response.json();
+        return await response.json();
     }
 
     public async find <TSchema extends Document> (filter: FindPayload<TSchema>["filter"], options?: FindPayload<TSchema>["options"]): Promise<FindReturnType<TSchema>> {
         const response = await this.request("find", { filter, options });
 
-        return response.json();
+        return await response.json();
     }
 }
