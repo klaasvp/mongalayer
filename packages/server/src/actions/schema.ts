@@ -3,7 +3,7 @@ import { $geometryIntersectsSchema, $geometryNearSchema, $geometryWithinSchema, 
 import { BSONTypeAliasSchema, BSONTypeSchema } from "../schema/bson.js";
 import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
 
-type JSONValue = string | number | boolean | null | { [key: string]: JSONValue } | JSONValue[];
+type JSONValue = string | number | boolean | null | Date | { [key: string]: JSONValue } | JSONValue[];
 
 const operatorKeys = [
     "$eq", "$gt", "$gte", "$in", "$lt", "$lte", "$ne", "$nin", "$not", 
@@ -22,6 +22,7 @@ export const documentValueSchema: z.ZodType<JSONValue> = z.lazy(() => z.union([
     z.number(),
     z.boolean(),
     z.null(),
+    z.date(),
     //z.undefined() -> JSON which will be the payload does not support undefined,
     z.array(documentValueSchema),
     z.record(withoutOperatorKeys, documentValueSchema)
