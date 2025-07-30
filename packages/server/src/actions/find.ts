@@ -38,7 +38,10 @@ export default async function <TSchema extends Document> (collection: Collection
 
     if (stages.$project) pipeline.push(stages.$project);
 
-    if (payload.options?.sort) pipeline.push({ $sort: payload.options.sort });
+    if (payload.options?.sort && Object.keys(payload.options?.sort).length > 0) {
+        pipeline.push({ $sort: payload.options.sort });
+    }
+    
     if (payload.options?.limit) pipeline.push({ $limit: payload.options.limit });
     if (payload.options?.skip) pipeline.push({ $skip: payload.options.skip });
     
