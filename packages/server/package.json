@@ -14,7 +14,7 @@
         }
     },
     "scripts": {
-        "build": "tsc --project tsconfig.build.json",
+        "build": "rm -rf ./dist/* && tsc --project tsconfig.build.json",
         "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" MONGOMS_DOWNLOAD_URL=\"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-8.0.11.tgz\" MONGOMS_VERSION=\"8.0.11\" npx vitest --run",
         "test-specific": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" MONGOMS_DOWNLOAD_URL=\"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-8.0.11.tgz\" MONGOMS_VERSION=\"8.0.11\" npx vitest --run $npm_config_pattern"
     },

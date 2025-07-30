@@ -3,17 +3,13 @@
     "type": "module",
     "private": true,
     "exports": {
-        "./*": {
-            "import": "./dist/*.js",
-            "types": "./dist/*.d.ts"
-        },
         "./utils/*": {
             "import": "./dist/utils/*.js",
             "types": "./dist/utils/*.d.ts"
         }
     },
     "scripts": {
-        "build": "tsc --project tsconfig.build.json",
+        "build": "rm -rf ./dist/* && tsc --project tsconfig.build.json",
         "test": "npx vitest --run"
     },
     "devDependencies": {
