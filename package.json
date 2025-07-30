@@ -17,5 +17,15 @@
         "@types/jsonwebtoken": "^9.0.10",
         "type-fest": "^4.41.0",
         "typescript": "^5.8.3"
+    },
+    "exports": {
+        "./server": {
+            "import": "./packages/server/dist/index.js",
+            "types": "./packages/server/dist/index.d.ts"
+        },
+        "./client": {
+            "import": "./packages/client/dist/index.js",
+            "types": "./packages/client/dist/index.d.ts"
+        }
     }
 }

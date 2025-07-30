@@ -14,7 +14,7 @@
         "build": "tsc --project tsconfig.build.json"
     },
     "dependencies": {
-
+        "@mongalayer/server": "file:../server"
     },
     "devDependencies": {
         
