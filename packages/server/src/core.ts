@@ -6,6 +6,7 @@ import z from "zod/v4";
 import { FindOneReturnType } from "./actions/findOne.js";
 import { FindReturnType } from "./actions/find.js";
 import { QueryService } from "./query.js";
+import { parseReviver, stringifyReplacer } from "@mongalayer/core/utils/json"
 
 export type MongalayerCollection<TSchema extends Document = Document> = {
     schema: ZodObject,
@@ -51,7 +52,7 @@ export class Mongalayer {
     /**
      * This function uses currying to be able to provide the correct return types using Generics.
      */
-    public async execute <TAction extends Action>(action: TAction, actionPayload: InferActionPayload<TAction>, accessPayload: AccessPayload): Promise<InferActionReturnType<TAction>> {
+    public async executeRaw <TAction extends Action>(action: TAction, actionPayload: InferActionPayload<TAction>, accessPayload: AccessPayload): Promise<InferActionReturnType<TAction>> {
         let result: FindOneReturnType<Document> | FindReturnType<Document> | void,
             database: Db | null, 
             session: ClientSession | null = null;
@@ -103,5 +104,13 @@ export class Mongalayer {
         }
 
         return result as InferActionReturnType<TAction>;
+    }
+
+    public async execute <TAction extends Action>(action: TAction, stringifiedActionPayload: string, accessPayload: AccessPayload): Promise<string> {
+        const actionPayload: InferActionPayload<TAction> = JSON.parse(stringifiedActionPayload, parseReviver);
+
+        const result = await this.executeRaw(action, actionPayload, accessPayload);
+        
+        return JSON.stringify(result, stringifyReplacer);
     }
 }
