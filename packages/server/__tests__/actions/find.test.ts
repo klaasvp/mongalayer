@@ -2,7 +2,8 @@ import { describe, expect, test, beforeAll } from "vitest";
 import { Project, projectSchema } from "#test/data/project";
 import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects } from "#test/lib/database";
 import { Db } from "mongodb";
-import { Mongalayer, MongalayerCollection, MongalayerCollections, MongalayerCollectionType } from "#src/core";
+import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/core";
+import { MongalayerCollectionType } from "#src/index.js";
 
 describe('Find', () => {
     let mongalayer: Mongalayer, projectZero: Project, database: Db;
@@ -22,7 +23,7 @@ describe('Find', () => {
 
     describe("limit", () => {
         test("No limit", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "projects" as MongalayerCollectionType<Project>,
                 operation: "find"
@@ -34,7 +35,7 @@ describe('Find', () => {
         });
 
         test("Limit = 1", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "projects" as MongalayerCollectionType<Project>,
                 operation: "find"
@@ -49,7 +50,7 @@ describe('Find', () => {
         });
 
         test("Limit = 2", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "projects" as MongalayerCollectionType<Project>,
                 operation: "find"

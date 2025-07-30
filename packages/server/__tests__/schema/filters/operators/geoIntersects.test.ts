@@ -1,11 +1,12 @@
 import { filterOperatorsSchema, filterSchema } from '#src/actions/schema';
-import { Mongalayer, MongalayerCollectionType } from '#src/core';
+import { Mongalayer } from '#src/core';
 import { exampleObject1, FilterTest } from '#test/data/filterTest';
 import { DbTest, isMongoServerError, ValueTest } from '../helper.js';
 import { SchemaTest } from '#test/data/schemaTest';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { Db } from 'mongodb';
 import { dbName, getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/lib/database';
+import { MongalayerCollectionType } from '#src/index.js';
 
 const valuesTable: ValueTest[] = [
     { value: { $geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 1], [1, 0], [0, 0]]] } }, message: 'should validate with valid polygon', exceptions: {} },
@@ -147,7 +148,7 @@ describe('filter operators - $geoIntersects', () => {
 
             expect(zodResult.success).toBe(true);
 
-            const mongaResult = await mongalayer.execute({
+            const mongaResult = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "filterTestSolo" as MongalayerCollectionType<FilterTest>,
                 operation: "findOne"

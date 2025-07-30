@@ -1,9 +1,10 @@
 import { describe, expect, test, beforeAll } from "vitest";
-import { Mongalayer, MongalayerCollection, MongalayerCollections, MongalayerCollectionType } from "#src/core";
+import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/core";
 import { User, userSchema } from "#test/data/user";
 import { Project, projectSchema } from "#test/data/project";
 import { JwtPayload } from "jsonwebtoken";
 import { dbName, getMongaLayerForCollections, projectObjects, userObjects } from "#test/lib/database";
+import { MongalayerCollectionType } from "#src/index.js";
 
 describe('Access - Filter', () => {
     describe('Schema missing', () => {
@@ -18,7 +19,7 @@ describe('Access - Filter', () => {
         });
 
         test("random test", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -47,7 +48,7 @@ describe('Access - Filter', () => {
         });
 
         test("findOne - No filters", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -59,7 +60,7 @@ describe('Access - Filter', () => {
         });
 
         test("findOne - _id filter - existing", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne",
@@ -73,7 +74,7 @@ describe('Access - Filter', () => {
         });
 
         test("findOne - _id filter - non-existing", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -118,7 +119,7 @@ describe('Access - Filter', () => {
         });
 
         test("findOne - self filter", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -132,7 +133,7 @@ describe('Access - Filter', () => {
         });
 
         test("findOne - other filter", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -178,7 +179,7 @@ describe('Access - Filter', () => {
         });
 
         test("findOne - project as owner = project", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "projects" as MongalayerCollectionType<Project>,
                 operation: "findOne"
@@ -192,7 +193,7 @@ describe('Access - Filter', () => {
         });
 
         test("findOne - project not as owner = null", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "projects" as MongalayerCollectionType<Project>,
                 operation: "findOne"

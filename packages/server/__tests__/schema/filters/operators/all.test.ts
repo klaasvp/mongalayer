@@ -5,7 +5,8 @@ import { SchemaTest } from '#test/data/schemaTest';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { Db } from 'mongodb';
 import { dbName, getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/lib/database';
-import { Mongalayer, MongalayerCollectionType } from '#src/core';
+import { Mongalayer } from '#src/core';
+import { MongalayerCollectionType } from '#src/index.js';
 
 const valuesTable: ValueTest[] = [
     { value: [1, 2, 3], success: true, message: 'should validate with array of numbers' },
@@ -96,7 +97,7 @@ describe('filter operators - $all', () => {
 
             expect(zodResult.success).toBe(true);
 
-            const mongaResult = await mongalayer.execute({
+            const mongaResult = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "filterTestSolo" as MongalayerCollectionType<FilterTest>,
                 operation: "findOne"

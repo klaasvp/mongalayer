@@ -1,5 +1,5 @@
 import { projectionSchema, sortSchema } from '#src/actions/schema';
-import { Mongalayer, MongalayerCollectionType } from '#src/core';
+import { Mongalayer } from '#src/core';
 import { FilterTest } from '#test/data/filterTest';
 import { DbProjectTest, isMongoInvalidArgumentError, isMongoServerError, ValueTest } from './filters/helper.js';
 import { SchemaTest } from '#test/data/schemaTest';
@@ -7,6 +7,7 @@ import { beforeAll, describe, expect, test } from 'vitest';
 import { dbName, getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/lib/database';
 import { Db } from 'mongodb';
 import z from 'zod';
+import { MongalayerCollectionType } from '#src/index.js';
 
 export type DbSortTest = { 
     sort: z.infer<typeof sortSchema>,
@@ -141,7 +142,7 @@ describe('sort', () => {
 
             expect(zodResult.success).toBe(true);
 
-            const mongaResult = await mongalayer.execute({
+            const mongaResult = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "filterTest" as MongalayerCollectionType<FilterTest>,
                 operation: "find",

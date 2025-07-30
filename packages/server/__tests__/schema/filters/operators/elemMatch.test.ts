@@ -5,7 +5,8 @@ import { SchemaTest } from '#test/data/schemaTest';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { dbName, getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/lib/database';
 import { Db } from 'mongodb';
-import { Mongalayer, MongalayerCollectionType } from '#src/core';
+import { Mongalayer } from '#src/core';
+import { MongalayerCollectionType } from '#src/index.js';
 
 const valuesTable: ValueTest[] = [
     { value: { name: "test" }, message: 'should validate with valid query object', exceptions: {} },
@@ -112,7 +113,7 @@ describe('filter operators - $elemMatch', () => {
 
             expect(zodResult.success).toBe(true);
 
-            const mongaResult = await mongalayer.execute({
+            const mongaResult = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "filterTestSolo" as MongalayerCollectionType<FilterTest>,
                 operation: "findOne"

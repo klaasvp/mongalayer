@@ -1,10 +1,11 @@
 import { describe, expect, test, beforeAll } from "vitest";
-import { Mongalayer, MongalayerCollection, MongalayerCollections, MongalayerCollectionType } from "#src/core";
+import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/core";
 import { User, userSchema } from "#test/data/user";
 import { dbName, getMongaLayerForCollections, projectObjects, userObjects } from "#test/lib/database";
 import { AccessFieldPermissions } from "#src/access.js";
 import { JwtPayload } from "jsonwebtoken";
 import { Project, projectSchema } from "#test/data/project.js";
+import { MongalayerCollectionType } from "#src/index.js";
 
 describe('Access - Read - fields', () => {
     const userZero: User = userObjects[0], userKeys = Object.keys(userSchema.shape);
@@ -23,7 +24,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("No filters", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne",
@@ -43,7 +44,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("_id filter", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -83,7 +84,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("No projection", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -93,7 +94,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("Only _id", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -103,7 +104,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("Hide _id", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -113,7 +114,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("Show _id, hide name", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -123,7 +124,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("Hide _id, show name", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -151,7 +152,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("No projection", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -161,7 +162,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("Only _id", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -171,7 +172,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("Hide _id", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -183,7 +184,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("Show _id, hide name", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -195,7 +196,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("Hide _id, show name", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "users" as MongalayerCollectionType<User>,
                 operation: "findOne"
@@ -246,7 +247,7 @@ describe('Access - Read - fields', () => {
             });
 
             test("findOne - self filter", async () => {
-                const result = await mongalayer.execute({
+                const result = await mongalayer.executeRaw({
                     database: dbName,
                     collection: "users" as MongalayerCollectionType<User>,
                     operation: "findOne"
@@ -260,7 +261,7 @@ describe('Access - Read - fields', () => {
             });
 
             test("find - self & others", async () => {
-                const result = await mongalayer.execute({
+                const result = await mongalayer.executeRaw({
                     database: dbName,
                     collection: "users" as MongalayerCollectionType<User>,
                     operation: "find"
@@ -289,7 +290,7 @@ describe('Access - Read - fields', () => {
             });
 
             test("find - self & others as admin", async () => {
-                const result = await mongalayer.execute({
+                const result = await mongalayer.executeRaw({
                     database: dbName,
                     collection: "users" as MongalayerCollectionType<User>,
                     operation: "find"
@@ -377,7 +378,7 @@ describe('Access - Read - fields', () => {
         });
 
         test("find - projects as owner, contributor and reader", async () => {
-            const result = await mongalayer.execute({
+            const result = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "projects" as MongalayerCollectionType<Project>,
                 operation: "find"

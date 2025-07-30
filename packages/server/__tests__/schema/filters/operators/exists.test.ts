@@ -1,12 +1,13 @@
 import { z } from 'zod/v4';
 import { filterOperatorsSchema, filterSchema } from '#src/actions/schema';
-import { Mongalayer, MongalayerCollectionType } from '#src/core';
+import { Mongalayer } from '#src/core';
 import { FilterTest} from '#test/data/filterTest';
 import { DbTest, ValueTest } from '../helper.js';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { SchemaTest } from '#test/data/schemaTest';
 import { Db } from 'mongodb';
 import { dbName, getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/lib/database';
+import { MongalayerCollectionType } from '#src/index.js';
 
 const valuesTable: ValueTest[] = [
     { value: 42, success: false, message: `should not validate with number`},
@@ -65,7 +66,7 @@ describe('filter operators - $exists', () => {
             // Database tests should always be a valid schema
             expect(zodResult.success).toBe(true);
 
-            const mongaResult = await mongalayer.execute({
+            const mongaResult = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "filterTestSolo" as MongalayerCollectionType<FilterTest>,
                 operation: "findOne"

@@ -4,8 +4,9 @@ import { User } from "#test/data/user";
 import { z } from "zod/v4";
 import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects } from "#test/lib/database";
 import { Db } from "mongodb";
-import { Mongalayer, MongalayerCollection, MongalayerCollections, MongalayerCollectionType } from "#src/core";
+import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/core";
 import { $ZodIssueInvalidType, $ZodIssueUnrecognizedKeys } from "zod/v4/core";
+import { MongalayerCollectionType } from "#src/index.js";
 
 describe('Find One', () => {
     let mongalayer: Mongalayer, projectZero: Project, database: Db;
@@ -24,7 +25,7 @@ describe('Find One', () => {
     });
 
     test("filter - _id = _id", async () => {
-        const result = await mongalayer.execute({
+        const result = await mongalayer.executeRaw({
             database: dbName,
             collection: "projects" as MongalayerCollectionType<Project>,
             operation: "findOne"
@@ -38,7 +39,7 @@ describe('Find One', () => {
     });
 
     test("filter - _id $in [ _id ]", async () => {
-        const result = await mongalayer.execute({
+        const result = await mongalayer.executeRaw({
             database: dbName,
             collection: "projects" as MongalayerCollectionType<Project>,
             operation: "findOne"
@@ -53,7 +54,7 @@ describe('Find One', () => {
 
     test("filter - $text.[idontexistprop] _id", async () => {
         try {
-            await mongalayer.execute({
+            await mongalayer.executeRaw({
                 database: dbName,
                 collection: "projects" as MongalayerCollectionType<Project>,
                 operation: "findOne"
@@ -78,7 +79,7 @@ describe('Find One', () => {
 
     test("filter - $text.$search missing", async () => {
         try {
-            await mongalayer.execute({
+            await mongalayer.executeRaw({
                 database: dbName,
                 collection: "projects" as MongalayerCollectionType<Project>,
                 operation: "findOne",

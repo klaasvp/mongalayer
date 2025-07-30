@@ -1,8 +1,7 @@
 import { Document, Filter, MongoAPIError, MongoServerError } from "mongodb";
-import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/core";
-import { FilterTest, filterTestsSchema } from "#test/data/filterTest";
-import { SchemaTest, schemaTestSchema } from "#test/data/schemaTest";
+import { FilterTest } from "#test/data/filterTest";
 import { z } from "zod/v4";
+import { FilterSchema } from "#src/actions/schema.js";
 
 export type MongoDBException = {
     code: number,
@@ -44,7 +43,7 @@ export type ValueTest = ({
 });
 
 export type DbTest = { 
-    filter: Filter<FilterTest>, 
+    filter: FilterSchema, 
     success: boolean, 
     message: string 
 }

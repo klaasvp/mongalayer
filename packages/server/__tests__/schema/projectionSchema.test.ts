@@ -1,11 +1,12 @@
 import { projectionSchema } from '#src/actions/schema';
-import { Mongalayer, MongalayerCollectionType } from '#src/core';
+import { Mongalayer } from '#src/core';
 import { FilterTest } from '#test/data/filterTest';
 import { DbProjectTest, isMongoServerError, ValueTest } from './filters/helper.js';
 import { SchemaTest } from '#test/data/schemaTest';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { dbName, getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/lib/database';
 import { Db } from 'mongodb';
+import { MongalayerCollectionType } from '#src/index.js';
 
 const valuesTable: ValueTest[] = [
     { value: 1, message: 'should invalidate with number', exceptions: {
@@ -147,7 +148,7 @@ describe('projection', () => {
 
             expect(zodResult.success).toBe(true);
 
-            const mongaResult = await mongalayer.execute({
+            const mongaResult = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "filterTestSolo" as MongalayerCollectionType<FilterTest>,
                 operation: "findOne",
