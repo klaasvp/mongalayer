@@ -9,7 +9,8 @@
         "./packages/server",
         "./packages/client"
     ],
-    "dependencies": {
+    "dependencies": { },
+    "peerDependencies": {
         "mongodb": "^6.17.0",
         "zod": "^4.0.5"
     },
