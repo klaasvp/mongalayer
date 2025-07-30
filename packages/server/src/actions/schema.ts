@@ -1,7 +1,7 @@
 import { z } from "zod/v4";
 import { $geometryIntersectsSchema, $geometryNearSchema, $geometryWithinSchema, polygonSchema, positionSchema } from "../schema/geo.js";
 import { BSONTypeAliasSchema, BSONTypeSchema } from "../schema/bson.js";
-import { iteratePrimitives } from "#src/utils/replacer.js";
+import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
 
 type JSONValue = string | number | boolean | null | { [key: string]: JSONValue } | JSONValue[];
 

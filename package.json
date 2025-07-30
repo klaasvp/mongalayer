@@ -2,10 +2,11 @@
     "name": "mongalayer",
     "private": true,
     "scripts": {
-        "build": "npm --prefix ./packages/server run build && npm --prefix ./packages/client run build",
+        "build": "npm --prefix ./packages/core run build && npm --prefix ./packages/server run build && npm --prefix ./packages/client run build",
         "test": "npm run build && npm --prefix ./packages/tests run test"
     },
     "workspaces": [
+        "./packages/core",
         "./packages/server",
         "./packages/client"
     ],

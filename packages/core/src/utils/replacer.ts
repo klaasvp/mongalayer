@@ -1,4 +1,4 @@
-import { isArray, isObject } from "./core.js";
+import { isArray, isObject } from "./object.js";
 
 type IterateCallbackReplacer = (newValue: any) => void;
 export type IterateCallback = (key: string | number, value: any, replace: IterateCallbackReplacer, path: string[], parent: any[] | Record<string, unknown>) => void;

@@ -1,6 +1,4 @@
-import { Filter, Document } from "mongodb";
-import { iteratePrimitives } from "./utils/replacer.js";
-import { ZodObject } from "zod/v4";
+import { Document } from "mongodb";
 
 export const AccessFieldPermissions = {
     /**

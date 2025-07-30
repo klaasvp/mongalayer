@@ -1,9 +1,9 @@
 import { Filter, Document } from "mongodb";
-import { iteratePrimitives } from "./utils/replacer.js";
+import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
 import { ZodObject } from "zod/v4";
 import { AccessConfig, AccessFieldPermission, AccessFieldPermissions, AccessPayload } from "./access.js";
 import { hasNearQuery, transformNearToGeoNear } from "./query/near.js";
-import { deleteObjectProperty, isObject } from "./utils/core.js";
+import { deleteObjectProperty, isObject } from "@mongalayer/core/utils/object";
 
 type QueryStages = {
     $query: Document,

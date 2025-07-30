@@ -1,0 +1,28 @@
+{
+    "name": "@mongalayer/core",
+    "type": "module",
+    "private": true,
+    "exports": {
+        "./*": {
+            "import": "./dist/*.js",
+            "types": "./dist/*.d.ts"
+        },
+        "./utils/*": {
+            "import": "./dist/utils/*.js",
+            "types": "./dist/utils/*.d.ts"
+        }
+    },
+    "scripts": {
+        "build": "tsc --project tsconfig.build.json",
+        "test": "npx vitest --run"
+    },
+    "devDependencies": {
+        "vitest": "^3.2.4"
+    },
+    "imports": {
+        "#src/*": [
+            "./src/*",
+            "./src/*.ts"
+        ]
+    }
+}

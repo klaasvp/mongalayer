@@ -1,5 +1,5 @@
 import { $geometryNearSchema, positionSchema } from "#src/schema/geo.js";
-import { isArray, isObject } from "#src/utils/core.js";
+import { isArray, isObject } from "@mongalayer/core/utils/object";
 import { Document, Filter } from "mongodb";
 import z from "zod";
 
