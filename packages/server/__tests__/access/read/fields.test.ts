@@ -215,12 +215,12 @@ describe('Access - Read - fields', () => {
                 access: [{
                     role: "self",
                     filter: {
-                        $eq: ["$_id", "%%user.sub"]
+                        _id: "%%user.sub"
                     }
                 }, {
                     role: "otherAsAdmin",
                     filter: {
-                        $in: ["admin", "%%user.roles"]
+                        $expr: {$in: ["admin", "%%user.roles"]}
                     },
                     fields: { email: AccessFieldPermissions.None },
                     fieldsDefault: AccessFieldPermissions.Read
@@ -331,12 +331,12 @@ describe('Access - Read - fields', () => {
                 access: [{
                     role: "owner",
                     filter: {
-                        $in: ["%%user.sub", "$access.owners"]
+                        "access.owners": {$in: ["%%user.sub"]}
                     }
                 }, {
                     role: "contributor",
                     filter: {
-                        $in: ["%%user.sub", "$access.contributors"]
+                        "access.contributors": {$in: ["%%user.sub"]}
                     },
                     fields: {
                         config: AccessFieldPermissions.None
@@ -345,7 +345,7 @@ describe('Access - Read - fields', () => {
                 }, {
                     role: "reader",
                     filter: {
-                        $in: ["%%user.sub", "$access.readers"]
+                        "access.readers": {$in: ["%%user.sub"]}
                     },
                     fields: {
                         name: AccessFieldPermissions.Read,

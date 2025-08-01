@@ -7,7 +7,7 @@ import { deleteObjectProperty, isObject } from "@mongalayer/core/utils/object";
 
 type QueryStages = {
     $query: Document,
-    $role: { $addFields: Document } | null
+    $role: Document[] | null
     $project: { $project: Document } | null
 }
 
@@ -20,15 +20,16 @@ export class QueryService {
     private hydratedConfigMap: Record<string, AccessConfig[number]> = {};
 
     constructor (
+        private collection: string,
         private accessData: AccessPayload,
         accessConfig: AccessConfig,
         private documentSchema: ZodObject,
         private accessFieldsDefault: AccessFieldPermission
     ) {
-        this.hydratedConfig = accessConfig.map(access => ({
+        this.hydratedConfig = Array.isArray(accessConfig) ? accessConfig.map(access => ({
             ...access,
             filter: access.filter ? this.hydrateAccessFilter(access.filter) : void 0
-        }));
+        })) : [];
         this.hydratedConfigMap = this.hydratedConfig.reduce((acc, access) => ({ ...acc, [access.role]: access }), {});
     }
 
@@ -47,7 +48,7 @@ export class QueryService {
     private buildAccessFilters (): Filter<Document> | null {
         const filters: Filter<Document>[] = [];
 
-        filters.push(...this.hydratedConfig.filter(access => access.filter !== void 0).map(access => ({ $expr: access.filter })));
+        filters.push(...this.hydratedConfig.filter(access => access.filter !== void 0).map(access => access.filter!));
 
         if (filters.length === 0) return null;
 
@@ -78,19 +79,39 @@ export class QueryService {
         }
     }
 
-    private getRole (): Document | null {
+    private getRole (): Document[] | null {
         if (this.hydratedConfig.length > 0) {
-            return { 
+            // The lookup workaround is to support query predicates in the role filter mechanism.
+            // On of the more powerfull features or this is that $in supports array on array matching. ["a", "b"] in ["b", "c"] will return true.
+            const rolePipeline: Document[] = [
+                ...this.hydratedConfig.map(access => ({
+                    $lookup: {
+                        from: this.collection,
+                        pipeline: [
+                            { $match: access.filter! },
+                            { $project: { _id: 1 } } // Project only the ID
+                        ],
+                        as: `__mongalayer_role.${access.role}`
+                    }
+                }))
+            ]
+
+            rolePipeline.push({ $addFields: { 
                 __mongalayer_role: {
                     $switch: {
                         branches: this.hydratedConfig.map(access => ({
-                            case: access.filter!,
+                            case: {$in: [
+                                { _id: "$_id" }, // Match the projected ID
+                                `$__mongalayer_role.${access.role}`
+                            ]},
                             then: access.role
                         })),
                         default: null
                     }
                 }
-            }
+            } })
+
+            return rolePipeline;
         }
 
         return null;
@@ -144,7 +165,7 @@ export class QueryService {
 
         const stages = {
             $query: this.getFilter(currentFilter),
-            $role: role ? { $addFields: role } : null,
+            $role: role ? role : null,
             $project: project ? { $project: project } : null
         };
 

@@ -22,7 +22,7 @@ describe('Access - Roles', () => {
             access: []
         }
 
-        const accessService = new QueryService({}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
+        const accessService = new QueryService("user", {}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
 
         const stages = accessService.getStages({});
 
@@ -45,18 +45,18 @@ describe('Access - Roles', () => {
             access: [{
                 role: "self",
                 filter: {
-                    $eq: ["$_id", "%%user.sub"]
+                    _id: "%%user.sub"
                 }
             }]
         }
 
-        const accessService = new QueryService({user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
+        const accessService = new QueryService("users", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
 
         const stages = accessService.getStages({});
 
         const pipeline: Document[] = [ { $match: { _id: userZero._id } } ];
 
-        if (stages.$role) pipeline.push(stages.$role);
+        if (stages.$role) pipeline.push(...stages.$role);
 
         pipeline.push({ $limit: 1 });
         
@@ -78,17 +78,17 @@ describe('Access - Roles', () => {
             access: [{
                 role: "owner",
                 filter: {
-                    "$in": ["%%user.sub", "$access.owners"]
+                    "access.owners": {"$in": ["%%user.sub"]}
                 }
             }, {
                 role: "contributor",
                 filter: {
-                    "$in": ["%%user.sub", "$access.contributors"]
+                    "access.contributors": {"$in": ["%%user.sub"]}
                 }
             }, {
                 role: "reader",
                 filter: {
-                    "$in": ["%%user.sub", "$access.readers"]
+                    "access.readers": {"$in": ["%%user.sub"]}
                 }
             }]
         };
@@ -102,13 +102,13 @@ describe('Access - Roles', () => {
             return mapping;
         }, {} as Record<string, string | null>);
 
-        const accessService = new QueryService({user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
+        const accessService = new QueryService("projects", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
 
         const stages = accessService.getStages({});
 
         const pipeline: Document[] = [ { $match: {} } ];
 
-        if (stages.$role) pipeline.push(stages.$role);
+        if (stages.$role) pipeline.push(...stages.$role);
         
         const result = await database.collection("projects").aggregate<WithAccessRole<Project>>(pipeline).toArray();
 

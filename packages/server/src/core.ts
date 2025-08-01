@@ -75,7 +75,7 @@ export class Mongalayer {
                 console.debug("Mongalayer - Execute - No config found, using public access");
             }
 
-            const accessService = new QueryService(accessPayload, accessConfig, schema, this.options.accessFieldsDefault);
+            const accessService = new QueryService(action.collection, accessPayload, accessConfig, schema, this.options.accessFieldsDefault);
 
             try {
                 switch (action.operation) {

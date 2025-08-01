@@ -32,7 +32,7 @@ export default async function <TSchema extends Document> (collection: Collection
 
     const pipeline: Document[] = [stages.$query];
 
-    if (stages.$role) pipeline.push(stages.$role);
+    if (stages.$role) pipeline.push(...stages.$role);
 
     // Sort?
 
