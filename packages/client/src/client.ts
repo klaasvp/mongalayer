@@ -21,4 +21,16 @@ export class Client {
     public db (dbName: string) {
         return new Db(dbName, this);
     }
+
+    public setFormat (format: RequestFormat) {
+        this.options.format = format;
+    }
+
+    public setHeaders (headers: RequestInit["headers"]) {
+        this.options.headers = headers;
+    }
+
+    public setCredentials (credentials: RequestInit["credentials"]) {
+        this.options.credentials = credentials;
+    }
 }
