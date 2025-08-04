@@ -5,13 +5,15 @@ export type Projection = { [key: string]: 0 | 1 | boolean | Projection }
 
 // MongoDB also support certain operators for projection, we don't support that yet.
 export const projectionSchema = z.lazy(() => z.record(z.string(), z.union([z.literal(0), z.literal(1), z.boolean(), projectionSchema]))).check((ctx) => {
-    let firstProjectionType: 0 | 1 | boolean | undefined = undefined;
+    let firstProjectionType: 0 | 1 | undefined = undefined;
     
     iteratePrimitives(ctx.value, (key, value, replace) => {
         if (key !== "_id") {
+            const newValue = !!value ? 1 : 0
+
             if (firstProjectionType === undefined) {
-                firstProjectionType = value;
-            } else if (firstProjectionType !== value) {
+                firstProjectionType = newValue;
+            } else if (firstProjectionType !== newValue) {
                 ctx.issues.push({
                     code: "invalid_value",
                     message: "Projection cannot mix inclusion and exclusion.",
