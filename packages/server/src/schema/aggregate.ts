@@ -3,6 +3,7 @@ import { filterSchema } from "./query.js";
 import { unwindSchema } from "./aggregation/unwind.js";
 import { projectionSchema } from "./aggregation/project.js";
 import { sortSchema } from "./aggregation/sort.js";
+import { groupSchema } from "./aggregation/group.js";
 
 const stageKeys = [
     "$match", "$project", "$sort"
@@ -23,6 +24,8 @@ export const stageSchema = z.strictObject({ // Not strict as it's combined with 
     limit: z.int().positive()
 })).or(z.strictObject({
     $unwind: unwindSchema
+})).or(z.strictObject({
+    $group: groupSchema
 }));
 
 export type StageSchema =  z.infer<typeof stageSchema>
