@@ -1,4 +1,4 @@
-import { filterOperatorsSchema, filterSchema } from '#src/actions/schema';
+import { filterOperatorsSchema, filterSchema } from '#src/schema/query';
 import { Mongalayer } from '#src/core';
 import { exampleObject1, FilterTest } from '#test/data/filterTest';
 import { DbTest, isMongoServerError, ValueTest } from '../helper.js';

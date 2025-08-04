@@ -13,10 +13,13 @@ export type {
 } from "./actions/findOne.js";
 
 export type {
-    FilterSchema as Filter,
+    FilterSchema as Filter
+} from "./schema/query.js"
+
+export type {
     Projection,
     Sort
-} from "./actions/schema.js"
+} from "./schema/index.js"
 
 export type {
     Document

@@ -1,4 +1,4 @@
-import { projectionSchema, sortSchema } from '#src/actions/schema';
+import { projectionSchema, sortSchema } from '#src/schema/index';
 import { Mongalayer } from '#src/core';
 import { FilterTest } from '#test/data/filterTest';
 import { DbProjectTest, isMongoInvalidArgumentError, isMongoServerError, ValueTest } from './filters/helper.js';

@@ -1,4 +1,4 @@
-import { projectionSchema } from '#src/actions/schema';
+import { projectionSchema } from '#src/schema/index';
 import { Mongalayer } from '#src/core';
 import { FilterTest } from '#test/data/filterTest';
 import { DbProjectTest, isMongoServerError, ValueTest } from './filters/helper.js';

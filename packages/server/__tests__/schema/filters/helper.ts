@@ -1,7 +1,7 @@
 import { Document, Filter, MongoAPIError, MongoServerError } from "mongodb";
 import { FilterTest } from "#test/data/filterTest";
 import { z } from "zod/v4";
-import { FilterSchema } from "#src/actions/schema.js";
+import { FilterSchema } from "#src/schema/query.js";
 
 export type MongoDBException = {
     code: number,

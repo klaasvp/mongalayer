@@ -1,4 +1,4 @@
-import { filterOperatorsSchema } from '#src/actions/schema';
+import { filterOperatorsSchema } from '#src/schema/query';
 import { isMongoServerError, ValueTest } from '../helper.js';
 import { SchemaTest } from '#test/data/schemaTest';
 import { beforeAll, describe, expect, test } from 'vitest';

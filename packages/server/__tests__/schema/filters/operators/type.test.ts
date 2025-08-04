@@ -1,5 +1,5 @@
 import { z } from 'zod/v4';
-import { filterOperatorsSchema, filterSchema } from '#src/actions/schema';
+import { filterOperatorsSchema, filterSchema } from '#src/schema/query';
 import { Mongalayer } from '#src/core';
 import { FilterTest } from '#test/data/filterTest';
 import { DbTest, isMongoServerError } from '../helper.js';
