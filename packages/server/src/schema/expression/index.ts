@@ -33,23 +33,23 @@ export type ExpressionWithArrayReturnType = z.ZodType<Expression | Expression[]>
 
 export const operatorSchema: z.ZodType<ExpressionOperator> = z.union([
     z.strictObject({
-        get $avg () { return z.lazy(() => expressionSchema.or(expressionSchema.array())) }
+        get $avg () { return lazyExpressionSchemaWithArray }
     }),
     $first,
     $firstN,
     $last,
     $lastN,
     z.strictObject({
-        get $max () { return z.lazy(() => expressionSchema.or(expressionSchema.array())) }
+        get $max () { return lazyExpressionSchemaWithArray }
     }),
     z.strictObject({
-        get $median () { return z.lazy(() => z.strictObject({  input: expressionSchema.array(), method: z.literal("approximate") })) }
+        get $median () { return z.lazy(() => z.strictObject({ input: expressionSchema.array(), method: z.literal("approximate") })) }
     }),
     z.strictObject({
-        get $min () { return z.lazy(() => expressionSchema.or(expressionSchema.array())) }
+        get $min () { return lazyExpressionSchemaWithArray }
     }),
     z.strictObject({
-        get $sum () { return z.lazy(() => expressionSchema.array()) }
+        get $sum () { return lazyExpressionSchemaArray }
     })
 ])
 
@@ -57,3 +57,5 @@ export const operatorSchema: z.ZodType<ExpressionOperator> = z.union([
 export const expressionSchema: z.ZodType<Expression> = operatorSchema.or(z.string().regex(/^\$/));
 
 const lazyExpressionSchema = z.lazy(() => expressionSchema);
+const lazyExpressionSchemaArray = z.lazy(() => expressionSchema.array());
+const lazyExpressionSchemaWithArray = z.lazy(() => expressionSchema.or(expressionSchema.array()));

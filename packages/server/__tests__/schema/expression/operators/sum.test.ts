@@ -9,14 +9,18 @@ const valuesTable: ValueTest[] = [
     { value: "string", message: 'should invalidate with non path', exceptions: {
         zod: { code: "invalid_union", message: 'Invalid input' }
     } },
-    { value: "$path", message: 'should validate with $path', exceptions: {} },
+    { value: "$path", message: 'should invalidate with $path', exceptions: {
+        zod: { code: "invalid_union", message: 'Invalid input' }
+    } },
     { value: [], message: 'should validate with empty array', exceptions: {} },
     { value: ["$path", "$path"], message: 'should validate with $path array', exceptions: {} },
-    { value: [{ $avg: "$path" }, { $avg: "$path" }], message: 'should validate with nested operator array', exceptions: {} },
+    { value: [{ $avg: "$path" }, { $avg: "$path" }], message: 'should invalidate with nested operator array', exceptions: {} },
     { value: {}, message: 'should invalidate with empty object', exceptions: {
         zod: { code: "invalid_union", message: 'Invalid input' }
     } },
-    { value: { $avg: "$path" }, message: 'should validate with known operator', exceptions: { } },
+    { value: { $sum: "$path" }, message: 'should invalidate with known operator', exceptions: {
+        zod: { code: "invalid_union", message: 'Invalid input' }
+    } },
     { value: { $x: "$path" }, message: 'should invalidate with unknown operator', exceptions: {
         mongodb: { code: 168, codeName: "InvalidPipelineOperator", message: 'Unrecognized expression ' },
         zod: { code: "invalid_union", message: 'Invalid input' }
@@ -32,7 +36,7 @@ const valuesTable: ValueTest[] = [
     } }
 ];
 
-describe('expression operators - $avg', () => {
+describe('expression operators - $sum', () => {
     let database: Db;
 
     beforeAll(async () => {
@@ -40,6 +44,6 @@ describe('expression operators - $avg', () => {
     });
 
     describe('validation', () => {
-        test.each(valuesTable)('$message', async ({ value, exceptions }) => runTest({ $avg: value }, exceptions, database));
+        test.each(valuesTable)('$message', async ({ value, exceptions }) => runTest({ $sum: value }, exceptions, database));
     });
 });

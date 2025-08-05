@@ -12,11 +12,11 @@ const valuesTable: ValueTest[] = [
     { value: "$path", message: 'should validate with $path', exceptions: {} },
     { value: [], message: 'should validate with empty array', exceptions: {} },
     { value: ["$path", "$path"], message: 'should validate with $path array', exceptions: {} },
-    { value: [{ $avg: "$path" }, { $avg: "$path" }], message: 'should validate with nested operator array', exceptions: {} },
+    { value: [{ $max: "$path" }, { $max: "$path" }], message: 'should validate with nested operator array', exceptions: {} },
     { value: {}, message: 'should invalidate with empty object', exceptions: {
         zod: { code: "invalid_union", message: 'Invalid input' }
     } },
-    { value: { $avg: "$path" }, message: 'should validate with known operator', exceptions: { } },
+    { value: { $max: "$path" }, message: 'should validate with known operator', exceptions: { } },
     { value: { $x: "$path" }, message: 'should invalidate with unknown operator', exceptions: {
         mongodb: { code: 168, codeName: "InvalidPipelineOperator", message: 'Unrecognized expression ' },
         zod: { code: "invalid_union", message: 'Invalid input' }
@@ -32,7 +32,7 @@ const valuesTable: ValueTest[] = [
     } }
 ];
 
-describe('expression operators - $avg', () => {
+describe('expression operators - $max', () => {
     let database: Db;
 
     beforeAll(async () => {
@@ -40,6 +40,6 @@ describe('expression operators - $avg', () => {
     });
 
     describe('validation', () => {
-        test.each(valuesTable)('$message', async ({ value, exceptions }) => runTest({ $avg: value }, exceptions, database));
+        test.each(valuesTable)('$message', async ({ value, exceptions }) => runTest({ $max: value }, exceptions, database));
     });
 });
