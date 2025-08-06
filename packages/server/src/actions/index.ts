@@ -1,7 +1,7 @@
 import { Document } from "mongodb"
 import find, { FindPayload, FindReturnType } from "./find.js"
 import findOne, { FindOnePayload, FindOneReturnType } from "./findOne.js"
-import { AggregatePayload, AggregateReturnType } from "./aggregate.js";
+import aggregate, { AggregatePayload, AggregateReturnType } from "./aggregate.js";
 
 export type Operation = "findOne" | "find" | "aggregate";
 
@@ -33,5 +33,6 @@ export type * from "./types.js";
 
 export {
     find,
-    findOne
+    findOne,
+    aggregate
 }

@@ -3,11 +3,11 @@ import { ZodObject, ZodType } from "zod/v4";
 import { Action, find, findOne, InferActionPayload, InferActionReturnType } from "./actions/index.js";
 import { AccessConfig, AccessFieldPermission, AccessFieldPermissions, AccessPayload } from "./access.js";
 import z from "zod/v4";
-import { FindOneReturnType } from "./actions/findOne.js";
-import { FindReturnType } from "./actions/find.js";
+import { FindOnePayload, FindOneReturnType } from "./actions/findOne.js";
+import { FindPayload, FindReturnType } from "./actions/find.js";
 import { QueryService } from "./query.js";
 import { parseReviver, stringifyReplacer } from "@mongalayer/core/utils/json"
-import aggregate, { AggregateReturnType } from "./actions/aggregate.js";
+import aggregate, { AggregatePayload, AggregateReturnType } from "./actions/aggregate.js";
 
 export type MongalayerCollection<TSchema extends Document = Document> = {
     schema: ZodObject,
@@ -80,9 +80,9 @@ export class Mongalayer {
 
             try {
                 switch (action.operation) {
-                    case "findOne": result = await findOne(collection, accessService, actionPayload); break;
-                    case "find": result = await find(collection, accessService, actionPayload); break;
-                    case "aggregate": result = await aggregate(collection, accessService, actionPayload); break;
+                    case "findOne": result = await findOne(collection, accessService, actionPayload as FindOnePayload<Document>); break;
+                    case "find": result = await find(collection, accessService, actionPayload as FindPayload<Document>); break;
+                    case "aggregate": result = await aggregate(collection, accessService, actionPayload as AggregatePayload); break;
                 }
             } catch (e) {
                 if (e instanceof z.ZodError) {
