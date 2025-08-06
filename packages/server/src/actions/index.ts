@@ -1,8 +1,9 @@
 import { Document } from "mongodb"
 import find, { FindPayload, FindReturnType } from "./find.js"
 import findOne, { FindOnePayload, FindOneReturnType } from "./findOne.js"
+import { AggregatePayload, AggregateReturnType } from "./aggregate.js";
 
-export type Operation = "findOne" | "find";
+export type Operation = "findOne" | "find" | "aggregate";
 
 export type Action<TCollection extends MongalayerCollectionType = MongalayerCollectionType, TOperation extends Operation = Operation> = {
     database: string,
@@ -13,11 +14,13 @@ export type Action<TCollection extends MongalayerCollectionType = MongalayerColl
 export type InferActionPayload<TAction extends Action> = TAction extends { operation: infer TOperation, collection: infer TCollection }  ? 
     TOperation extends "findOne" ? FindOnePayload<GetCollectionSchema<TCollection>> : 
     TOperation extends "find" ? FindPayload<GetCollectionSchema<TCollection>> :
+    TOperation extends "aggregate" ? AggregatePayload :
     never : never;
 
 export type InferActionReturnType<TAction extends Action> = TAction extends { operation: infer TOperation, collection: infer TCollection }  ? 
     TOperation extends "findOne" ? FindOneReturnType<GetCollectionSchema<TCollection>> : 
     TOperation extends "find" ? FindReturnType<GetCollectionSchema<TCollection>> :
+    TOperation extends "aggregate" ? AggregateReturnType<GetCollectionSchema<TCollection>> :
     never : never;
 
 export type MongalayerCollectionType <TSchema extends Document = Document> = string & {
