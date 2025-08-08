@@ -12,6 +12,9 @@ const stageKeys = [
 // TODO :: Remove $where / $near / $nearSphere / $text (or allow it only as the first stage)
 const matchSchema = filterSchema;
 
+export const skipSchema = z.int().nonnegative();
+export const limitSchema = z.int().positive();
+
 export const stageSchema = z.strictObject({ // Not strict as it's combined with documentSchema
     $match: matchSchema
 }).or(z.strictObject({
@@ -19,9 +22,9 @@ export const stageSchema = z.strictObject({ // Not strict as it's combined with 
 })).or(z.strictObject({
     $sort: sortSchema
 })).or(z.strictObject({
-    skip: z.int().positive()
+    $skip: skipSchema
 })).or(z.strictObject({
-    limit: z.int().positive()
+    $limit: limitSchema
 })).or(z.strictObject({
     $unwind: unwindSchema
 })).or(z.strictObject({
