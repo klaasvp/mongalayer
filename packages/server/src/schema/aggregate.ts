@@ -4,6 +4,7 @@ import { unwindSchema } from "./aggregation/unwind.js";
 import { projectionSchema } from "./aggregation/project.js";
 import { sortSchema } from "./aggregation/sort.js";
 import { groupSchema } from "./aggregation/group.js";
+import { searchSchema } from "./aggregation/search.js";
 
 const stageKeys = [
     "$match", "$project", "$sort"
@@ -29,6 +30,8 @@ export const stageSchema = z.strictObject({ // Not strict as it's combined with 
     $unwind: unwindSchema
 })).or(z.strictObject({
     $group: groupSchema
+})).or(z.strictObject({
+    $search: searchSchema
 }));
 
 export type StageSchema =  z.infer<typeof stageSchema>
