@@ -1,4 +1,5 @@
 import z from "zod"
+import { keyWithoutDollar } from "../index.js"
 
 const inputWithNSchema = z.lazy(() => z.strictObject({ input: expressionSchema, n: expressionSchema }))
 
@@ -14,19 +15,14 @@ export const $last: z.ZodType<Last> = z.strictObject({ get $last () { return laz
 export type LastN = { $lastN: { input: Expression, n: Expression } }
 export const $lastN: z.ZodType<LastN> = z.strictObject({ get $lastN () { return inputWithNSchema } })
 
-export type ExpressionOperator = {
-    $avg: Expression | Expression[]
-} | {
-    $max: Expression | Expression[]
-} | {
-    $median: { input: Expression[], method: "approximate" }
-} | {
-    $min: Expression | Expression[]
-} | {
-    $sum: Expression[]
-} | First | FirstN | Last | LastN
+export type ExpressionOperator = { $avg: Expression | Expression[] } 
+| { $max: Expression | Expression[] } 
+| { $median: { input: Expression[], method: "approximate" } } 
+| { $min: Expression | Expression[] } 
+| { $sum: Expression[] } 
+| First | FirstN | Last | LastN;
 
-export type Expression = string | ExpressionOperator;
+export type Expression = string | ExpressionOperator | { [prop: string]: Expression };
 
 /*export type ExpressionReturnType = z.ZodType<Expression>
 export type ExpressionWithArrayReturnType = z.ZodType<Expression | Expression[]>*/
@@ -54,8 +50,35 @@ export const operatorSchema: z.ZodType<ExpressionOperator> = z.union([
 ])
 
 // For now we'll only support paths ($...) as expressions next to the operators
-export const expressionSchema: z.ZodType<Expression> = operatorSchema.or(z.string().regex(/^\$/));
+export const expressionSchema: z.ZodType<Expression> = operatorSchema.or(z.string().regex(/^\$/)).or(z.record(keyWithoutDollar, z.lazy(() => expressionSchema)));
 
 const lazyExpressionSchema = z.lazy(() => expressionSchema);
 const lazyExpressionSchemaArray = z.lazy(() => expressionSchema.array());
 const lazyExpressionSchemaWithArray = z.lazy(() => expressionSchema.or(expressionSchema.array()));
+
+export type AccumulatorOperator = { $avg: Expression }
+| { $count: {} }
+| { $max: Expression } 
+| { $median: { input: Expression, method: "approximate" } } 
+| { $min: Expression } 
+| { $sum: Expression } 
+| First | FirstN | Last | LastN
+
+/**
+ * No all accumulators are supported yet.
+ * 
+ * See:
+ * https://www.mongodb.com/docs/manual/reference/operator/aggregation/group/#accumulator-operator
+ */
+export const accumulatorsSchema: z.ZodType<AccumulatorOperator> = z.union([
+    z.strictObject({ $avg: expressionSchema }),
+    z.strictObject({ $count: z.strictObject({}) }),
+    $first,
+    $firstN,
+    $last,
+    $lastN,
+    z.strictObject({ $max: expressionSchema }),
+    z.strictObject({ $median: z.strictObject({ input: expressionSchema, method: z.literal("approximate") }) }),
+    z.strictObject({ $min: expressionSchema }),
+    z.strictObject({ $sum: expressionSchema })
+]);
