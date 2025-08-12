@@ -1,22 +1,5 @@
 import z from "zod/v4";
-import { $first, $firstN, $last, $lastN, Expression, expressionSchema } from "../expression/index.js";
-
-/**
- * No all accumulators are supported yet.
- * 
- * See:
- * https://www.mongodb.com/docs/manual/reference/operator/aggregation/group/#accumulator-operator
- */
-const accumulatorsSchema = z.strictObject({ $avg: expressionSchema })
-.or(z.strictObject({ $count: z.strictObject({}) }))
-.or($first)
-.or($firstN)
-.or($last)
-.or($lastN)
-.or(z.strictObject({ $max: expressionSchema }))
-.or(z.strictObject({ $median: z.strictObject({ input: expressionSchema, method: z.literal("approximate") }) }))
-.or(z.strictObject({ $min: expressionSchema }))
-.or(z.strictObject({ $sum: expressionSchema }));
+import { accumulatorsSchema, Expression, expressionSchema } from "../expression/index.js";
 
 export type Group = {
     _id: Expression | null,
