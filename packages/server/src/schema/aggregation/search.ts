@@ -1,5 +1,4 @@
 import z from "zod/v4";
-import { accumulatorsSchema, Expression, expressionSchema } from "../expression/index.js";
 
 // For now we only support boost & constant
 type ScoreOptions = {

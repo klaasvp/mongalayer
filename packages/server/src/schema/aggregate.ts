@@ -6,10 +6,6 @@ import { sortSchema } from "./aggregation/sort.js";
 import { groupSchema } from "./aggregation/group.js";
 import { searchSchema } from "./aggregation/search.js";
 
-const stageKeys = [
-    "$match", "$project", "$sort"
-];
-
 // TODO :: Remove $where / $near / $nearSphere / $text (or allow it only as the first stage)
 const matchSchema = filterSchema;
 
