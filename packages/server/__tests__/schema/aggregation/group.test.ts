@@ -3,10 +3,10 @@ import { DbPipelineProjectTest, DbPipelineTest, ValueTest } from './helper.js';
 import { SchemaTest } from '#test/data/schemaTest';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { dbName, getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/lib/database';
-import { Db } from 'mongodb';
+import { Db, Document } from 'mongodb';
 import { isMongoServerError } from '#test/lib/helper.js';
 import { MongalayerCollectionType } from '#src/index.js';
-import { exampleObject1, exampleObject2, FilterTest } from '#test/data/filterTest.js';
+import { exampleObject1, exampleObject2, FilterTest, getFilterTests } from '#test/data/filterTest.js';
 import { pipelineSchema } from '#src/schema/aggregate.js';
 import z from 'zod/v4';
 import { groupSchema } from '#src/schema/aggregation/group.js';
@@ -90,23 +90,23 @@ const valuesTable: ValueTest[] = [
     } },
 ];
 
-export type DbUnwindTest = { 
+export type DbGroupTest = { 
     pipeline: z.infer<typeof pipelineSchema>,
-    length: number,
-    properties: {
-        present: (string | {prop: string, value: any})[],
-        missing: string[]
-    }, 
+    result: Document, 
     message: string 
 }
 
-/*const dbTestTable: DbUnwindTest[] = [
-    { pipeline: [{$unwind: "$data" }], length: exampleObject1.data.length + exampleObject2.data.length, properties: { present: [], missing: [] }, message: 'string path' },
-    { pipeline: [{$unwind: { path: "$data" } }], length: exampleObject1.data.length + exampleObject2.data.length, properties: { present: [], missing: [] }, message: 'obj path' },
-    { pipeline: [{$unwind: { path: "$data", includeArrayIndex: "a" } }], length: exampleObject1.data.length + exampleObject2.data.length, properties: { present: ["a"], missing: [] }, message: 'obj path & index' },
-];*/
+const filterTests = getFilterTests(), lastFilterTest = filterTests.pop()!, firstFilterTest = filterTests.shift()!;
 
-describe('unwind', () => {
+const dbTestTable: DbGroupTest[] = [
+    { pipeline: [{ $group: { _id: null, last_id: { $last: "$_id" } } }], result: { _id: null, last_id: lastFilterTest._id }, message: 'group null - $last' },
+    { pipeline: [{ $group: { _id: {  }, last_id: { $last: "$_id" } } }], result: { _id: {}, last_id: lastFilterTest._id }, message: 'group {} - $last' },
+    { pipeline: [{ $group: { _id: "$groupable", last_id: { $last: "$_id" } } }], result: { _id: lastFilterTest.groupable, last_id: lastFilterTest._id }, message: 'group $groupable -> $last' },
+    { pipeline: [{ $group: { _id: { x: "$groupable" }, last_id: { $last: "$_id" } } }], result: { _id:  { x: lastFilterTest.groupable }, last_id: lastFilterTest._id }, message: 'group $x.groupable -> $last' },
+    { pipeline: [{ $group: { _id: null, last_id: { $last: "$_id" }, first_id: { $first: "$_id" } } }], result: { _id: null, last_id: lastFilterTest._id, first_id: firstFilterTest._id }, message: 'group null - $last & $first combo' },
+];
+
+describe('group', () => {
     let mongalayer: Mongalayer, database: Db;
 
     beforeAll(async () => {
@@ -146,13 +146,13 @@ describe('unwind', () => {
         });
     });
     
-    /*describe('on filterTest collection', () => {
-        test.each(dbTestTable)('$message', async ({ pipeline, length, properties, message }) => {
+    describe('on filterTest collection', () => {
+        test.each(dbTestTable)('$message', async ({ pipeline, result, message }) => {
             const zodResult = pipelineSchema.safeParse(pipeline);
 
             expect(zodResult.success).toBe(true);
 
-            const mongaResult = await mongalayer.executeRaw({
+            const mongaResults = await mongalayer.executeRaw({
                 database: dbName,
                 collection: "filterTest" as MongalayerCollectionType<FilterTest>,
                 operation: "aggregate",
@@ -161,23 +161,11 @@ describe('unwind', () => {
                 options: {}
             }, {});
 
-            expect(mongaResult).toHaveLength(length);
+            expect(mongaResults).toHaveLength(1);
 
-            for (const result of mongaResult) {
-                properties.present.forEach((property) => {
-                    if (typeof property === "string") {
-                        expect(result).toHaveProperty(property);
-                    } else {
-                        const { prop, value } = property;
-
-                        expect(result).toHaveProperty(prop);
-                        expect(result[prop]).toStrictEqual(value);
-                    }
-                });
-                properties.missing.forEach((property) => {
-                    expect(result).not.toHaveProperty(property);
-                });
+            for (const mongaResult of mongaResults) {
+                expect(mongaResult).toStrictEqual(result);
             }
         });
-    });*/
+    });
 });

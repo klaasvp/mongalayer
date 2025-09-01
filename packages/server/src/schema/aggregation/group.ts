@@ -3,9 +3,7 @@ import { accumulatorsSchema, Expression, expressionSchema } from "../expression/
 
 export type Group = {
     _id: Expression | null,
-} & {
-    [key: string]: z.infer<typeof accumulatorsSchema>
-}
+} & ({} | Record<string, z.infer<typeof accumulatorsSchema>>);
 
 // The aggregation projection only supports projecting other fields & string values in the projection expression
 export const groupSchema: z.ZodType<Group> = z.object({

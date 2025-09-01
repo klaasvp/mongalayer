@@ -49,6 +49,7 @@ export const exampleObject1 = {
     ],
     status: true,
     extra: null,
+    groupable: "x",
     point: {
         type: "Point",
         coordinates: [0, 0]
@@ -115,6 +116,7 @@ export const exampleObject2 = {
     ],
     status: false,
     extra: null,
+    groupable: "x",
     point: {
         type: "Point",
         coordinates: [2, 2]
