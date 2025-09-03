@@ -7,7 +7,7 @@ import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects
 import { AccessConfig, AccessFieldPermissions, WithAccessRole } from "#src/access";
 import { Db, Document } from "mongodb";
 import { ZodObject } from "zod/v4";
-import { QueryService } from "#src/query";
+import { QueryAccessService } from "#src/access/query";
 
 describe('Access - Roles', () => {
     let database: Db, userZero = userObjects[0], userOne = userObjects[0];
@@ -22,7 +22,7 @@ describe('Access - Roles', () => {
             access: []
         }
 
-        const accessService = new QueryService("user", {}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
+        const accessService = new QueryAccessService("user", {}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
 
         const stages = accessService.getStages({});
 
@@ -50,7 +50,7 @@ describe('Access - Roles', () => {
             }]
         }
 
-        const accessService = new QueryService("users", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
+        const accessService = new QueryAccessService("users", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
 
         const stages = accessService.getStages({});
 
@@ -102,7 +102,7 @@ describe('Access - Roles', () => {
             return mapping;
         }, {} as Record<string, string | null>);
 
-        const accessService = new QueryService("projects", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
+        const accessService = new QueryAccessService("projects", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
 
         const stages = accessService.getStages({});
 

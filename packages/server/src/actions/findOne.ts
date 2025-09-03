@@ -1,9 +1,9 @@
-import { Collection, Document, Filter } from "mongodb";
-import { QueryService } from "../query.js";
-import z, { ZodObject } from "zod/v4";
+import { Collection, Document } from "mongodb";
+import z from "zod/v4";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { Projection, projectionSchema, Sort, sortSchema } from "../schema/index.js";
 import find, { FindPayload } from "./find.js";
+import { QueryAccessService } from "../access/query.js";
 
 export type FindOnePayload<TSchema extends Document> = {
     filter: FilterSchema,
@@ -23,7 +23,7 @@ const payloadSchema: z.ZodType<FindOnePayload<Document>> = z.object({
     }).optional()
 });
 
-export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: QueryService, payload: FindOnePayload<TSchema>): Promise<FindOneReturnType<TSchema>> {
+export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: QueryAccessService, payload: FindOnePayload<TSchema>): Promise<FindOneReturnType<TSchema>> {
     payloadSchema.parse(payload);
 
     const findPayload: FindPayload<TSchema> = structuredClone(payload);
