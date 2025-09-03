@@ -50,7 +50,8 @@ export const operatorSchema: z.ZodType<ExpressionOperator> = z.union([
 ])
 
 // For now we'll only support paths ($...) as expressions next to the operators
-export const expressionSchema: z.ZodType<Expression> = operatorSchema.or(z.string().regex(/^\$/)).or(z.record(keyWithoutDollar, z.lazy(() => expressionSchema)));
+export const expressionSchema: z.ZodType<Expression> = operatorSchema.or(z.string().regex(/^\$/)).or(z.record(keyWithoutDollar, z.lazy(() => expressionSchema)).refine((obj) => Object.keys(obj).length > 0));
+export const expressionSchemaWithEmptyObject: z.ZodType<Expression> = operatorSchema.or(z.string().regex(/^\$/)).or(z.record(keyWithoutDollar, z.lazy(() => expressionSchema)));
 
 const lazyExpressionSchema = z.lazy(() => expressionSchema);
 const lazyExpressionSchemaArray = z.lazy(() => expressionSchema.array());
