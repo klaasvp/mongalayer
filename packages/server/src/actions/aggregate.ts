@@ -6,7 +6,7 @@ import { AggregationAccessService } from "../access/aggregation.js";
 export type AggregatePayload = {
     pipeline: PipelineSchema,
     options?: {
-        batchSize?: number
+        //batchSize?: number
     }
 }
 
@@ -15,7 +15,7 @@ export type AggregateReturnType<TSchema extends Document> = TSchema[] | Partial<
 const payloadSchema: z.ZodType<AggregatePayload> = z.object({
     pipeline: pipelineSchema,
     options: z.object({
-        batchSize: z.number().optional()
+        //batchSize: z.number().optional()
     }).optional()
 });
 
