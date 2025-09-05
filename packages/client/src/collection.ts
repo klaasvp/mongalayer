@@ -1,4 +1,4 @@
-import { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType } from "@mongalayer/server/client";
+import { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType     } from "@mongalayer/server/client";
 import { parseReviver, stringifyReplacer } from "@mongalayer/core/utils/json";
 import { Db } from "./db";
 
@@ -53,5 +53,9 @@ export class Collection {
 
     public async find <TSchema extends Document> (filter: FindPayload<TSchema>["filter"], options?: FindPayload<TSchema>["options"]): Promise<FindReturnType<TSchema>> {
         return await this.request("find", { filter, options });
+    }
+
+    public async aggregate <TSchema extends Document> (pipeline: AggregatePayload["pipeline"], options?: AggregatePayload["options"]): Promise<AggregateReturnType<TSchema>> {
+        return await this.request("aggregate", { pipeline, options });
     }
 }

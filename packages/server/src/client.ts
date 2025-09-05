@@ -13,8 +13,17 @@ export type {
 } from "./actions/findOne.js";
 
 export type {
+    AggregatePayload,
+    AggregateReturnType
+} from "./actions/aggregate.js";
+
+export type {
     FilterSchema as Filter
 } from "./schema/query.js"
+
+export type {
+    PipelineSchema as Pipeline
+} from "./schema/aggregate.js"
 
 export type {
     Projection,
