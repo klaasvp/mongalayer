@@ -10,11 +10,13 @@ export type ProjectAccess = {
 
 export type Project = {
     _id: string,
+    type: "lite" | "standard" | "premium",
     name: string,
     description: string,
     access: ProjectAccess,
     createdAt: Date,
     updatedAt: Date,
+    version: number,
     config: {
         secret: string,
         tags: string[]
@@ -28,8 +30,11 @@ export type Project = {
     }
 };
 
+const projectTypes: Project["type"][] = ["lite", "standard", "premium"];
+
 export const projectSchema = z.object({
     _id: z.string(),
+    type: z.enum(projectTypes),
     name: z.string(),
     description: z.string(),
     access: z.object({
@@ -39,6 +44,7 @@ export const projectSchema = z.object({
     }),
     createdAt: z.date(),
     updatedAt: z.date(),
+    version: z.number(),
     config: z.object({
         secret: z.string(),
         tags: z.array(z.string())
@@ -61,6 +67,7 @@ export function getRandomProject (users: User[]): Project {
 
     return {
         _id: faker.string.uuid(),
+        type: faker.helpers.arrayElement(projectTypes),
         name: faker.company.name(),
         description: faker.company.catchPhrase(),
         access: {
@@ -70,6 +77,7 @@ export function getRandomProject (users: User[]): Project {
         },
         createdAt: faker.date.past(),
         updatedAt: faker.date.recent(),
+        version: faker.number.int({ min: 0, max: 1_000 }),
         config: {
             secret: faker.string.alphanumeric(10),
             tags: faker.helpers.arrayElements(["tag1", "tag2", "tag3"], 2)

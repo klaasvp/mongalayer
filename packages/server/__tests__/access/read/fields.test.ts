@@ -280,6 +280,27 @@ describe('Access - Read - fields', () => {
                     }
                 })
             });
+
+            test("aggregate - self & others", async () => {
+                const result = await mongalayer.executeRaw({
+                    database: dbName,
+                    collection: "users" as MongalayerCollectionType<User>,
+                    operation: "aggregate"
+                }, {
+                    pipeline: [{ $match: {} }]
+                }, userZeroAccessPayload);
+
+                expect(result.length).toBe(userObjects.length);
+                
+                result.forEach(user => {
+                    if (user._id === userZero._id) expect(user).toStrictEqual(userZero);
+                    else {
+                        expect(user).toHaveProperty("_id");
+                        expect(user).toHaveProperty("name");
+                        expect(Object.keys(user).length).toBe(2);
+                    }
+                })
+            });
         });
 
         describe("as admin", () => {
@@ -296,6 +317,28 @@ describe('Access - Read - fields', () => {
                     operation: "find"
                 }, {
                     filter: {}
+                }, userZeroAccessPayload);
+
+                expect(result.length).toBe(userObjects.length);
+
+                const userKeys = Object.keys(userSchema.shape);
+                
+                result.forEach(user => {
+                    if (user._id === userZero._id) expect(user).toStrictEqual(userZero);
+                    else {
+                        expect(user).not.toHaveProperty("email");
+                        expect(Object.keys(user).length).toBe(userKeys.length - 1);
+                    }
+                })
+            });
+
+            test("aggregate - self & others as admin", async () => {
+                const result = await mongalayer.executeRaw({
+                    database: dbName,
+                    collection: "users" as MongalayerCollectionType<User>,
+                    operation: "aggregate"
+                }, {
+                    pipeline: [{ $match: {} }]
                 }, userZeroAccessPayload);
 
                 expect(result.length).toBe(userObjects.length);
@@ -384,6 +427,37 @@ describe('Access - Read - fields', () => {
                 operation: "find"
             }, {
                 filter: { }
+            }, userZeroAccessPayload);
+
+            expect(result.length).toBe(projects.asOwner.length + projects.asContributor.length + projects.asReader.length);
+
+            const projectKeys = Object.keys(projectSchema.shape);
+
+            result.forEach(project => {
+                const projectID = project._id!;
+
+                if (projects.asOwnerMap[projectID]) expect(project).toEqual(projects.asOwnerMap[projectID]);
+                else if (projects.asContributorMap[projectID]) {
+                    expect(project).not.toHaveProperty("config");
+
+                    expect(Object.keys(project).length).toBe(projectKeys.length - 1);
+                } else if (projects.asReaderMap[projectID]) {
+                    expect(project).toHaveProperty("name");
+                    expect(project).toHaveProperty("description");
+                    expect(project).toHaveProperty("data");
+
+                    expect(Object.keys(project).length).toBe(4);
+                }
+            });
+        });
+
+        test("aggregate - projects as owner, contributor and reader", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "projects" as MongalayerCollectionType<Project>,
+                operation: "aggregate"
+            }, {
+                pipeline: [{ $match: {} }]
             }, userZeroAccessPayload);
 
             expect(result.length).toBe(projects.asOwner.length + projects.asContributor.length + projects.asReader.length);

@@ -1,9 +1,7 @@
-import { Collection, Document, Filter } from "mongodb";
-import { QueryService } from "../query.js";
-import z, { ZodObject } from "zod/v4";
-import { FilterSchema, filterSchema } from "../schema/query.js";
-import { Projection, projectionSchema, Sort, sortSchema } from "../schema/index.js";
-import { pipelineSchema, PipelineSchema } from "#src/schema/aggregate.js";
+import { Collection, Document } from "mongodb";
+import z from "zod/v4";
+import { pipelineSchema, PipelineSchema } from "../schema/aggregate.js";
+import { AggregationAccessService } from "../access/aggregation.js";
 
 export type AggregatePayload = {
     pipeline: PipelineSchema,
@@ -12,7 +10,7 @@ export type AggregatePayload = {
     }
 }
 
-export type AggregateReturnType<TSchema extends Document> = TSchema[] | Partial<TSchema>[];
+export type AggregateReturnType<TSchema extends Document> = TSchema[] | Partial<TSchema>[] | Document[];
 
 const payloadSchema: z.ZodType<AggregatePayload> = z.object({
     pipeline: pipelineSchema,
@@ -21,16 +19,12 @@ const payloadSchema: z.ZodType<AggregatePayload> = z.object({
     }).optional()
 });
 
-export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: QueryService, payload: AggregatePayload): Promise<AggregateReturnType<TSchema>> {
+export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: AggregationAccessService, payload: AggregatePayload): Promise<AggregateReturnType<Document>> {
     payloadSchema.parse(payload);
     
-    //const stages = accessService.getStages(payload.filter as Filter<Document>, payload.options?.projection);
+    const stages = accessService.getStages(payload.pipeline);
 
-    const pipeline: Document[] = payload.pipeline;
+    const result = await collection.aggregate(stages.$pipeline, payload.options).toArray() as Document[];
 
-    //if (stages.$role) pipeline.push(...stages.$role);
-    
-    const result = await collection.aggregate(pipeline, payload.options).toArray() as TSchema[];
-
-    return accessService.processFields(result);
+    return result;
 }

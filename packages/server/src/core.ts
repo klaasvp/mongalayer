@@ -82,8 +82,10 @@ export class Mongalayer {
             switch (action.operation) {
                 case "findOne":
                 case "find": 
-                case "aggregate":
                     accessService = new QueryAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessFieldsDefault);
+                    break;
+                case "aggregate":
+                    accessService = new AggregationAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessFieldsDefault);
                     break;
             }
 
@@ -91,7 +93,7 @@ export class Mongalayer {
                 switch (action.operation) {
                     case "findOne": result = await findOne(collection, accessService as QueryAccessService, actionPayload as FindOnePayload<Document>); break;
                     case "find": result = await find(collection, accessService as QueryAccessService, actionPayload as FindPayload<Document>); break;
-                    case "aggregate": result = await aggregate(collection, accessService as QueryAccessService, actionPayload as AggregatePayload); break;
+                    case "aggregate": result = await aggregate(collection, accessService as AggregationAccessService, actionPayload as AggregatePayload); break;
                 }
             } catch (e) {
                 if (e instanceof z.ZodError) {

@@ -3,7 +3,11 @@ import find, { FindPayload, FindReturnType } from "./find.js"
 import findOne, { FindOnePayload, FindOneReturnType } from "./findOne.js"
 import aggregate, { AggregatePayload, AggregateReturnType } from "./aggregate.js";
 
-export type Operation = "findOne" | "find" | "aggregate";
+export type Operation = 
+    | "findOne" 
+    | "find" 
+    /** When using AccessDefinition make sure to add a $sort stage as the results order will be by role  */
+    | "aggregate";
 
 export type Action<TCollection extends MongalayerCollectionType = MongalayerCollectionType, TOperation extends Operation = Operation> = {
     database: string,
