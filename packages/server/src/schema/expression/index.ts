@@ -20,6 +20,7 @@ export type ExpressionOperator = { $avg: Expression | Expression[] }
 | { $median: { input: Expression[], method: "approximate" } } 
 | { $min: Expression | Expression[] } 
 | { $sum: Expression[] } 
+| { $in: [ Expression, Expression | (Expression | string | number)[]] } 
 | First | FirstN | Last | LastN;
 
 export type Expression = string | ExpressionOperator | { [prop: string]: Expression };
@@ -46,6 +47,21 @@ export const operatorSchema: z.ZodType<ExpressionOperator> = z.union([
     }),
     z.strictObject({
         get $sum () { return lazyExpressionSchemaArray }
+    }),
+    z.strictObject({
+        get $in () { 
+            return z.tuple([
+                expressionSchema,
+                z.union([
+                    expressionSchema,
+                    z.array(z.union([
+                        expressionSchema,
+                        z.string(),
+                        z.number()
+                    ]))
+                ])
+            ]) 
+        }
     })
 ])
 
