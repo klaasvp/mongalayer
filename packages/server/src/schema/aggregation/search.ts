@@ -8,27 +8,35 @@ type ScoreOptions = {
 } 
 
 const scoreOptionsSchema = z.union([
-    z.strictObject({
+    z.object({
         boost: z.union([
-            z.strictObject({ value: z.number() }),
-            z.strictObject({
+            z.object({ value: z.number() }),
+            z.object({
                 path: z.string(),
                 undefined: z.number().optional()
             })
         ])
     }),
-    z.strictObject({
+    z.object({
         constant: z.strictObject({ value: z.number() })
     })
 ]);
 
 type SearchCompoundOperator = {
-    score?: ScoreOptions
-} & Record<"must" | "mustNot" | "should" | "filter", SearchOperator[]>;
+    score?: ScoreOptions,
+    must?: SearchOperator[],
+    mustNot?: SearchOperator[],
+    should?: SearchOperator[],
+    filter?: SearchOperator[],
+};
 
 const searchCompoundOperatorSchema: z.ZodType<SearchCompoundOperator> = z.strictObject({
-    score: scoreOptionsSchema.optional()
-}).and(z.record(z.enum(["must", "mustNot", "should", "filter"]), z.lazy(() => z.array(searchOperatorSchema))));
+    score: scoreOptionsSchema.optional(),
+    must: z.lazy(() => z.array(searchOperatorSchema).min(1)).optional(),
+    mustNot: z.lazy(() => z.array(searchOperatorSchema).min(1)).optional(),
+    should: z.lazy(() => z.array(searchOperatorSchema).min(1)).optional(),
+    filter: z.lazy(() => z.array(searchOperatorSchema).min(1)).optional()
+});
 
 type SearchOperator = {
     compound: SearchCompoundOperator
@@ -60,8 +68,8 @@ type SearchOperator = {
 }
 
 const searchOperatorSchema: z.ZodType<SearchOperator> = z.union([
-    z.strictObject({ compound: searchCompoundOperatorSchema }),
-    z.strictObject({ text: z.strictObject({
+    z.object({ compound: searchCompoundOperatorSchema }),
+    z.object({ text: z.strictObject({
         query: z.string().or(z.array(z.string())),
         path: z.string().or(z.array(z.string())),
         fuzzy: z.strictObject({
@@ -73,7 +81,7 @@ const searchOperatorSchema: z.ZodType<SearchOperator> = z.union([
         score: scoreOptionsSchema.optional(),
         synonyms: z.string().optional()
     })}),
-    z.strictObject({ autocomplete: z.strictObject({
+    z.object({ autocomplete: z.strictObject({
         query: z.string().or(z.array(z.string())),
         path: z.string(),
         fuzzy: z.strictObject({
@@ -91,6 +99,6 @@ export type Search = {
 } & SearchOperator
 
 // The aggregation projection only supports projecting other fields & string values in the projection expression
-export const searchSchema: z.ZodType<Search> = z.strictObject({
+export const searchSchema: z.ZodType<Search> = z.object({
     index: z.string().optional()
 }).and(searchOperatorSchema);
