@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import { $geometryIntersectsSchema, $geometryNearSchema, $geometryWithinSchema, polygonSchema, positionSchema } from "../schema/geo.js";
 import { BSONTypeAliasSchema, BSONTypeSchema } from "../schema/bson.js";
+import { Expression, expressionSchema } from "./expression/index.js";
 
 type JSONValue = string | number | boolean | null | Date | { [key: string]: JSONValue } | JSONValue[];
 
@@ -11,7 +12,7 @@ const operatorKeys = [
     "$geoIntersects", "$geoWithin", "$near", "$nearSphere", "$maxDistance", "$minDistance" 
 ];
 
-const rootOperatorKeys = [ "$text", "$and", "$or", "$nor" ]; // $expr
+const rootOperatorKeys = [ "$text", "$expr", "$and", "$or", "$nor" ]; // $expr
 const elemMatchOperatorKeys = [ "$and", "$or", "$nor" ];
 
 const withoutOperatorKeys = z.string().regex(/^[^$]/);
@@ -123,7 +124,7 @@ export type FilterSchemaBase = {
 }
 
 export type FilterSchema = FilterSchemaBase & {
-    $expr?: never,
+    $expr?: Expression,
     $text?: {
         $search: string,
         $language?: string,
@@ -141,8 +142,7 @@ export const filterSchema =
         get $and () { return filterSchemaArray },
         get $nor () { return filterSchemaArray },
         get $or () { return filterSchemaArray },
-        // $expr: documentSchema, -> $expr not supported yet, this is a highly complex one
-        $expr: z.never(),
+        $expr: expressionSchema, // -> this is a highly complex one, only a handfull of operators are supported for now
         //get $jsonSchema(): z.ZodLazy<typeof documentSchema> { return z.lazy(() => documentSchema) },
         $jsonSchema: z.never(), // Not supported yet
         // No additional properties allowed here
