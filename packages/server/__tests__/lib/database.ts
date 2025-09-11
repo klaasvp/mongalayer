@@ -15,6 +15,7 @@ export const dbName = "test";
 const collections: Record<string, Document[]> = {
     "users": userObjects,
     "projects": projectObjects,
+    "projectsCUD": structuredClone(projectObjects),
     "filterTest": filterTestObjects,
     "filterTestSolo": [exampleObject1]
 }
@@ -71,7 +72,7 @@ export const getMongaLayerForFilterTest = async (options?: { debugging: boolean 
     });
 }
 
-export const getMongaLayerForCollections= async (collections: MongalayerCollections, options?: PartialDeep<MongalayerOptions>): Promise<Mongalayer> => {
+export const getMongaLayerForCollections = async (collections: MongalayerCollections, options?: PartialDeep<MongalayerOptions>): Promise<Mongalayer> => {
     options = {
         debugging: false,
         useSessions: true,
@@ -81,6 +82,20 @@ export const getMongaLayerForCollections= async (collections: MongalayerCollecti
     await getMongoDBClient();
 
     return new Mongalayer(client!, collections, options);
+}
+
+export const resetCUDCollections = async () => {
+    const database = await getMongoDBDatabase();
+
+    const CUDCollections: string[] = ["projectsCUD"];
+
+    // Clear the database as this 
+    for (const collectionName of CUDCollections) {
+        const objects = collections[collectionName];
+        
+        await database.collection(collectionName).deleteMany({});
+        await database.collection(collectionName).insertMany(objects);
+    }
 }
 
 process.on('SIGTERM', async () => {    

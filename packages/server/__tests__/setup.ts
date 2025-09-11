@@ -31,6 +31,7 @@ export async function setup () {
 
     await database.createCollection<User>("users");
     await database.createCollection<Project>("projects"); 
+    await database.createCollection<Project>("projectsCUD"); // Create, update, delete
     await database.createCollection<FilterTest>("filterTest");
     await database.createCollection<FilterTest>("filterTestSolo");
     await database.createCollection<SchemaTest>("schemaTest");
