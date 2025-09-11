@@ -22,7 +22,7 @@ describe('Access - Roles', () => {
             access: []
         }
 
-        const accessService = new QueryAccessService("user", {}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
+        const accessService = new QueryAccessService("user", {}, collection.access as AccessConfig, collection.schema, { fields: AccessFieldPermissions.Read, create: false, delete: false });
 
         const stages = accessService.getStages({});
 
@@ -50,7 +50,7 @@ describe('Access - Roles', () => {
             }]
         }
 
-        const accessService = new QueryAccessService("users", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
+        const accessService = new QueryAccessService("users", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, { fields: AccessFieldPermissions.Read, create: false, delete: false });
 
         const stages = accessService.getStages({});
 
@@ -102,7 +102,7 @@ describe('Access - Roles', () => {
             return mapping;
         }, {} as Record<string, string | null>);
 
-        const accessService = new QueryAccessService("projects", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, AccessFieldPermissions.Read);
+        const accessService = new QueryAccessService("projects", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, { fields: AccessFieldPermissions.Read, create: false, delete: false });
 
         const stages = accessService.getStages({});
 
