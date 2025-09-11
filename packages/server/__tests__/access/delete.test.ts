@@ -118,7 +118,7 @@ describe('Access - Delete', () => {
                 $expr: { $in: [ "%%user.id", [ userZero._id ]] }
             },
             delete: true
-        },{
+        }, {
             role: "test"
         }], {})
     });
@@ -130,8 +130,20 @@ describe('Access - Delete', () => {
                 $expr: { $in: [ "%%user.id", [ "x" ]] }
             },
             delete: true
-        },{
+        }, {
             role: "test"
+        }], {})
+    });
+    
+    test("User doesn't match role with delete = true (reversed role order)", async () => {
+        await testSimpleDelete(0, [{
+            role: "test"
+        }, {
+            role: "self",
+            filter: {
+                $expr: { $in: [ "%%user.id", [ userZero._id ]] }
+            },
+            delete: true
         }], {})
     });
 });
