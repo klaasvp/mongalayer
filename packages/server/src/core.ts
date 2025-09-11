@@ -1,14 +1,17 @@
 import { MongoClient, Document, Db, ClientSession } from "mongodb";
 import { ZodObject, ZodType } from "zod/v4";
-import { Action, find, findOne, InferActionPayload, InferActionReturnType } from "./actions/index.js";
-import { AccessConfig, AccessFieldPermission, AccessFieldPermissions, AccessPayload, AccessService } from "./access.js";
+import { Action, find, findOne, aggregate, deleteOne, InferActionPayload, InferActionReturnType } from "./actions/index.js";
+import { AccessConfig, AccessDefaults, AccessFieldPermission, AccessFieldPermissions, AccessPayload, AccessService } from "./access.js";
 import z from "zod/v4";
 import { FindOnePayload, FindOneReturnType } from "./actions/findOne.js";
 import { FindPayload, FindReturnType } from "./actions/find.js";
 import { parseReviver, stringifyReplacer } from "@mongalayer/core/utils/json"
-import aggregate, { AggregatePayload, AggregateReturnType } from "./actions/aggregate.js";
+import { AggregatePayload, AggregateReturnType } from "./actions/aggregate.js";
 import { QueryAccessService } from "./access/query.js";
 import { AggregationAccessService } from "./access/aggregation.js";
+import { DeleteOnePayload } from "./actions/deleteOne.js";
+import { DeleteAccessService } from "./access/delete.js";
+import { PartialDeep } from "type-fest";
 
 export type MongalayerCollection<TSchema extends Document = Document> = {
     schema: ZodObject,
@@ -28,11 +31,7 @@ export type MongalayerOptions = {
      * @default false
      */
     debugging: boolean,
-    /**
-     * @description Default access field permission for all fields not explicitly defined in the access config. 
-     * @default {AccessFieldPermissions.Read}
-     */
-    accessFieldsDefault: AccessFieldPermission
+    accessDefaults: AccessDefaults
 };
 
 export class Mongalayer {
@@ -41,13 +40,18 @@ export class Mongalayer {
     constructor (
         private mongodbClient: MongoClient,
         private collections: MongalayerCollections,
-        providedOptions?: Partial<MongalayerOptions>
+        providedOptions?: PartialDeep<MongalayerOptions>
     ) { 
         this.options = {
             useSessions: true,
             debugging: false,
-            accessFieldsDefault: AccessFieldPermissions.Read,
-            ...providedOptions
+            ...providedOptions,
+            accessDefaults: {
+                fields: AccessFieldPermissions.Read,
+                create: false,
+                delete: false,
+                ...providedOptions?.accessDefaults ?? { }
+            }
         };
     }
 
@@ -77,16 +81,18 @@ export class Mongalayer {
                 console.debug("Mongalayer - Execute - No config found, using public access");
             }
 
-            let accessService: QueryAccessService | AggregationAccessService;
+            let accessService: QueryAccessService | AggregationAccessService | DeleteAccessService;
 
             switch (action.operation) {
                 case "findOne":
                 case "find": 
-                    accessService = new QueryAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessFieldsDefault);
+                    accessService = new QueryAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
                     break;
                 case "aggregate":
-                    accessService = new AggregationAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessFieldsDefault);
+                    accessService = new AggregationAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
                     break;
+                case "deleteOne":
+                    accessService = new DeleteAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
             }
 
             try {
@@ -94,6 +100,7 @@ export class Mongalayer {
                     case "findOne": result = await findOne(collection, accessService as QueryAccessService, actionPayload as FindOnePayload<Document>); break;
                     case "find": result = await find(collection, accessService as QueryAccessService, actionPayload as FindPayload<Document>); break;
                     case "aggregate": result = await aggregate(collection, accessService as AggregationAccessService, actionPayload as AggregatePayload); break;
+                    case "deleteOne": result = await deleteOne(collection, accessService as DeleteAccessService, actionPayload as DeleteOnePayload<Document>); break;
                 }
             } catch (e) {
                 if (e instanceof z.ZodError) {

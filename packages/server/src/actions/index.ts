@@ -2,12 +2,14 @@ import { Document } from "mongodb"
 import find, { FindPayload, FindReturnType } from "./find.js"
 import findOne, { FindOnePayload, FindOneReturnType } from "./findOne.js"
 import aggregate, { AggregatePayload, AggregateReturnType } from "./aggregate.js";
+import deleteOne, { DeleteOnePayload, DeleteOneReturnType } from "./deleteOne.js";
 
 export type Operation = 
     | "findOne" 
     | "find" 
     /** When using AccessDefinition make sure to add a $sort stage as the results order will be by role  */
-    | "aggregate";
+    | "aggregate"
+    | "deleteOne";
 
 export type Action<TCollection extends MongalayerCollectionType = MongalayerCollectionType, TOperation extends Operation = Operation> = {
     database: string,
@@ -19,12 +21,14 @@ export type InferActionPayload<TAction extends Action> = TAction extends { opera
     TOperation extends "findOne" ? FindOnePayload<GetCollectionSchema<TCollection>> : 
     TOperation extends "find" ? FindPayload<GetCollectionSchema<TCollection>> :
     TOperation extends "aggregate" ? AggregatePayload :
+    TOperation extends "deleteOne" ? DeleteOnePayload<GetCollectionSchema<TCollection>> :
     never : never;
 
 export type InferActionReturnType<TAction extends Action> = TAction extends { operation: infer TOperation, collection: infer TCollection }  ? 
     TOperation extends "findOne" ? FindOneReturnType<GetCollectionSchema<TCollection>> : 
     TOperation extends "find" ? FindReturnType<GetCollectionSchema<TCollection>> :
     TOperation extends "aggregate" ? AggregateReturnType<GetCollectionSchema<TCollection>> :
+    TOperation extends "deleteOne" ? DeleteOneReturnType :
     never : never;
 
 export type MongalayerCollectionType <TSchema extends Document = Document> = string & {
@@ -38,5 +42,6 @@ export type * from "./types.js";
 export {
     find,
     findOne,
-    aggregate
+    aggregate,
+    deleteOne
 }

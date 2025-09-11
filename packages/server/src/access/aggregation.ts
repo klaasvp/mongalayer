@@ -84,7 +84,7 @@ export class AggregationAccessService extends AccessService {
             // Set the projection if necessary
             const { fields, fieldsDefault } = { 
                 fields: {}, 
-                fieldsDefault: this.accessFieldsDefault,
+                fieldsDefault: this.accessDefaults.fields,
                 ...roleConfig ?? {}
             }
 

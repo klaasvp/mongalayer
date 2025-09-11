@@ -122,7 +122,7 @@ export class QueryAccessService extends AccessService {
         for (const doc of docs) {
             const { fields, fieldsDefault } = { 
                 fields: {}, 
-                fieldsDefault: this.accessFieldsDefault,
+                fieldsDefault: this.accessDefaults.fields,
                 ...this.hydratedConfigMap[doc.__mongalayer_role] ?? {}
             }
 

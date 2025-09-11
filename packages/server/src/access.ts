@@ -38,6 +38,23 @@ export type AccessPayload = Record<string, any>;
 
 export type WithAccessRole<TSchema extends Document> = TSchema & { __mongalayer_role: string | null };
 
+export type AccessDefaults = {
+    /**
+     * @description Default access field permission for all fields not explicitly defined in the access config. 
+     * @default {AccessFieldPermissions.Read}
+     */
+    fields: AccessFieldPermission,
+    /**
+     * @description Default create permission for for a collection. 
+     * @default {false}
+     */
+    create: boolean,
+    /**
+     * @description Default delete permission for for a collection. 
+     * @default {false}
+     */
+    delete: boolean
+}
 
 function getValueByPath(obj: Record<string, any>, path: string, nestedProp?: string) {
     return path.split('.').reduce((acc, key) => (acc && acc[key] !== undefined) ? nestedProp ? acc[key][nestedProp] : acc[key] : undefined, obj);
@@ -52,7 +69,7 @@ export abstract class AccessService {
         protected accessData: AccessPayload,
         accessConfig: AccessConfig,
         protected documentSchema: ZodObject,
-        protected accessFieldsDefault: AccessFieldPermission
+        public accessDefaults: AccessDefaults
     ) {
         this.hydratedConfig = Array.isArray(accessConfig) ? accessConfig.map(access => ({
             ...access,
@@ -92,7 +109,7 @@ export abstract class AccessService {
                     $lookup: {
                         from: this.collection,
                         pipeline: [
-                            { $match: access.filter! },
+                            { $match: access.filter ?? { } },
                             { $project: { _id: 1 } } // Project only the ID
                         ],
                         as: `__mongalayer_role.${access.role}`
