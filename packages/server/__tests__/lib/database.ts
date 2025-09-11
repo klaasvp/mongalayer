@@ -4,6 +4,7 @@ import { getRandomProjects, Project } from "#test/data/project";
 import { exampleObject1, FilterTest, filterTestsSchema, getFilterTests } from "#test/data/filterTest";
 import { SchemaTest, schemaTestSchema } from "#test/data/schemaTest";
 import { Mongalayer, MongalayerCollection, MongalayerCollections, MongalayerOptions } from "#src/core";
+import { PartialDeep } from "type-fest";
 
 let client: MongoClient | null = null;
 
@@ -70,7 +71,7 @@ export const getMongaLayerForFilterTest = async (options?: { debugging: boolean 
     });
 }
 
-export const getMongaLayerForCollections= async (collections: MongalayerCollections, options?: Partial<MongalayerOptions>): Promise<Mongalayer> => {
+export const getMongaLayerForCollections= async (collections: MongalayerCollections, options?: PartialDeep<MongalayerOptions>): Promise<Mongalayer> => {
     options = {
         debugging: false,
         useSessions: true,

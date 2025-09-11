@@ -79,7 +79,9 @@ describe('Access - Read - fields', () => {
         
             mongalayer = await getMongaLayerForCollections(collections, { 
                 debugging: true, 
-                accessFieldsDefault: AccessFieldPermissions.None 
+                accessDefaults: {
+                    fields: AccessFieldPermissions.None
+                }
             });
         });
 
@@ -147,7 +149,9 @@ describe('Access - Read - fields', () => {
         
             mongalayer = await getMongaLayerForCollections(collections, { 
                 debugging: true, 
-                accessFieldsDefault: AccessFieldPermissions.Read 
+                accessDefaults: {
+                    fields: AccessFieldPermissions.Read
+                }
             });
         });
 
