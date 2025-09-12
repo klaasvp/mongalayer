@@ -1,6 +1,6 @@
 import { MongoClient, Document, Db, ClientSession } from "mongodb";
 import { ZodObject, ZodType } from "zod/v4";
-import { Action, find, findOne, aggregate, deleteOne, InferActionPayload, InferActionReturnType } from "./actions/index.js";
+import { Action, find, findOne, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany } from "./actions/index.js";
 import { AccessConfig, AccessDefaults, AccessFieldPermission, AccessFieldPermissions, AccessPayload, AccessService } from "./access.js";
 import z from "zod/v4";
 import { FindOnePayload, FindOneReturnType } from "./actions/findOne.js";
@@ -12,6 +12,7 @@ import { AggregationAccessService } from "./access/aggregation.js";
 import { DeleteOnePayload } from "./actions/deleteOne.js";
 import { DeleteAccessService } from "./access/delete.js";
 import { PartialDeep } from "type-fest";
+import { DeleteManyPayload } from "./actions/deleteMany.js";
 
 export type MongalayerCollection<TSchema extends Document = Document> = {
     schema: ZodObject,
@@ -92,6 +93,7 @@ export class Mongalayer {
                     accessService = new AggregationAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
                     break;
                 case "deleteOne":
+                case "deleteMany":
                     accessService = new DeleteAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
             }
 
@@ -101,6 +103,7 @@ export class Mongalayer {
                     case "find": result = await find(collection, accessService as QueryAccessService, actionPayload as FindPayload<Document>); break;
                     case "aggregate": result = await aggregate(collection, accessService as AggregationAccessService, actionPayload as AggregatePayload); break;
                     case "deleteOne": result = await deleteOne(collection, accessService as DeleteAccessService, actionPayload as DeleteOnePayload<Document>); break;
+                    case "deleteMany": result = await deleteMany(collection, accessService as DeleteAccessService, actionPayload as DeleteManyPayload<Document>); break;
                 }
             } catch (e) {
                 if (e instanceof z.ZodError) {
