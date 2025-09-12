@@ -93,7 +93,7 @@ export abstract class AccessService {
     protected getAccessFilters (): Filter<Document> | null {
         const filters: Filter<Document>[] = [];
 
-        filters.push(...this.hydratedConfig.filter(access => access.filter !== void 0).map(access => access.filter!));
+        filters.push(...this.hydratedConfig.map(access => access.filter ?? { }));
 
         if (filters.length === 0) return null;
 
