@@ -1,6 +1,7 @@
 import { Document, Filter } from "mongodb";
 import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
 import { ZodObject } from "zod/v4";
+import { AccessFilter } from "./schema/access/filter.js";
 
 export const AccessFieldPermissions = {
     /**
@@ -25,7 +26,7 @@ export type AccessFieldPermission = AccessFieldPermissionsType[keyof AccessField
  */
 export type AccessDefinition<TSchema extends Document = Document> = {
     role: string,
-    filter?: Document,
+    filter?: AccessFilter,
     fields?: Partial<Record<keyof TSchema, AccessFieldPermission>>,
     fieldsDefault?: AccessFieldPermission,
     create?: boolean,
