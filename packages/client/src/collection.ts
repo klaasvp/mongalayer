@@ -1,4 +1,4 @@
-import { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType     } from "@mongalayer/server/client";
+import { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType, DeleteOnePayload, DeleteOneReturnType, DeleteManyPayload, DeleteManyReturnType } from "@mongalayer/server/client";
 import { parseReviver, stringifyReplacer } from "@mongalayer/core/utils/json";
 import { Db } from "./db";
 
@@ -57,5 +57,13 @@ export class Collection {
 
     public async aggregate <TSchema extends Document> (pipeline: AggregatePayload["pipeline"], options?: AggregatePayload["options"]): Promise<AggregateReturnType<TSchema>> {
         return await this.request("aggregate", { pipeline, options });
+    }
+
+    public async deleteOne <TSchema extends Document> (filter: DeleteOnePayload<TSchema>["filter"], options?: DeleteOnePayload<TSchema>["options"]): Promise<DeleteOneReturnType> {
+        return await this.request("deleteOne", { filter, options });
+    }
+
+    public async deleteMany <TSchema extends Document> (filter: DeleteManyPayload<TSchema>["filter"], options?: DeleteManyPayload<TSchema>["options"]): Promise<DeleteManyReturnType> {
+        return await this.request("deleteMany", { filter, options });
     }
 }

@@ -18,6 +18,16 @@ export type {
 } from "./actions/aggregate.js";
 
 export type {
+    DeleteOnePayload,
+    DeleteOneReturnType
+} from "./actions/deleteOne.js";
+
+export type {
+    DeleteManyPayload,
+    DeleteManyReturnType
+} from "./actions/deleteMany.js";
+
+export type {
     FilterSchema as Filter
 } from "./schema/query.js"
 
