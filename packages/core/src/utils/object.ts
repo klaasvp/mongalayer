@@ -14,3 +14,7 @@ export const deleteObjectProperty = (path: string, obj: Record<string, unknown>)
         else last = last[key];
     } while (last !== void 0 && keys.length > 0);
 };
+
+export function getValueByPath(obj: Record<string, any>, path: string, nestedProp?: string): any | undefined {
+    return path.split('.').reduce((acc, key) => (acc && acc[key] !== undefined) ? nestedProp ? acc[key][nestedProp] : acc[key] : undefined, obj);
+}

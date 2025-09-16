@@ -2,10 +2,18 @@ import { z } from "zod/v4";
 
 type Value = string | number | boolean | null;
 
-const rootOperatorKeys = [ 
-    "$and", "$or", "$nor",
-    "$$eq", "$$in", "$$ne", "$$nin"
+export const propertyOperatorKeys = [
+    "$eq", "$in", "$ne", "$nin", "$exists"
 ];
+
+export const customOperatorKeys = [
+    "$$eq", "$$in", "$$ne", "$$nin"
+] as const;
+
+export const rootOperatorKeys = [ 
+    "$and", "$or", "$nor",
+    ...customOperatorKeys
+] as const;
 
 const valueToHydrate = z.string().regex(/^%%/);
 
@@ -17,13 +25,15 @@ const valueSchema: z.ZodType<Value> = z.union([
     z.null()
 ]);
 
-const accessFilterOperatorsSchema = z.strictObject({ // Not strict as it's combined with documentSchema
+const accessFilterOperatorsSchema = z.strictObject({
     $eq: valueSchema,
     $in: valueSchema.array().or(valueToHydrate),
     $ne: valueSchema,
     $nin: valueSchema.array().or(valueToHydrate),
     $exists: z.boolean().or(valueToHydrate),
 }).partial();
+
+export type AccessFilterPropertyValue = Value | z.infer<typeof accessFilterOperatorsSchema>;
 
 export type AccessFilter = {
     $and?: AccessFilter[],
@@ -35,7 +45,7 @@ export type AccessFilter = {
     $$ne?: [ Value, Value ],
     $$nin?: [ Value, string | Value[] ]
 } & {
-    [prop: string]: Value | z.infer<typeof accessFilterOperatorsSchema> 
+    [prop: string]: AccessFilterPropertyValue 
         | unknown[] // This is to support typecompletion for the root operator types 
 }
 
@@ -54,7 +64,7 @@ export const accessFilterSchema: z.ZodType<AccessFilter> =
         valueSchema,
         accessFilterOperatorsSchema
     ])).refine(
-        (data) => Object.keys(data).every(key => !key.startsWith("$") || rootOperatorKeys.includes(key)),
+        (data) => Object.keys(data).every(key => !key.startsWith("$") || rootOperatorKeys.includes(key as any)),
         { message: "Invalid filter root operator" }
     )
 

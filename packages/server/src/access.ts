@@ -1,8 +1,9 @@
 import { Document, Filter } from "mongodb";
 import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
 import { ZodObject } from "zod/v4";
-import { AccessFilter } from "./schema/access/filter.js";
-import { isArray, isObject } from "@mongalayer/core/utils/object";
+import { AccessFilter, customOperatorKeys } from "./schema/access/filter.js";
+import { getValueByPath, isArray, isObject } from "@mongalayer/core/utils/object";
+import { SetRequired } from "type-fest";
 
 export const AccessFieldPermissions = {
     /**
@@ -36,7 +37,10 @@ export type AccessDefinition<TSchema extends Document = Document, TFilter extend
     delete?: boolean
 };
 
-export type AccessConfig<TSchema extends Document = Document, TFilter extends AccessDefinitionFilter<TSchema> = AccessFilter> = AccessDefinition<TSchema, TFilter>[];
+export type AccessConfig<TSchema extends Document = Document> = AccessDefinition<TSchema, AccessFilter>[];
+
+// In the access service the AccessFilter is translated to a MongoDB Document Filter
+type InternalAccessConfig<TSchema extends Document = Document> = SetRequired<AccessDefinition<TSchema, Filter<TSchema>>, "filter">[];
 
 export type AccessPayload = Record<string, any>;
 
@@ -60,14 +64,10 @@ export type AccessDefaults = {
     delete: boolean
 }
 
-function getValueByPath(obj: Record<string, any>, path: string, nestedProp?: string) {
-    return path.split('.').reduce((acc, key) => (acc && acc[key] !== undefined) ? nestedProp ? acc[key][nestedProp] : acc[key] : undefined, obj);
-}
-
 export abstract class AccessService {
     protected hydratedRawConfig: AccessConfig;
-    protected hydratedConfig: AccessConfig<Document, Filter<Document>>;
-    protected hydratedConfigMap: Record<string, AccessConfig<Document, Filter<Document>>[number]> = {};
+    protected hydratedConfig: InternalAccessConfig;
+    protected hydratedConfigMap: Record<string, InternalAccessConfig[number]> = {};
 
     constructor (
         protected collection: string,
@@ -82,7 +82,7 @@ export abstract class AccessService {
         })) : [];
         this.hydratedConfig = this.hydratedRawConfig.map(access => ({
             ...access,
-            filter: access.filter ? this.translateAccessFilter(access.filter) : void 0
+            filter: access.filter ? this.translateAccessFilter(access.filter) : {}
         }));
         this.hydratedConfigMap = this.hydratedConfig.reduce((acc, access) => ({ ...acc, [access.role]: access }), {});
     }
@@ -110,7 +110,7 @@ export abstract class AccessService {
     protected getAccessFilters (): Filter<Document> | null {
         const filters: Filter<Document>[] = [];
 
-        filters.push(...this.hydratedConfig.map(access => access.filter ?? { }));
+        filters.push(...this.hydratedConfig.map(access => access.filter));
 
         if (filters.length === 0) return null;
 
@@ -126,7 +126,7 @@ export abstract class AccessService {
                     $lookup: {
                         from: this.collection,
                         pipeline: [
-                            { $match: access.filter ?? { } },
+                            { $match: access.filter },
                             { $project: { _id: 1 } } // Project only the ID
                         ],
                         as: `__mongalayer_role.${access.role}`
@@ -158,8 +158,6 @@ export abstract class AccessService {
     abstract getStages(): Record<string, any>;
 }
 
-const expressionKeys = ["$$in", "$$eq", "$$ne", "$$nin"];
-
 export function replaceAccessFilterKeys (instance: any[] | Record<string, unknown>) {
     if (isArray(instance)) {
         for (const item of instance) {
@@ -171,7 +169,7 @@ export function replaceAccessFilterKeys (instance: any[] | Record<string, unknow
         let key: string | undefined;
 
         while ((key = keys.shift()) !== void 0) {
-            if (expressionKeys.includes(key)) {
+            if (customOperatorKeys.includes(key as any)) {
                 if (instance.$expr === void 0) {
                     instance.$expr = {};
                     keys.push("$expr");
