@@ -138,7 +138,7 @@ describe('Access - Delete', () => {
                 await testSimpleDelete(deleteTest.operation, deleteTest.deletedCount, deleteTest.filter, [{
                     role: "self",
                     filter: {
-                        $expr: { $in: [ "%%user.id", [ userZero._id ]] }
+                        $$in: [ "%%user.id", [ userZero._id ]]
                     },
                     delete: true
                 }, {
@@ -150,7 +150,7 @@ describe('Access - Delete', () => {
                 await testSimpleDelete(deleteTest.operation, 0, deleteTest.filter, [{
                     role: "self",
                     filter: {
-                        $expr: { $in: [ "%%user.id", [ "x" ]] }
+                        $$in: [ "%%user.id", [ "x" ]] 
                     },
                     delete: true
                 }, {
@@ -164,7 +164,7 @@ describe('Access - Delete', () => {
                 }, {
                     role: "self",
                     filter: {
-                        $expr: { $in: [ "%%user.id", [ userZero._id ]] }
+                        $$in: [ "%%user.id", [ userZero._id ]] 
                     },
                     delete: true
                 }], {})

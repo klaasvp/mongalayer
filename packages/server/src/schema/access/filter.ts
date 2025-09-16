@@ -25,28 +25,26 @@ const accessFilterOperatorsSchema = z.strictObject({ // Not strict as it's combi
     $exists: z.boolean().or(valueToHydrate),
 }).partial();
 
-export type AccessFilterFixedKeys = {
-    $and: AccessFilter[],
-    $nor: AccessFilter[],
-    $or: AccessFilter[],
-
-    $$eq: [ Value, Value ],
-    $$in: [ Value, string | Value[] ],
-    $$ne: [ Value, Value ],
-    $$nin: [ Value, string | Value[] ]
-};
-
-export type AccessFilter = Partial<AccessFilterFixedKeys> & {
-    [K in string as Exclude<K, keyof AccessFilterFixedKeys>]?: Value | z.infer<typeof accessFilterOperatorsSchema>
+export type AccessFilter = {
+    $and?: AccessFilter[],
+    $nor?: AccessFilter[],
+    $or?: AccessFilter[],
+    
+    $$eq?: [ Value, Value ],
+    $$in?: [ Value, string | Value[] ],
+    $$ne?: [ Value, Value ],
+    $$nin?: [ Value, string | Value[] ]
+} & {
+    [prop: string]: Value | z.infer<typeof accessFilterOperatorsSchema> 
+        | unknown[] // This is to support typecompletion for the root operator types 
 }
 
-export const accessFilterSchemaArray: z.ZodType<AccessFilter[]> = z.lazy(() => z.array(accessFilterSchema).min(1));
-export const accessFilterSchema = 
+export const accessFilterSchema: z.ZodType<AccessFilter> = 
     // Not strict as it's combined with documentSchema which is Record<string, ...>
     z.object({
-        get $and () { return accessFilterSchemaArray },
-        get $nor () { return accessFilterSchemaArray },
-        get $or () { return accessFilterSchemaArray },
+        get $and () { return z.array(accessFilterSchema).min(1) },
+        get $nor () { return z.array(accessFilterSchema).min(1) },
+        get $or () { return z.array(accessFilterSchema).min(1) },
 
         $$eq: z.tuple([valueSchema, valueSchema]),
         $$in: z.tuple([valueSchema, z.union([valueToHydrate, valueSchema.array()])]),
@@ -59,3 +57,4 @@ export const accessFilterSchema =
         (data) => Object.keys(data).every(key => !key.startsWith("$") || rootOperatorKeys.includes(key)),
         { message: "Invalid filter root operator" }
     )
+

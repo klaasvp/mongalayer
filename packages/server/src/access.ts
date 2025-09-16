@@ -2,6 +2,7 @@ import { Document, Filter } from "mongodb";
 import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
 import { ZodObject } from "zod/v4";
 import { AccessFilter } from "./schema/access/filter.js";
+import { isArray, isObject } from "@mongalayer/core/utils/object";
 
 export const AccessFieldPermissions = {
     /**
@@ -21,19 +22,21 @@ export const AccessFieldPermissions = {
 export type AccessFieldPermissionsType = typeof AccessFieldPermissions;
 export type AccessFieldPermission = AccessFieldPermissionsType[keyof AccessFieldPermissionsType];
 
+type AccessDefinitionFilter<TSchema extends Document = Document> = AccessFilter | Filter<TSchema>
+
 /**
  * Fields access only supports defining root level properties from the Document.
  */
-export type AccessDefinition<TSchema extends Document = Document> = {
+export type AccessDefinition<TSchema extends Document = Document, TFilter extends AccessDefinitionFilter<TSchema> = AccessFilter> = {
     role: string,
-    filter?: AccessFilter,
+    filter?: TFilter,
     fields?: Partial<Record<keyof TSchema, AccessFieldPermission>>,
     fieldsDefault?: AccessFieldPermission,
     create?: boolean,
     delete?: boolean
 };
 
-export type AccessConfig<TSchema extends Document = Document> = AccessDefinition<TSchema>[];
+export type AccessConfig<TSchema extends Document = Document, TFilter extends AccessDefinitionFilter<TSchema> = AccessFilter> = AccessDefinition<TSchema, TFilter>[];
 
 export type AccessPayload = Record<string, any>;
 
@@ -62,8 +65,9 @@ function getValueByPath(obj: Record<string, any>, path: string, nestedProp?: str
 }
 
 export abstract class AccessService {
-    protected hydratedConfig: AccessConfig;
-    protected hydratedConfigMap: Record<string, AccessConfig[number]> = {};
+    protected hydratedRawConfig: AccessConfig;
+    protected hydratedConfig: AccessConfig<Document, Filter<Document>>;
+    protected hydratedConfigMap: Record<string, AccessConfig<Document, Filter<Document>>[number]> = {};
 
     constructor (
         protected collection: string,
@@ -72,14 +76,18 @@ export abstract class AccessService {
         protected documentSchema: ZodObject,
         public accessDefaults: AccessDefaults
     ) {
-        this.hydratedConfig = Array.isArray(accessConfig) ? accessConfig.map(access => ({
+        this.hydratedRawConfig = Array.isArray(accessConfig) ? accessConfig.map(access => ({
             ...access,
             filter: access.filter ? this.hydrateAccessFilter(access.filter) : void 0
         })) : [];
+        this.hydratedConfig = this.hydratedRawConfig.map(access => ({
+            ...access,
+            filter: access.filter ? this.translateAccessFilter(access.filter) : void 0
+        }));
         this.hydratedConfigMap = this.hydratedConfig.reduce((acc, access) => ({ ...acc, [access.role]: access }), {});
     }
 
-    private hydrateAccessFilter (filter: Document): Document {
+    private hydrateAccessFilter (filter: AccessFilter): AccessFilter {
         const hydratedFilter = structuredClone(filter);
 
         iteratePrimitives(hydratedFilter, (key, value, replace) => {
@@ -89,6 +97,14 @@ export abstract class AccessService {
         });
 
         return hydratedFilter;
+    }
+
+    private translateAccessFilter (filter: AccessFilter): Filter<Document> {
+        const translatedFilter = structuredClone(filter);
+
+        replaceAccessFilterKeys(translatedFilter);
+
+        return translatedFilter;
     }
 
     protected getAccessFilters (): Filter<Document> | null {
@@ -140,4 +156,42 @@ export abstract class AccessService {
     }
 
     abstract getStages(): Record<string, any>;
+}
+
+const expressionKeys = ["$$in", "$$eq", "$$ne", "$$nin"];
+
+export function replaceAccessFilterKeys (instance: any[] | Record<string, unknown>) {
+    if (isArray(instance)) {
+        for (const item of instance) {
+            if (isObject(item)) replaceAccessFilterKeys(item);
+        }
+    } else if (isObject(instance)) {
+        const keys = Object.keys(instance);
+
+        let key: string | undefined;
+
+        while ((key = keys.shift()) !== void 0) {
+            if (expressionKeys.includes(key)) {
+                if (instance.$expr === void 0) {
+                    instance.$expr = {};
+                    keys.push("$expr");
+                }
+
+                if (key === "$$nin") {
+                    (instance.$expr as Record<string, unknown>).$not = { $in: instance[key] };
+                } else {
+                    (instance.$expr as Record<string, unknown>)[key.slice(1)] = instance[key];
+                }
+                
+                delete instance[key];
+            }
+        }
+
+        for (const key in instance) {
+            const value = instance[key];
+            if (isObject(value) || isArray(value)) {
+                replaceAccessFilterKeys(value);
+            }
+        }
+    } 
 }

@@ -224,7 +224,7 @@ describe('Access - Read - fields', () => {
                 }, {
                     role: "otherAsAdmin",
                     filter: {
-                        $expr: {$in: ["admin", "%%user.roles"]}
+                        $$in: ["admin", "%%user.roles"]
                     },
                     fields: { email: AccessFieldPermissions.None },
                     fieldsDefault: AccessFieldPermissions.Read
