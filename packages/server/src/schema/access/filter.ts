@@ -33,7 +33,8 @@ const accessFilterOperatorsSchema = z.strictObject({
     $exists: z.boolean().or(valueToHydrate),
 }).partial();
 
-export type AccessFilterPropertyValue = Value | z.infer<typeof accessFilterOperatorsSchema>;
+export type AccessFilterPropertyOperators = z.infer<typeof accessFilterOperatorsSchema>;
+export type AccessFilterPropertyValue = Value | AccessFilterPropertyOperators;
 
 export type AccessFilter = {
     $and?: AccessFilter[],
@@ -41,9 +42,9 @@ export type AccessFilter = {
     $or?: AccessFilter[],
     
     $$eq?: [ Value, Value ],
-    $$in?: [ Value, string | Value[] ],
+    $$in?: [ Value | Value[], string | Value[] ],
     $$ne?: [ Value, Value ],
-    $$nin?: [ Value, string | Value[] ]
+    $$nin?: [ Value | Value[], string | Value[] ]
 } & {
     [prop: string]: AccessFilterPropertyValue 
         | unknown[] // This is to support typecompletion for the root operator types 
@@ -52,14 +53,14 @@ export type AccessFilter = {
 export const accessFilterSchema: z.ZodType<AccessFilter> = 
     // Not strict as it's combined with documentSchema which is Record<string, ...>
     z.object({
-        get $and () { return z.array(accessFilterSchema).min(1) },
-        get $nor () { return z.array(accessFilterSchema).min(1) },
-        get $or () { return z.array(accessFilterSchema).min(1) },
+        get $and () { return z.lazy(() => z.array(accessFilterSchema).min(1)) },
+        get $nor () { return z.lazy(() => z.array(accessFilterSchema).min(1)) },
+        get $or () { return z.lazy(() => z.array(accessFilterSchema).min(1)) },
 
         $$eq: z.tuple([valueSchema, valueSchema]),
-        $$in: z.tuple([valueSchema, z.union([valueToHydrate, valueSchema.array()])]),
+        $$in: z.tuple([z.union([valueSchema, valueSchema.array()]), z.union([valueToHydrate, valueSchema.array()])]),
         $$ne: z.tuple([valueSchema, valueSchema]),
-        $$nin: z.tuple([valueSchema, z.union([valueToHydrate, valueSchema.array()])])
+        $$nin: z.tuple([z.union([valueSchema, valueSchema.array()]), z.union([valueToHydrate, valueSchema.array()])])
     }).partial().catchall(z.union([
         valueSchema,
         accessFilterOperatorsSchema
