@@ -20,7 +20,8 @@ const testSimpleInsert = async <
     operation: TOperation, 
     input: TOperation extends "insertOne" ? { document: Document } : { documents: Document[] }, 
     access: AccessConfig<Document>, 
-    accessDefaults: PartialDeep<AccessDefaults>
+    accessDefaults: PartialDeep<AccessDefaults>,
+    userID: string = userZero._id
 ): Promise<TResult> => {
     const collections: MongalayerCollections = {
         projectsCUD: {
@@ -35,7 +36,7 @@ const testSimpleInsert = async <
         database: dbName,
         collection: "projectsCUD" as MongalayerCollectionType<Project>,
         operation
-    }, input, {user: {id: userZero._id}}) as TResult;
+    }, input, {user: {id: userID}}) as TResult;
 }
 
 // InsertOne uses InsertMany behind the scenes, so the result of both should be the same
@@ -82,5 +83,64 @@ describe('Access - Insert - One vs Many', () => {
 
     test("Insert Many - Duplicate", async () => {
         await expect(testSimpleInsert("insertMany", { documents: [projectZero] }, [], { create: true })).rejects.toThrowError(`E11000 duplicate key error collection: test.projectsCUD index: _id_ dup key: { _id: "${projectZero._id}" }`);
+    });
+});
+
+describe('Access - Create permissions', () => {
+    describe('Owner (create = true), contributor (create = false), reader (create = undefined)', () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "owner",
+            filter: {
+                "access.owners": {"$in": ["%%user.id"]}
+            },
+            create: true
+        }, {
+            role: "contributor",
+            filter: {
+                "access.contributors": {"$in": ["%%user.id"]}
+            },
+            create: false
+        }, {
+            role: "reader",
+            filter: {
+                "access.readers": {"$in": ["%%user.id"]}
+            }
+        }];
+
+        const newUser = getRandomUser();
+
+        beforeEach(async () => {
+            await resetCUDCollections();
+        });
+
+        test("Create document as owner", async () => {
+            const newProject = getRandomProject(userObjects);
+            newProject.access.owners.push(newUser._id);
+            
+            const result = await testSimpleInsert("insertOne", { document: newProject }, accessConfig, {}, newUser._id);
+
+            expect(result.acknowledged).toBe(true);
+            expect(result.insertedId).toBe(newProject._id);
+        });
+
+        test("Create document as contributor", async () => {
+            const newProject = getRandomProject(userObjects);
+            newProject.access.contributors.push(newUser._id);
+
+            await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {}, newUser._id)).rejects.toThrowError(`No create access for document`);
+        });
+
+        test("Create document as reader", async () => {
+            const newProject = getRandomProject(userObjects);
+            newProject.access.readers.push(newUser._id);      
+
+            await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {}, newUser._id)).rejects.toThrowError(`No create access for document`);
+        });
+
+        test("Create document as unknown", async () => {
+            const newProject = getRandomProject(userObjects);
+
+            await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {}, newUser._id)).rejects.toThrowError(`No access role found for document`);
+        });
     });
 });

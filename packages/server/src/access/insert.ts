@@ -19,7 +19,7 @@ export class InsertAccessService extends AccessService {
             const accessRole = this.getAccessRole(doc);
 
             if (this.hydratedConfig.length > 0) {
-                if (accessRole === null) throw "No access role found for document";
+                if (accessRole === null) throw "No access role found for document"; // This prevents documents from being inserted when roles are being used even when the default create access = true
                 
                 const hasInsertPermission = accessRole.create === true || this.accessDefaults.create === true;
 
