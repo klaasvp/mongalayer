@@ -1,6 +1,6 @@
 import { MongoClient, Document, Db, ClientSession } from "mongodb";
 import { ZodObject, ZodType } from "zod/v4";
-import { Action, find, findOne, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany } from "./actions/index.js";
+import { Action, find, findOne, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany, insertOne, insertMany } from "./actions/index.js";
 import { AccessConfig, AccessDefaults, AccessFieldPermission, AccessFieldPermissions, AccessPayload, AccessService } from "./access.js";
 import z from "zod/v4";
 import { FindOnePayload, FindOneReturnType } from "./actions/findOne.js";
@@ -13,6 +13,8 @@ import { DeleteOnePayload } from "./actions/deleteOne.js";
 import { DeleteAccessService } from "./access/delete.js";
 import { PartialDeep } from "type-fest";
 import { DeleteManyPayload } from "./actions/deleteMany.js";
+import { InsertAccessService } from "./access/insert.js";
+import { InsertManyPayload, InsertOnePayload } from "./client.js";
 
 export type MongalayerCollection<TSchema extends Document = Document> = {
     schema: ZodObject,
@@ -82,7 +84,7 @@ export class Mongalayer {
                 console.debug("Mongalayer - Execute - No config found, using public access");
             }
 
-            let accessService: QueryAccessService | AggregationAccessService | DeleteAccessService;
+            let accessService: QueryAccessService | AggregationAccessService | InsertAccessService | DeleteAccessService;
 
             switch (action.operation) {
                 case "findOne":
@@ -92,9 +94,14 @@ export class Mongalayer {
                 case "aggregate":
                     accessService = new AggregationAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
                     break;
+                case "insertOne":
+                case "insertMany":
+                    accessService = new InsertAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
+                    break;
                 case "deleteOne":
                 case "deleteMany":
                     accessService = new DeleteAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
+                    break;
             }
 
             try {
@@ -102,6 +109,8 @@ export class Mongalayer {
                     case "findOne": result = await findOne(collection, accessService as QueryAccessService, actionPayload as FindOnePayload<Document>); break;
                     case "find": result = await find(collection, accessService as QueryAccessService, actionPayload as FindPayload<Document>); break;
                     case "aggregate": result = await aggregate(collection, accessService as AggregationAccessService, actionPayload as AggregatePayload); break;
+                    case "insertOne": result = await insertOne(collection, accessService as InsertAccessService, actionPayload as InsertOnePayload<Document>); break;
+                    case "insertMany": result = await insertMany(collection, accessService as InsertAccessService, actionPayload as InsertManyPayload<Document>); break;
                     case "deleteOne": result = await deleteOne(collection, accessService as DeleteAccessService, actionPayload as DeleteOnePayload<Document>); break;
                     case "deleteMany": result = await deleteMany(collection, accessService as DeleteAccessService, actionPayload as DeleteManyPayload<Document>); break;
                 }

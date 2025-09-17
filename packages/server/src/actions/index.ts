@@ -4,12 +4,16 @@ import findOne, { FindOnePayload, FindOneReturnType } from "./findOne.js"
 import aggregate, { AggregatePayload, AggregateReturnType } from "./aggregate.js";
 import deleteOne, { DeleteOnePayload, DeleteOneReturnType } from "./deleteOne.js";
 import deleteMany, { DeleteManyPayload, DeleteManyReturnType } from "./deleteMany.js";
+import insertOne, { InsertOnePayload, InsertOneReturnType } from "./insertOne.js";
+import insertMany, { InsertManyPayload, InsertManyReturnType } from "./insertMany.js";
 
 export type Operation = 
     | "findOne" 
     | "find" 
     /** When using AccessDefinition make sure to add a $sort stage as the results order will be by role  */
     | "aggregate"
+    | "insertOne"
+    | "insertMany"
     | "deleteOne"
     | "deleteMany";
 
@@ -23,6 +27,8 @@ export type InferActionPayload<TAction extends Action> = TAction extends { opera
     TOperation extends "findOne" ? FindOnePayload<GetCollectionSchema<TCollection>> : 
     TOperation extends "find" ? FindPayload<GetCollectionSchema<TCollection>> :
     TOperation extends "aggregate" ? AggregatePayload :
+    TOperation extends "insertOne" ? InsertOnePayload<GetCollectionSchema<TCollection>> :
+    TOperation extends "insertMany" ? InsertManyPayload<GetCollectionSchema<TCollection>> :
     TOperation extends "deleteOne" ? DeleteOnePayload<GetCollectionSchema<TCollection>> :
     TOperation extends "deleteMany" ? DeleteManyPayload<GetCollectionSchema<TCollection>> :
     never : never;
@@ -31,6 +37,8 @@ export type InferActionReturnType<TAction extends Action> = TAction extends { op
     TOperation extends "findOne" ? FindOneReturnType<GetCollectionSchema<TCollection>> : 
     TOperation extends "find" ? FindReturnType<GetCollectionSchema<TCollection>> :
     TOperation extends "aggregate" ? AggregateReturnType<GetCollectionSchema<TCollection>> :
+    TOperation extends "insertOne" ? InsertOneReturnType<GetCollectionSchema<TCollection>> : 
+    TOperation extends "insertMany" ? InsertManyReturnType<GetCollectionSchema<TCollection>> :
     TOperation extends "deleteOne" ? DeleteOneReturnType :
     TOperation extends "deleteMany" ? DeleteManyReturnType :
     never : never;
@@ -47,6 +55,8 @@ export {
     find,
     findOne,
     aggregate,
+    insertOne,
+    insertMany,
     deleteOne,
     deleteMany
 }

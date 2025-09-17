@@ -18,6 +18,16 @@ export type {
 } from "./actions/aggregate.js";
 
 export type {
+    InsertOnePayload,
+    InsertOneReturnType
+} from "./actions/insertOne.js";
+
+export type {
+    InsertManyPayload,
+    InsertManyReturnType
+} from "./actions/insertMany.js";
+
+export type {
     DeleteOnePayload,
     DeleteOneReturnType
 } from "./actions/deleteOne.js";
