@@ -12,10 +12,10 @@ export type Project = {
     _id: string,
     type: "lite" | "standard" | "premium",
     name: string,
-    description: string,
+    description?: string,
     access: ProjectAccess,
     createdAt: Date,
-    updatedAt: Date,
+    updatedAt: Date | null,
     version: number,
     config: {
         secret: string,
@@ -36,14 +36,14 @@ export const projectSchema = z.object({
     _id: z.string(),
     type: z.enum(projectTypes),
     name: z.string(),
-    description: z.string(),
+    description: z.string().optional(),
     access: z.object({
         owners: z.array(z.string()),
         contributors: z.array(z.string()),
         readers: z.array(z.string())
     }),
     createdAt: z.date(),
-    updatedAt: z.date(),
+    updatedAt: z.date().nullable(),
     version: z.number(),
     config: z.object({
         secret: z.string(),
@@ -76,7 +76,7 @@ export function getRandomProject (users: User[]): Project {
             readers: randomReaders.filter(id => !randomOwners.includes(id) && !randomContributors.includes(id))
         },
         createdAt: faker.date.past(),
-        updatedAt: faker.date.recent(),
+        updatedAt: faker.helpers.arrayElement([faker.date.recent(), null]),
         version: faker.number.int({ min: 0, max: 1_000 }),
         config: {
             secret: faker.string.alphanumeric(10),
