@@ -183,11 +183,12 @@ describe('Access - Create field permissions', () => {
     });
 
     test("Create document with document = true & field = false", async () => {
-        const accessConfig: AccessConfig<Document> = [{
+        const accessConfig: AccessConfig<Project> = [{
             role: "test",
             fields: {
                 name: AccessPermissions.Create,
-                description: AccessPermissions.Read
+                description: AccessPermissions.Read,
+                type: AccessPermissions.ReadWrite
             },
             document: AccessPermissions.ReadWrite
         }];
