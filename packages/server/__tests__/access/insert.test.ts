@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach } from "vitest";
 import { MongalayerCollections } from "#src/core";
 import { dbName, getMongaLayerForCollections, projectObjects, resetCUDCollections, userObjects } from "#test/lib/database";
-import { AccessConfig, AccessDefaults } from "#src/access.js";
+import { AccessConfig, AccessDefaults, AccessPermissions } from "#src/access.js";
 import { getRandomProject, Project, projectSchema } from "#test/data/project.js";
 import { MongalayerCollectionType } from "#src/index.js";
 import { Document, InsertManyResult, InsertOneResult } from "mongodb";
@@ -48,29 +48,35 @@ describe('Access - Insert - One vs Many', () => {
     });
 
     test("No roles, default = undefined", async () => {
-        await expect(testSimpleInsert("insertOne", { document: newProject }, [], {})).rejects.toThrowError(`No (default) create access for document`);
+        await expect(testSimpleInsert("insertOne", { document: newProject }, [], {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: "No (default) create access for document" }] }]
+        }));
     });
 
     test("No roles, default = true", async () => {
-        const result = await testSimpleInsert("insertOne", { document: newProject }, [], { create: true });
+        const result = await testSimpleInsert("insertOne", { document: newProject }, [], { document: AccessPermissions.ReadWrite });
 
         expect(result.acknowledged).toBe(true);
         expect(result.insertedId).toBe(newProject._id);
     });
 
     test("No roles, default = false", async () => {
-        await expect(testSimpleInsert("insertOne", { document: newProject }, [], { create: false })).rejects.toThrowError(`No (default) create access for document`);
+        await expect(testSimpleInsert("insertOne", { document: newProject }, [], { document: AccessPermissions.ReadWrite ^ AccessPermissions.Create })).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: "No (default) create access for document" }] }]
+        }));
     });
 
     test("Insert One", async () => {
-        const result = await testSimpleInsert("insertOne", { document: newProject }, [], { create: true });
+        const result = await testSimpleInsert("insertOne", { document: newProject }, [], { document: AccessPermissions.ReadWrite });
 
         expect(result.acknowledged).toBe(true);
         expect(result.insertedId).toBe(newProject._id);
     });
 
     test("Insert Many", async () => {
-        const result = await testSimpleInsert("insertMany", { documents: [newProject] }, [], { create: true });
+        const result = await testSimpleInsert("insertMany", { documents: [newProject] }, [], { document: AccessPermissions.ReadWrite });
 
         expect(result.acknowledged).toBe(true);
         expect(Object.keys(result.insertedIds)).toHaveLength(1);
@@ -78,11 +84,11 @@ describe('Access - Insert - One vs Many', () => {
     });
 
     test("Insert One - Duplicate", async () => {
-        await expect(testSimpleInsert("insertOne", { document: projectZero }, [], { create: true })).rejects.toThrowError(`E11000 duplicate key error collection: test.projectsCUD index: _id_ dup key: { _id: "${projectZero._id}" }`);
+        await expect(testSimpleInsert("insertOne", { document: projectZero }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(`E11000 duplicate key error collection: test.projectsCUD index: _id_ dup key: { _id: "${projectZero._id}" }`);
     });
 
     test("Insert Many - Duplicate", async () => {
-        await expect(testSimpleInsert("insertMany", { documents: [projectZero] }, [], { create: true })).rejects.toThrowError(`E11000 duplicate key error collection: test.projectsCUD index: _id_ dup key: { _id: "${projectZero._id}" }`);
+        await expect(testSimpleInsert("insertMany", { documents: [projectZero] }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(`E11000 duplicate key error collection: test.projectsCUD index: _id_ dup key: { _id: "${projectZero._id}" }`);
     });
 });
 
@@ -93,13 +99,13 @@ describe('Access - Create permissions', () => {
             filter: {
                 "access.owners": {"$in": ["%%user.id"]}
             },
-            create: true
+            document: AccessPermissions.ReadWrite
         }, {
             role: "contributor",
             filter: {
                 "access.contributors": {"$in": ["%%user.id"]}
             },
-            create: false
+            document: AccessPermissions.ReadWrite ^ AccessPermissions.Create
         }, {
             role: "reader",
             filter: {
@@ -127,20 +133,80 @@ describe('Access - Create permissions', () => {
             const newProject = getRandomProject(userObjects);
             newProject.access.contributors.push(newUser._id);
 
-            await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {}, newUser._id)).rejects.toThrowError(`No create access for document`);
+            await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {}, newUser._id)).rejects.toThrowError(expect.objectContaining({
+                message: `Unauthorized documents found`,
+                unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: `No create access for document` }] }]
+            }));
         });
 
         test("Create document as reader", async () => {
             const newProject = getRandomProject(userObjects);
             newProject.access.readers.push(newUser._id);      
 
-            await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {}, newUser._id)).rejects.toThrowError(`No create access for document`);
+            await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {}, newUser._id)).rejects.toThrowError(expect.objectContaining({
+                message: `Unauthorized documents found`,
+                unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: `No create access for document` }] }]
+            }));
         });
 
         test("Create document as unknown", async () => {
             const newProject = getRandomProject(userObjects);
 
-            await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {}, newUser._id)).rejects.toThrowError(`No access role found for document`);
+            await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {}, newUser._id)).rejects.toThrowError(expect.objectContaining({
+                message: `Unauthorized documents found`,
+                unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: `No access role found for document` }] }]
+            }));
         });
+    });
+});
+
+
+describe('Access - Create field permissions', () => {
+    const newUser = getRandomUser();
+
+    beforeEach(async () => {
+        await resetCUDCollections();
+    });
+
+    test("Create document with document = false & field = undefined", async () => {
+        const newProject = getRandomProject(userObjects);
+
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite ^ AccessPermissions.Create
+        }];
+
+        await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, issues: expect.arrayContaining([{ type: "document", issue: `No create access for document` }]) }]
+        }));
+    });
+
+    test("Create document with document = true & field = false", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            fields: {
+                name: AccessPermissions.Create,
+                description: AccessPermissions.Read
+            },
+            document: AccessPermissions.ReadWrite
+        }];
+
+        const newProject = getRandomProject(userObjects);
+
+        const withDescription = structuredClone(newProject);
+
+        await expect(testSimpleInsert("insertOne", { document: withDescription }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, issues: expect.arrayContaining([{ type: "field", field: "description", issue: `Role "test" does not have create access for field "description".` }]) }]
+        }));
+
+        const withoutDescription = structuredClone(newProject);
+        delete withoutDescription.description;
+
+        const result = await testSimpleInsert("insertOne", { document: withoutDescription }, accessConfig, {});
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.insertedId).toBe(newProject._id);
     });
 });
