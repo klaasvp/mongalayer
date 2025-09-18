@@ -1,6 +1,6 @@
 import { Filter, Document } from "mongodb";
 import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
-import { AccessFieldPermissions } from "../access.js";
+import { AccessPermissions } from "../access.js";
 import { hasNearQuery, transformNearToGeoNear } from "../query/near.js";
 import { deleteObjectProperty, isObject } from "@mongalayer/core/utils/object";
 import { AccessService } from "../access.js";
@@ -120,9 +120,9 @@ export class QueryAccessService extends AccessService {
         }
 
         for (const doc of docs) {
-            const { fields, fieldsDefault } = { 
+            const { fields, document } = { 
                 fields: {}, 
-                fieldsDefault: this.accessDefaults.fields,
+                document: this.accessDefaults.document,
                 ...this.hydratedConfigMap[doc.__mongalayer_role] ?? {}
             }
 
@@ -133,10 +133,8 @@ export class QueryAccessService extends AccessService {
 
             const remainingKeys = Object.keys(doc).filter(key => key !== "_id");
 
-            for (const key of remainingKeys) {
-                const fieldPermission = fields[key] ?? fieldsDefault;
-                
-                if ((fieldPermission & AccessFieldPermissions.Read) === 0) {
+            for (const key of remainingKeys) {                
+                if (!this.hasPermission(AccessPermissions.Read, fields[key], document)) {
                     delete doc[key];
                 }
             }

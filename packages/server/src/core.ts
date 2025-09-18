@@ -1,7 +1,7 @@
 import { MongoClient, Document, Db, ClientSession } from "mongodb";
 import { ZodObject, ZodType } from "zod/v4";
 import { Action, find, findOne, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany, insertOne, insertMany } from "./actions/index.js";
-import { AccessConfig, AccessDefaults, AccessFieldPermission, AccessFieldPermissions, AccessPayload, AccessService } from "./access.js";
+import { AccessConfig, AccessDefaults, AccessPermission, AccessPermissions, AccessPayload, AccessService } from "./access.js";
 import z from "zod/v4";
 import { FindOnePayload, FindOneReturnType } from "./actions/findOne.js";
 import { FindPayload, FindReturnType } from "./actions/find.js";
@@ -50,8 +50,7 @@ export class Mongalayer {
             debugging: false,
             ...providedOptions,
             accessDefaults: {
-                fields: AccessFieldPermissions.Read,
-                create: false,
+                document: AccessPermissions.Read,
                 delete: false,
                 ...providedOptions?.accessDefaults ?? { }
             }

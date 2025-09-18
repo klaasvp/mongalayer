@@ -1,6 +1,6 @@
 import { Filter, Document } from "mongodb";
 import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
-import { AccessFieldPermissions } from "../access.js";
+import { AccessPermissions } from "../access.js";
 import { hasNearQuery, transformNearToGeoNear } from "../query/near.js";
 import { deleteObjectProperty, isObject } from "@mongalayer/core/utils/object";
 import { AccessService } from "../access.js";
@@ -82,15 +82,15 @@ export class AggregationAccessService extends AccessService {
             }];
 
             // Set the projection if necessary
-            const { fields, fieldsDefault } = { 
+            const { fields, document } = { 
                 fields: {}, 
-                fieldsDefault: this.accessDefaults.fields,
+                document: this.accessDefaults.document,
                 ...roleConfig ?? {}
             }
 
             const roleProjection: Record<string, 0 | 1> = {}; // TODO implement
 
-            const hasPermissions = Object.keys(fields).length > 0, hasDefaultReadPermission = (fieldsDefault & AccessFieldPermissions.Read) > 0;
+            const hasPermissions = Object.keys(fields).length > 0, hasDefaultReadPermission = (document & AccessPermissions.Read) > 0;
 
             if (hasPermissions) {
                 const rootProperties = this.documentSchema.keyof().options;
@@ -98,7 +98,7 @@ export class AggregationAccessService extends AccessService {
                 for (const [field, permission] of Object.entries(fields)) {
                     if (rootProperties.includes(field)) {
                         if (typeof permission !== "undefined") {
-                            const hasFieldReadPermission = (permission & AccessFieldPermissions.Read) > 0;
+                            const hasFieldReadPermission = (permission & AccessPermissions.Read) > 0;
 
                             if (hasDefaultReadPermission && !hasFieldReadPermission) {
                                 roleProjection[field] = 0;

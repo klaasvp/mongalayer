@@ -1,6 +1,6 @@
 import { Filter, Document } from "mongodb";
 import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
-import { AccessFieldPermissions } from "../access.js";
+import { AccessPermissions } from "../access.js";
 import { hasNearQuery, transformNearToGeoNear } from "../query/near.js";
 import { deleteObjectProperty, isObject } from "@mongalayer/core/utils/object";
 import { AccessService } from "../access.js";

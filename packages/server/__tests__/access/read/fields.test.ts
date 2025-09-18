@@ -2,7 +2,7 @@ import { describe, expect, test, beforeAll } from "vitest";
 import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/core";
 import { User, userSchema } from "#test/data/user";
 import { dbName, getMongaLayerForCollections, projectObjects, userObjects } from "#test/lib/database";
-import { AccessFieldPermissions } from "#src/access.js";
+import { AccessPermissions } from "#src/access.js";
 import { JwtPayload } from "jsonwebtoken";
 import { Project, projectSchema } from "#test/data/project.js";
 import { MongalayerCollectionType } from "#src/index.js";
@@ -80,7 +80,7 @@ describe('Access - Read - fields', () => {
             mongalayer = await getMongaLayerForCollections(collections, { 
                 debugging: true, 
                 accessDefaults: {
-                    fields: AccessFieldPermissions.None
+                    document: AccessPermissions.None
                 }
             });
         });
@@ -150,7 +150,7 @@ describe('Access - Read - fields', () => {
             mongalayer = await getMongaLayerForCollections(collections, { 
                 debugging: true, 
                 accessDefaults: {
-                    fields: AccessFieldPermissions.Read
+                    document: AccessPermissions.Read
                 }
             });
         });
@@ -226,13 +226,13 @@ describe('Access - Read - fields', () => {
                     filter: {
                         $$in: ["admin", "%%user.roles"]
                     },
-                    fields: { email: AccessFieldPermissions.None },
-                    fieldsDefault: AccessFieldPermissions.Read
+                    fields: { email: AccessPermissions.None },
+                    document: AccessPermissions.Read
                 }, {
                     role: "other",
                     filter: {},
-                    fields: { name: AccessFieldPermissions.Read },
-                    fieldsDefault: AccessFieldPermissions.None
+                    fields: { name: AccessPermissions.Read },
+                    document: AccessPermissions.None
                 }]
             };
 
@@ -386,20 +386,20 @@ describe('Access - Read - fields', () => {
                         "access.contributors": {$in: ["%%user.sub"]}
                     },
                     fields: {
-                        config: AccessFieldPermissions.None
+                        config: AccessPermissions.None
                     },
-                    fieldsDefault: AccessFieldPermissions.Read
+                    document: AccessPermissions.Read
                 }, {
                     role: "reader",
                     filter: {
                         "access.readers": {$in: ["%%user.sub"]}
                     },
                     fields: {
-                        name: AccessFieldPermissions.Read,
-                        description: AccessFieldPermissions.Read,
-                        data: AccessFieldPermissions.Read
+                        name: AccessPermissions.Read,
+                        description: AccessPermissions.Read,
+                        data: AccessPermissions.Read
                     },
-                    fieldsDefault: AccessFieldPermissions.None
+                    document: AccessPermissions.None
                 }]
             };
 

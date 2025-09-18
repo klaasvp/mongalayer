@@ -4,7 +4,7 @@ import { User, userSchema } from "#test/data/user";
 import { Project, projectSchema } from "#test/data/project";
 import { JwtPayload } from "jsonwebtoken";
 import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects, userObjects } from "#test/lib/database";
-import { AccessConfig, AccessFieldPermissions, WithAccessRole } from "#src/access";
+import { AccessConfig, AccessPermissions, WithAccessRole } from "#src/access";
 import { Db, Document } from "mongodb";
 import { ZodObject } from "zod/v4";
 import { QueryAccessService } from "#src/access/query";
@@ -22,7 +22,7 @@ describe('Access - Roles', () => {
             access: []
         }
 
-        const accessService = new QueryAccessService("user", {}, collection.access as AccessConfig, collection.schema, { fields: AccessFieldPermissions.Read, create: false, delete: false });
+        const accessService = new QueryAccessService("user", {}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
 
         const stages = accessService.getStages({});
 
@@ -50,7 +50,7 @@ describe('Access - Roles', () => {
             }]
         }
 
-        const accessService = new QueryAccessService("users", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, { fields: AccessFieldPermissions.Read, create: false, delete: false });
+        const accessService = new QueryAccessService("users", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
 
         const stages = accessService.getStages({});
 
@@ -102,7 +102,7 @@ describe('Access - Roles', () => {
             return mapping;
         }, {} as Record<string, string | null>);
 
-        const accessService = new QueryAccessService("projects", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, { fields: AccessFieldPermissions.Read, create: false, delete: false });
+        const accessService = new QueryAccessService("projects", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
 
         const stages = accessService.getStages({});
 

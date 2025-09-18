@@ -5,25 +5,29 @@ import { AccessFilter, customOperatorKeys } from "./schema/access/filter.js";
 import { getValueByPath, isArray, isObject } from "@mongalayer/core/utils/object";
 import { SetRequired } from "type-fest";
 
-export const AccessFieldPermissions = {
+export const AccessPermissions = {
     /**
      * Note: This does not exclude the _id field. If you want to exclude the _id field, you need to add it to the fields object.
      */
     None: 0,
     Read: 0b0001,
-    ReadWrite: 0b0011,
-    Write: 0b0010,
+    Create: 0b0010,
+    Update: 0b0100,
     /**
-     * Create also implies ReadWrite permissions.
-     * To exclude Write you can do AccessFieldPermissions.Create & ~AccessFieldPermissions.Write OR AccessFieldPermissions.Create ^ AccessFieldPermissions.Write
+     * ReadWrite also implies all permissions.
+     * To exclude Update you can do AccessPermissions.ReadWrite & ~AccessPermissions.Update OR AccessPermissions.ReadWrite ^ AccessPermissions.Update
      */
-    Create: 0b0111
+    ReadWrite: 0b0111,
 } as const;
 
-export type AccessFieldPermissionsType = typeof AccessFieldPermissions;
-export type AccessFieldPermission = AccessFieldPermissionsType[keyof AccessFieldPermissionsType];
+export type AccessPermissionsType = typeof AccessPermissions;
+export type AccessPermission = AccessPermissionsType[keyof AccessPermissionsType] | number;
 
 type AccessDefinitionFilter<TSchema extends Document = Document> = AccessFilter | Filter<TSchema>
+
+type Fields<TSchema extends Document = Document> = {
+    [K in keyof TSchema]?: AccessPermission
+}
 
 /**
  * Fields access only supports defining root level properties from the Document.
@@ -31,9 +35,8 @@ type AccessDefinitionFilter<TSchema extends Document = Document> = AccessFilter 
 export type AccessDefinition<TSchema extends Document = Document, TFilter extends AccessDefinitionFilter<TSchema> = AccessFilter> = {
     role: string,
     filter?: TFilter,
-    fields?: Partial<Record<keyof TSchema, AccessFieldPermission>>,
-    fieldsDefault?: AccessFieldPermission,
-    create?: boolean,
+    fields?: Fields<TSchema>,
+    document?: AccessPermission,
     delete?: boolean
 };
 
@@ -49,14 +52,9 @@ export type WithAccessRole<TSchema extends Document> = TSchema & { __mongalayer_
 export type AccessDefaults = {
     /**
      * @description Default access field permission for all fields not explicitly defined in the access config. 
-     * @default {AccessFieldPermissions.Read}
+     * @default {AccessPermissions.Read}
      */
-    fields: AccessFieldPermission,
-    /**
-     * @description Default create permission for for a collection. 
-     * @default {false}
-     */
-    create: boolean,
+    document: AccessPermission,
     /**
      * @description Default delete permission for for a collection. 
      * @default {false}
@@ -156,6 +154,13 @@ export abstract class AccessService {
     }
 
     abstract getStages(): Record<string, any>;
+
+    protected hasPermission (requiredPermission: AccessPermission, permissionValue: number | undefined, ...fallbackPermissionValues: (number | undefined)[]): boolean {
+        const permissionValues = [permissionValue, ...fallbackPermissionValues].filter(permission => permission !== void 0);
+
+        // Validate the first defined permission value against the required permission
+        return permissionValues.length > 0 && (permissionValues[0] & requiredPermission) === requiredPermission;
+    }
 }
 
 export function replaceAccessFilterKeys (instance: any[] | Record<string, unknown>) {
