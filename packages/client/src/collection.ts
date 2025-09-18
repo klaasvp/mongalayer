@@ -1,4 +1,4 @@
-import { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType, DeleteOnePayload, DeleteOneReturnType, DeleteManyPayload, DeleteManyReturnType } from "@mongalayer/server/client";
+import { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType, DeleteOnePayload, DeleteOneReturnType, DeleteManyPayload, DeleteManyReturnType, InsertOnePayload, InsertOneReturnType, InsertManyReturnType, InsertManyPayload } from "@mongalayer/server/client";
 import { parseReviver, stringifyReplacer } from "@mongalayer/core/utils/json";
 import { Db } from "./db";
 
@@ -57,6 +57,14 @@ export class Collection {
 
     public async aggregate <TSchema extends Document> (pipeline: AggregatePayload["pipeline"], options?: AggregatePayload["options"]): Promise<AggregateReturnType<TSchema>> {
         return await this.request("aggregate", { pipeline, options });
+    }
+
+    public async insertOne <TSchema extends Document> (document: TSchema, options?: InsertOnePayload<TSchema>["options"]): Promise<InsertOneReturnType<TSchema>> {
+        return await this.request("insertOne", { document, options });
+    }
+
+    public async insertMany <TSchema extends Document> (documents: TSchema[], options?: InsertManyPayload<TSchema>["options"]): Promise<InsertManyReturnType<TSchema>> {
+        return await this.request("insertMany", { documents, options });
     }
 
     public async deleteOne <TSchema extends Document> (filter: DeleteOnePayload<TSchema>["filter"], options?: DeleteOnePayload<TSchema>["options"]): Promise<DeleteOneReturnType> {
