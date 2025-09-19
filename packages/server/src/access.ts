@@ -67,7 +67,7 @@ export type AccessConfig<TSchema extends Document = Document> = AccessDefinition
 // In the access service the AccessFilter is translated to a MongoDB Document Filter
 type InternalAccessConfig<TSchema extends Document = Document> = SetRequired<AccessDefinition<TSchema, Filter<TSchema>>, "filter">[];
 
-export type AccessPayload = Record<string, any>;
+export type AccessPayload<T extends Record<string, any> = Record<string, any>> = T;
 
 export type WithAccessRole<TSchema extends Document> = TSchema & { __mongalayer_role: string | null };
 
