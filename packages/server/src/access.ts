@@ -39,9 +39,9 @@ type AccessValidatorContext = {
     client: MongoClient
 }
 
-export type AccessValidator<TSchema extends Document = Document> = (context: AccessValidatorContext, document: TSchema) => boolean | void
+export type AccessValidator<TSchema extends Document> = (context: AccessValidatorContext, document: TSchema) => boolean | void
 
-type AccessValidators<TSchema extends Document = Document> = {
+type AccessValidators<TSchema extends Document> = {
     /**
      * This function is called before the document is inserted and after the document & field permissions have been evaluated.
      * If the function returns false or throws an exception, the document(s) will not be inserted.

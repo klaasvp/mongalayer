@@ -16,12 +16,12 @@ import { DeleteManyPayload } from "./actions/deleteMany.js";
 import { InsertAccessService } from "./access/insert.js";
 import { InsertManyPayload, InsertOnePayload } from "./client.js";
 
-export type MongalayerCollection<TSchema extends Document = Document> = {
+export type MongalayerCollection<TSchema extends Document> = {
     schema: ZodObject,
     access: AccessConfig<TSchema>
 }
 
-export type MongalayerCollections = Record<string, MongalayerCollection<Document>>;
+export type MongalayerCollections = Record<string, MongalayerCollection<any>>;
 
 export type MongalayerOptions = {
     /**

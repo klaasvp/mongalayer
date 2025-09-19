@@ -1,6 +1,6 @@
 import { Db, Document, MongoClient, ServerApiVersion } from "mongodb";
-import { getRandomUsers, User } from "#test/data/user";
-import { getRandomProjects, Project } from "#test/data/project";
+import { getRandomUsers } from "#test/data/user";
+import { getRandomProjects } from "#test/data/project";
 import { exampleObject1, FilterTest, filterTestsSchema, getFilterTests } from "#test/data/filterTest";
 import { SchemaTest, schemaTestSchema } from "#test/data/schemaTest";
 import { Mongalayer, MongalayerCollection, MongalayerCollections, MongalayerOptions } from "#src/core";
