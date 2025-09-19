@@ -250,7 +250,7 @@ describe('Access - Create validator', () => {
             role: "test",
             document: AccessPermissions.ReadWrite,
             validators: {
-                create: (context, doc) => {
+                create: async (context, doc) => {
                     expect(context.accessData).toStrictEqual({user: {id: userZero._id}});
                     expect(context.action).toBe("create");
                     expect(context.collection).toBe("projectsCUD");
@@ -271,7 +271,7 @@ describe('Access - Create validator', () => {
             role: "test",
             document: AccessPermissions.Read,
             validators: {
-                create: (context, doc) => {
+                create: async (context, doc) => {
                     expect.unreachable();
                 }
             }
@@ -291,7 +291,7 @@ describe('Access - Create validator', () => {
             },
             document: AccessPermissions.ReadWrite,
             validators: {
-                create: (context, doc) => {
+                create: async (context, doc) => {
                     expect.unreachable();
                 }
             }
@@ -308,7 +308,7 @@ describe('Access - Create validator', () => {
             role: "test",
             document: AccessPermissions.ReadWrite,
             validators: {
-                create: (context, doc) => {}
+                create: async (context, doc) => {}
             }
         }];
 
@@ -323,7 +323,7 @@ describe('Access - Create validator', () => {
             role: "test",
             document: AccessPermissions.ReadWrite,
             validators: {
-                create: (context, doc) => true
+                create: async (context, doc) => true
             }
         }];
 
@@ -338,7 +338,7 @@ describe('Access - Create validator', () => {
             role: "test",
             document: AccessPermissions.ReadWrite,
             validators: {
-                create: (context, doc) => false
+                create: async (context, doc) => false
             }
         }];
 
@@ -353,7 +353,7 @@ describe('Access - Create validator', () => {
             role: "test",
             document: AccessPermissions.ReadWrite,
             validators: {
-                create: (context, doc) => {
+                create: async (context, doc) => {
                     throw new AccessValidatorError("AccessValidatorError test")
                 }
             }
@@ -370,7 +370,7 @@ describe('Access - Create validator', () => {
             role: "test",
             document: AccessPermissions.ReadWrite,
             validators: {
-                create: (context, doc) => {
+                create: async (context, doc) => {
                     throw new AccessValidatorError("AccessValidatorError test")
                 }
             }
@@ -392,7 +392,7 @@ describe('Access - Create validator', () => {
             role: "test",
             document: AccessPermissions.ReadWrite,
             validators: {
-                create: (context, doc) => {
+                create: async (context, doc) => {
                     throw "validator exception test"
                 }
             }

@@ -39,7 +39,7 @@ export class InsertAccessService extends AccessService {
         return z.array(this.documentSchema).parse(docs);
     }
 
-    public validateDocumentsAccess (docs: InsertableDocument<Document>[]) {
+    public async validateDocumentsAccess (docs: InsertableDocument<Document>[]) {
         const unauthorizedDocuments: { index: number, issues: InsertIssue[] }[] = [];
 
         for (const [index, doc] of docs.entries()) {
@@ -66,7 +66,7 @@ export class InsertAccessService extends AccessService {
 
                     if (fieldInsertIssues.length > 0) throw new InsertFieldsError("Field permission errors found for document", fieldInsertIssues);
 
-                    const validatorResult = this.invokeValidator(accessRole, "create", doc);
+                    const validatorResult = await this.invokeValidator(accessRole, "create", doc);
 
                     // The validator is allowed to return an exception which is caught below or false to indicate that the document is invalid in which case we throw an exception
                     if (validatorResult === false) {

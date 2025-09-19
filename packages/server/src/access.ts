@@ -39,7 +39,7 @@ type AccessValidatorContext = {
     client: MongoClient
 }
 
-export type AccessValidator<TSchema extends Document> = (context: AccessValidatorContext, document: TSchema) => boolean | void
+export type AccessValidator<TSchema extends Document> = (context: AccessValidatorContext, document: TSchema) => Promise<boolean | void>
 
 type AccessValidators<TSchema extends Document> = {
     /**
@@ -186,9 +186,9 @@ export abstract class AccessService {
         return permissionValues.length > 0 && (permissionValues[0] & requiredPermission) === requiredPermission;
     }
 
-    protected invokeValidator (role: AccessDefinition<Document>, validator: keyof AccessValidators<Document>, doc: Document): boolean | null {
+    protected async invokeValidator (role: AccessDefinition<Document>, validator: keyof AccessValidators<Document>, doc: Document): Promise<boolean | null> {
         if (role.validators !== void 0 && typeof role.validators[validator] === "function") {
-            return role.validators[validator].call(null, {
+            return await role.validators[validator].call(null, {
                 action: validator,
                 accessData: this.accessData,
                 client: this.client,

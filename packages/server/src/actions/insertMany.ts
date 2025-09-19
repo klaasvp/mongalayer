@@ -22,7 +22,7 @@ export default async function <TSchema extends Document> (collection: Collection
     // Validate the documents payload based on its schema
     accessService.validateDocuments(payload.documents);
     
-    accessService.validateDocumentsAccess(payload.documents);
+    await accessService.validateDocumentsAccess(payload.documents);
 
     return await collection.insertMany(payload.documents, payload.options);
 }
