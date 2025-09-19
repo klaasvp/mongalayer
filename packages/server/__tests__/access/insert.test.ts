@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach } from "vitest";
 import { MongalayerCollections } from "#src/core";
-import { dbName, getMongaLayerForCollections, projectObjects, resetCUDCollections, userObjects } from "#test/lib/database";
-import { AccessConfig, AccessDefaults, AccessPermissions } from "#src/access.js";
+import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects, resetCUDCollections, userObjects } from "#test/lib/database";
+import { AccessConfig, AccessDefaults, AccessPermissions, AccessValidatorError } from "#src/access.js";
 import { getRandomProject, Project, projectSchema } from "#test/data/project.js";
 import { MongalayerCollectionType } from "#src/index.js";
 import { Document, InsertManyResult, InsertOneResult } from "mongodb";
@@ -92,6 +92,33 @@ describe('Access - Insert - One vs Many', () => {
     });
 });
 
+describe('Access - Insert validate presents', async () => {
+    const newProject = getRandomProject(userObjects), database = await getMongoDBDatabase();
+
+    beforeEach(async () => {
+        await resetCUDCollections();
+    });
+
+    test("Success", async () => {
+        await testSimpleInsert("insertOne", { document: newProject }, [], { document: AccessPermissions.ReadWrite });
+
+        const result = await database.collection<Project>("projectsCUD").findOne({ _id: newProject._id });
+
+        expect(result).toStrictEqual(newProject);
+    });
+
+    test("Failure", async () => {
+        await expect(testSimpleInsert("insertOne", { document: newProject }, [], {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: "No (default) create access for document" }] }]
+        }));
+
+        const result = await database.collection<Project>("projectsCUD").findOne({ _id: newProject._id });
+
+        expect(result).toBe(null);
+    });
+});
+
 describe('Access - Create permissions', () => {
     describe('Owner (create = true), contributor (create = false), reader (create = undefined)', () => {
         const accessConfig: AccessConfig<Document> = [{
@@ -160,7 +187,6 @@ describe('Access - Create permissions', () => {
     });
 });
 
-
 describe('Access - Create field permissions', () => {
     const newUser = getRandomUser();
 
@@ -197,7 +223,7 @@ describe('Access - Create field permissions', () => {
 
         const withDescription = structuredClone(newProject);
 
-        await expect(testSimpleInsert("insertOne", { document: withDescription }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+        await expect(testSimpleInsert("insertOne", { document: withDescription }, accessConfig as AccessConfig<Document>, {})).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: [{ index: 0, issues: expect.arrayContaining([{ type: "field", field: "description", issue: `Role "test" does not have create access for field "description".` }]) }]
         }));
@@ -205,9 +231,173 @@ describe('Access - Create field permissions', () => {
         const withoutDescription = structuredClone(newProject);
         delete withoutDescription.description;
 
-        const result = await testSimpleInsert("insertOne", { document: withoutDescription }, accessConfig, {});
+        const result = await testSimpleInsert("insertOne", { document: withoutDescription }, accessConfig as AccessConfig<Document>, {});
 
         expect(result.acknowledged).toBe(true);
         expect(result.insertedId).toBe(newProject._id);
+    });
+});
+
+describe('Access - Create validator', () => {
+    const newProject = getRandomProject(userObjects);
+
+    beforeEach(async () => {
+        await resetCUDCollections();
+    });
+
+    test("Validator arguments", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                create: (context, doc) => {
+                    expect(context.accessData).toStrictEqual({user: {id: userZero._id}});
+                    expect(context.action).toBe("create");
+                    expect(context.collection).toBe("projectsCUD");
+                    expect(context.database).toBe(dbName);
+                    expect(doc).toStrictEqual(newProject);
+                }
+            }
+        }];
+
+        const result = await testSimpleInsert("insertOne", { document: newProject }, accessConfig, {});
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.insertedId).toBe(newProject._id);
+    });
+
+    test("Validator should not be called without create permission", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.Read,
+            validators: {
+                create: (context, doc) => {
+                    expect.unreachable();
+                }
+            }
+        }];
+
+        await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, issues: expect.arrayContaining([{ type: "document", issue: `No create access for document` }]) }]
+        }));
+    });
+
+    test("Validator should not be called without field create permission", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            fields: {
+                description: AccessPermissions.Read
+            },
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                create: (context, doc) => {
+                    expect.unreachable();
+                }
+            }
+        }];
+
+        await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, issues: expect.arrayContaining([{ type: "field", field: "description", issue: `Role "test" does not have create access for field "description".` }]) }]
+        }));
+    });
+
+    test("Validator returns nothing", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                create: (context, doc) => {}
+            }
+        }];
+
+        const result = await testSimpleInsert("insertOne", { document: newProject }, accessConfig, {});
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.insertedId).toBe(newProject._id);
+    });
+
+    test("Validator returns true", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                create: (context, doc) => true
+            }
+        }];
+
+        const result = await testSimpleInsert("insertOne", { document: newProject }, accessConfig, {});
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.insertedId).toBe(newProject._id);
+    });
+
+    test("Validator return false", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                create: (context, doc) => false
+            }
+        }];
+
+        await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, issues: expect.arrayContaining([{ type: "document", issue: `Document failed custom validation` }]) }]
+        }));
+    });
+
+    test("Validator throws AccessValidatorError", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                create: (context, doc) => {
+                    throw new AccessValidatorError("AccessValidatorError test")
+                }
+            }
+        }];
+
+        await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, issues: expect.arrayContaining([{ type: "document", issue: `AccessValidatorError test` }]) }]
+        }));
+    });
+
+    test("Validator throws multiple AccessValidatorError", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                create: (context, doc) => {
+                    throw new AccessValidatorError("AccessValidatorError test")
+                }
+            }
+        }];
+
+        const newProjectB = getRandomProject(userObjects);
+
+        await expect(testSimpleInsert("insertMany", { documents: [newProject, newProjectB] }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [
+                { index: 0, issues: expect.arrayContaining([{ type: "document", issue: `AccessValidatorError test` }]) },
+                { index: 1, issues: expect.arrayContaining([{ type: "document", issue: `AccessValidatorError test` }]) }
+            ]
+        }));
+    });
+
+    test("Validator throws error/exception (not AccessValidatorError)", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                create: (context, doc) => {
+                    throw "validator exception test"
+                }
+            }
+        }];
+
+        await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {})).rejects.toThrowError(`validator exception test`);
     });
 });

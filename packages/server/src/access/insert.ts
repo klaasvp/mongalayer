@@ -1,5 +1,5 @@
 import { Filter, Document, OptionalUnlessRequiredId } from "mongodb";
-import { AccessDefinition, AccessPermission, AccessPermissions, AccessService } from "../access.js";
+import { AccessDefinition, AccessPermission, AccessPermissions, AccessService, AccessValidatorError } from "../access.js";
 import z from "zod/v4";
 import { matches } from "./matcher.js";
 
@@ -66,13 +66,19 @@ export class InsertAccessService extends AccessService {
 
                     if (fieldInsertIssues.length > 0) throw new InsertFieldsError("Field permission errors found for document", fieldInsertIssues);
 
+                    const validatorResult = this.invokeValidator(accessRole, "create", doc);
+
+                    // The validator is allowed to return an exception which is caught below or false to indicate that the document is invalid in which case we throw an exception
+                    if (validatorResult === false) {
+                        throw new InsertDocumentError("Document failed custom validation");
+                    }                    
                 } else if (!this.hasPermission(AccessPermissions.Create, this.accessDefaults.document)) {
                     throw new InsertDocumentError("No (default) create access for document");
                 }
             } catch (e) {
                 if (e instanceof InsertFieldsError) {
                     unauthorizedDocuments.push({ index, issues: e.issues });
-                } else if (e instanceof InsertDocumentError) {
+                } else if (e instanceof InsertDocumentError || e instanceof AccessValidatorError) {
                     unauthorizedDocuments.push({ index, issues: [{ type: "document", issue: e.message }] });
                 } else {
                     throw e;
