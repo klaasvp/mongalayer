@@ -1,4 +1,4 @@
-import { Document, Filter } from "mongodb";
+import { Document, Filter, MongoClient } from "mongodb";
 import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
 import { ZodObject } from "zod/v4";
 import { AccessFilter, customOperatorKeys } from "./schema/access/filter.js";
@@ -29,6 +29,27 @@ type Fields<TSchema extends Document = Document> = {
     [K in keyof TSchema]?: AccessPermission
 }
 
+export class AccessValidatorError extends Error {}
+
+type AccessValidatorContext = {
+    database: string,
+    collection: string,
+    action: "create",
+    accessData: AccessPayload,
+    client: MongoClient
+}
+
+export type AccessValidator<TSchema extends Document = Document> = (context: AccessValidatorContext, document: TSchema) => boolean | void
+
+type AccessValidators<TSchema extends Document = Document> = {
+    /**
+     * This function is called before the document is inserted and after the document & field permissions have been evaluated.
+     * If the function returns false or throws an exception, the document(s) will not be inserted.
+     * If the function returns true or does not return anything, the document(s) will be inserted.
+     */
+    create?: AccessValidator<TSchema>
+}
+
 /**
  * Fields access only supports defining root level properties from the Document.
  */
@@ -37,7 +58,8 @@ export type AccessDefinition<TSchema extends Document = Document, TFilter extend
     filter?: TFilter,
     fields?: Fields<TSchema>,
     document?: AccessPermission,
-    delete?: boolean
+    delete?: boolean,
+    validators?: AccessValidators<TSchema>
 };
 
 export type AccessConfig<TSchema extends Document = Document> = AccessDefinition<TSchema, AccessFilter>[];
@@ -68,6 +90,8 @@ export abstract class AccessService {
     protected hydratedConfigMap: Record<string, InternalAccessConfig[number]> = {};
 
     constructor (
+        protected client: MongoClient,
+        protected database: string,
         protected collection: string,
         protected accessData: AccessPayload,
         accessConfig: AccessConfig,
@@ -160,6 +184,20 @@ export abstract class AccessService {
 
         // Validate the first defined permission value against the required permission
         return permissionValues.length > 0 && (permissionValues[0] & requiredPermission) === requiredPermission;
+    }
+
+    protected invokeValidator (role: AccessDefinition<Document>, validator: keyof AccessValidators<Document>, doc: Document): boolean | null {
+        if (role.validators !== void 0 && typeof role.validators[validator] === "function") {
+            return role.validators[validator].call(null, {
+                action: validator,
+                accessData: this.accessData,
+                client: this.client,
+                database: this.database,
+                collection: this.collection
+            }, doc) ?? true; // If the validator returns nothing (undefined) or null -> return true
+        }
+
+        return null;
     }
 }
 

@@ -88,18 +88,18 @@ export class Mongalayer {
             switch (action.operation) {
                 case "findOne":
                 case "find": 
-                    accessService = new QueryAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
+                    accessService = new QueryAccessService(this.mongodbClient, action.database, action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
                     break;
                 case "aggregate":
-                    accessService = new AggregationAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
+                    accessService = new AggregationAccessService(this.mongodbClient, action.database, action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
                     break;
                 case "insertOne":
                 case "insertMany":
-                    accessService = new InsertAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
+                    accessService = new InsertAccessService(this.mongodbClient, action.database, action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
                     break;
                 case "deleteOne":
                 case "deleteMany":
-                    accessService = new DeleteAccessService(action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
+                    accessService = new DeleteAccessService(this.mongodbClient, action.database, action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
                     break;
             }
 

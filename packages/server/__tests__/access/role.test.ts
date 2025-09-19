@@ -3,17 +3,18 @@ import { Mongalayer, MongalayerCollection } from "#src/core";
 import { User, userSchema } from "#test/data/user";
 import { Project, projectSchema } from "#test/data/project";
 import { JwtPayload } from "jsonwebtoken";
-import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects, userObjects } from "#test/lib/database";
+import { dbName, getMongaLayerForCollections, getMongoDBClient, getMongoDBDatabase, projectObjects, userObjects } from "#test/lib/database";
 import { AccessConfig, AccessPermissions, WithAccessRole } from "#src/access";
-import { Db, Document } from "mongodb";
+import { Db, Document, MongoClient } from "mongodb";
 import { ZodObject } from "zod/v4";
 import { QueryAccessService } from "#src/access/query";
 
 describe('Access - Roles', () => {
-    let database: Db, userZero = userObjects[0], userOne = userObjects[0];
+    let client: MongoClient, database: Db, userZero = userObjects[0], userOne = userObjects[0];
 
     beforeAll(async () => {
-        database = await getMongoDBDatabase();
+        client = await getMongoDBClient();
+        database = client!.db(dbName);
     });
 
     test("User - No access - Role empty", async () => {
@@ -22,7 +23,7 @@ describe('Access - Roles', () => {
             access: []
         }
 
-        const accessService = new QueryAccessService("user", {}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
+        const accessService = new QueryAccessService(client, dbName, "user", {}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
 
         const stages = accessService.getStages({});
 
@@ -50,7 +51,7 @@ describe('Access - Roles', () => {
             }]
         }
 
-        const accessService = new QueryAccessService("users", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
+        const accessService = new QueryAccessService(client, dbName, "users", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
 
         const stages = accessService.getStages({});
 
@@ -102,7 +103,7 @@ describe('Access - Roles', () => {
             return mapping;
         }, {} as Record<string, string | null>);
 
-        const accessService = new QueryAccessService("projects", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
+        const accessService = new QueryAccessService(client, dbName, "projects", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
 
         const stages = accessService.getStages({});
 
