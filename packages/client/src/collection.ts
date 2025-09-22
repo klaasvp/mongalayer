@@ -1,6 +1,7 @@
 import { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType, DeleteOnePayload, DeleteOneReturnType, DeleteManyPayload, DeleteManyReturnType, InsertOnePayload, InsertOneReturnType, InsertManyReturnType, InsertManyPayload } from "@mongalayer/server/client";
 import { parseReviver, stringifyReplacer } from "@mongalayer/core/utils/json";
 import { Db } from "./db";
+import { MongalayerAPIError } from "./error";
 
 export class Collection {
     constructor (
@@ -38,10 +39,13 @@ export class Collection {
 
         try {
             const response = await request;
+            const responseText = await response.text();
 
-            const jsonString = await response.text();
-
-            return JSON.parse(jsonString, parseReviver);
+            if (response.ok) {
+                return JSON.parse(responseText, parseReviver);
+            } else {
+                throw new MongalayerAPIError(response.status, responseText);
+            }
         } catch (e) {
             throw new Error("Failed to fetch", { cause: e });
         }
