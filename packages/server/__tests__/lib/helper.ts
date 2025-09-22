@@ -3,7 +3,7 @@ import { z } from "zod/v4";
 
 export type MongoDBException = {
     code: number,
-    codeName: string,
+    codeName?: string | undefined,
     message: string
 };
 
