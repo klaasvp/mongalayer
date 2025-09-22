@@ -14,6 +14,10 @@ export const AccessPermissions = {
     Create: 0b0010,
     Update: 0b0100,
     /**
+     * ReadUpdate = Read + Update permission without Create permission.
+     */
+    ReadUpdate: 0b0101,
+    /**
      * ReadWrite also implies all permissions.
      * To exclude Update you can do AccessPermissions.ReadWrite & ~AccessPermissions.Update OR AccessPermissions.ReadWrite ^ AccessPermissions.Update
      */
