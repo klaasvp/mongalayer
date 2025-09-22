@@ -2,8 +2,7 @@ import { z } from "zod/v4";
 import { $geometryIntersectsSchema, $geometryNearSchema, $geometryWithinSchema, polygonSchema, positionSchema } from "../schema/geo.js";
 import { BSONTypeAliasSchema, BSONTypeSchema } from "../schema/bson.js";
 import { Expression, expressionSchema } from "./expression/index.js";
-
-type JSONValue = string | number | boolean | null | Date | { [key: string]: JSONValue } | JSONValue[];
+import { documentValueSchema, JSONValue, keyWithoutDollar } from "./index.js";
 
 const operatorKeys = [
     "$eq", "$gt", "$gte", "$in", "$lt", "$lte", "$ne", "$nin", "$not", 
@@ -14,21 +13,6 @@ const operatorKeys = [
 
 const rootOperatorKeys = [ "$text", "$expr", "$and", "$or", "$nor" ]; // $expr
 const elemMatchOperatorKeys = [ "$and", "$or", "$nor" ];
-
-const withoutOperatorKeys = z.string().regex(/^[^$]/);
-
-export const documentValueSchema: z.ZodType<JSONValue> = z.lazy(() => z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.date(),
-    //z.undefined() -> JSON which will be the payload does not support undefined,
-    z.array(documentValueSchema),
-    z.record(withoutOperatorKeys, documentValueSchema)
-]))
-
-export const documentSchema = z.record(withoutOperatorKeys, documentValueSchema);
 
 const bitwiseSchema = z.union([ 
     z.number(),

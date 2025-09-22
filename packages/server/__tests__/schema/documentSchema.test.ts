@@ -1,4 +1,4 @@
-import { documentSchema } from '#src/schema/query.js'; // Adjust the import path as needed
+import { documentSchema } from '#src/schema/index.js'; // Adjust the import path as needed
 import { describe, expect, test } from 'vitest';
 
 describe('documentSchema', () => {
