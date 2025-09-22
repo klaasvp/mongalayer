@@ -28,6 +28,11 @@ export type {
 } from "./actions/insertMany.js";
 
 export type {
+    UpdateOnePayload,
+    UpdateOneReturnType
+} from "./actions/updateOne.js";
+
+export type {
     DeleteOnePayload,
     DeleteOneReturnType
 } from "./actions/deleteOne.js";

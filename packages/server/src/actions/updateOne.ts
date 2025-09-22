@@ -1,0 +1,60 @@
+import { Collection, Document, Filter, UpdateResult } from "mongodb";
+import z from "zod/v4";
+import { FilterSchema, filterSchema } from "../schema/query.js";
+import { Sort, sortSchema } from "../schema/index.js";
+import { updateSchema, UpdateSchema } from "../schema/update.js";
+import { UpdatableDocument, UpdateAccessService } from "../access/update.js";
+
+export type UpdateOnePayload <TSchema extends Document> = {
+    filter: FilterSchema,
+    update: UpdateSchema,
+    options?: { 
+        upsert?: boolean,
+        sort?: Sort
+    }
+}
+
+export type UpdateOneReturnType<TSchema extends Document> = UpdateResult<TSchema>;
+
+const payloadSchema: z.ZodType<UpdateOnePayload<Document>> = z.object({
+    filter: filterSchema,
+    update: updateSchema,
+    options: z.object({
+        upsert: z.boolean().optional(),
+        sort: sortSchema.optional()
+    }).optional()
+});
+
+export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: UpdateAccessService, payload: UpdateOnePayload<TSchema>): Promise<UpdateOneReturnType<TSchema>> {
+    payloadSchema.parse(payload);
+    
+    const stages = accessService.getStages(payload.filter as Filter<Document>);
+
+    const pipeline: Document[] = [stages.$query];
+
+    if (stages.$role) {
+        pipeline.push(...stages.$role);
+    }
+
+    if (payload.options?.sort) {
+        pipeline.push({ $sort: payload.options.sort });
+    }
+
+    pipeline.push({ $project: {
+        _id: 1, // Explicitly set it so there's no confusion over it being included
+        __mongalayer_role: 1
+    } }, {
+        $limit: 1
+    });
+    
+    const documentsWithRole = await collection.aggregate(pipeline).toArray() as UpdatableDocument[];
+    const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update);
+
+    // If no matching documents were found directly return
+    if (documentsToUpdate.length === 0) return { acknowledged: true, modifiedCount: 0, matchedCount: 0, upsertedId: null, upsertedCount: 0 };
+
+    return await collection.updateOne({ _id: documentsToUpdate[0] } as Filter<Document>, payload.update as Document, {
+        upsert: payload.options?.upsert
+        // We handle sort ourselves as we need it to apply roles first
+    });
+}
