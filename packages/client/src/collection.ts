@@ -47,6 +47,10 @@ export class Collection {
                 throw new MongalayerAPIError(response.status, responseText);
             }
         } catch (e) {
+            if (e instanceof MongalayerAPIError) {
+                throw e;
+            }
+
             throw new Error("Failed to fetch", { cause: e });
         }
     }
