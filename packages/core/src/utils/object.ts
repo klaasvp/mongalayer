@@ -53,3 +53,121 @@ export function getValueByPathWithExists(obj: Record<string, any> | unknown[], p
 export function typedEntries <T extends object> (obj: T): { [K in keyof T]-?: [K, T[K]] }[keyof T][] {
     return Object.entries(obj) as any;
 }
+
+export function pathValueToObject (key: string, value: unknown): Record<string, unknown> {
+    return key.split(".").reduceRight((acc, part) => {
+        if (/\d+/.test(part)) {
+            const array = new Array(+part + 1);
+            array[+part] = acc;
+            return array;
+        } else {
+            return { [part]: acc }
+        } 
+    }, value) as Record<string, unknown>;
+}
+
+export function unflatten(source: Record<string, unknown>): Record<string, unknown> {
+    const toUnflatten = structuredClone(source);
+    const toMerge: any[] = [];
+
+    for (const [key, value] of Object.entries(toUnflatten)) {
+        if (/\./.test(key)) {
+            const mergable = pathValueToObject(key, value);
+            toMerge.push(mergable);
+            delete toUnflatten[key];
+        }
+    }
+
+    toMerge.push(toUnflatten);
+
+    return merge(toMerge);
+}
+
+type MergeOptions = {
+    preservePrototype?: boolean,
+    preserveUndefined?: boolean
+};
+
+export function merge (sources: any[], options: MergeOptions = {}): any {
+    options = { 
+        preservePrototype: false, 
+        preserveUndefined: false,
+        ...options
+    };
+
+    let copy: any = null;
+
+    if (sources.length > 0) {
+        if (isObject(sources[0])) {
+            copy = options.preservePrototype === true ? {} : Object.create(null);
+
+            for (var i = 0, il = sources.length; i < il; i++) {
+                deepCopy(copy, sources[i], options);
+            }
+        } else if (Array.isArray(sources[0])) {
+            copy = [];
+
+            for (var i = 0, il = sources.length; i < il; i++) {
+                deepCopyArray(copy, sources[i], options);
+            }
+        } else {
+            copy = sources[sources.length - 1];
+        }
+    }
+
+    return copy;
+}
+
+function deepCopyArray (target: any[], source: any[], options: MergeOptions = { preservePrototype: false, preserveUndefined: false }): any[] {
+    if (typeof target === "undefined") target = [];
+
+    const keys = Object.keys(source);
+
+    for (let i = 0; i < keys.length; i++) {
+        const k = +keys[i], cur = source[k];
+
+        if (typeof cur !== 'object' || cur === null) {
+            target[k] = cur;
+        } else if (cur instanceof Date) {
+            target[k] = new Date(cur);
+        } else {
+            target[k] = deepCopy(target[k], cur, options);
+        }
+    }
+
+    return target;
+}
+
+function deepCopy (target: any, source: any, options: MergeOptions = { preservePrototype: false, preserveUndefined: false }): any {
+    if (typeof source !== 'object' || source === null) return source;
+
+    if (source instanceof Date) return new Date(source);
+
+    if (Array.isArray(source)) return deepCopyArray(target, source, options);
+
+    if (typeof target === "undefined" || target === null) target = options.preservePrototype === true ? {} : Object.create(null);
+
+    for (const k in source) {
+        if (Object.hasOwnProperty.call(source, k) === false) continue;
+
+        if (source[k] === void 0) {
+            if (options.preserveUndefined === true) {
+                target[k] = void 0;
+            }
+
+            continue;
+        }
+
+        const cur = source[k];
+
+        if (typeof cur !== 'object' || cur === null) {
+            target[k] = cur;
+        } else if (cur instanceof Date) {
+            target[k] = new Date(cur);
+        } else {
+            target[k] = deepCopy(target[k], cur, options);
+        }
+    }
+
+    return target;
+}
