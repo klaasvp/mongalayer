@@ -2,6 +2,7 @@ import { Filter, Document, WithId, ObjectId } from "mongodb";
 import { PreloadRoleAccessService } from "./preloadRole.js";
 import { UpdateSchema } from "../schema/update.js";
 import { AccessDefinition, AccessPermissions, AccessValidatorError } from "../access.js";
+import { InsertAccessService } from "./insert.js";
 
 export type UpdatableDocument = WithId<{ __mongalayer_role?: string | null }>;
 
@@ -107,5 +108,17 @@ export class UpdateAccessService extends PreloadRoleAccessService {
         }
 
         return rootProperties;
+    }
+
+    public getUpsertAccessService (): InsertAccessService {
+        return new InsertAccessService(
+            this.client,
+            this.database,
+            this.collection,
+            this.accessData,
+            this.accessConfig,
+            this.documentSchema,
+            this.accessDefaults
+        );
     }
 }

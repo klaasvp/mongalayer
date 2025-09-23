@@ -50,11 +50,30 @@ export default async function <TSchema extends Document> (collection: Collection
     const documentsWithRole = await collection.aggregate(pipeline).toArray() as UpdatableDocument[];
     const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update);
 
-    // If no matching documents were found directly return
-    if (documentsToUpdate.length === 0) return { acknowledged: true, modifiedCount: 0, matchedCount: 0, upsertedId: null, upsertedCount: 0 };
+    if (documentsToUpdate.length === 0) {
+        // If upsert is true and now matching documents were found, validate & upsert the document
+        if (payload.options?.upsert === true) {
+            const upsertAccessService = accessService.getUpsertAccessService();
 
-    return await collection.updateOne({ _id: documentsToUpdate[0] } as Filter<Document>, payload.update as Document, {
-        upsert: payload.options?.upsert
-        // We handle sort ourselves as we need it to apply roles first
-    });
+            const insertableDoc = {
+                ...payload.filter,
+                ...payload.update.$set,
+                ...payload.update.$unset ? Object.fromEntries(Object.keys(payload.update.$unset).map(key => [key, null])) : {},
+                ...payload.update.$inc ? Object.fromEntries(Object.keys(payload.update.$inc).map(key => [key, payload.update.$inc?.[key] ?? 0])) : {}
+            };
+            
+            // Validate the document against the schema
+            upsertAccessService.validateDocuments([insertableDoc as TSchema])[0];
+            
+            await upsertAccessService.validateDocumentsAccess([insertableDoc as TSchema]);
+
+            return await collection.updateOne({ _id: insertableDoc._id } as Filter<Document>, { $set: insertableDoc } as Document, { upsert: true });
+        } 
+        // If no matching documents were found directly return
+        else {
+            return { acknowledged: true, modifiedCount: 0, matchedCount: 0, upsertedId: null, upsertedCount: 0 };
+        }
+    }
+
+    return await collection.updateOne({ _id: documentsToUpdate[0] } as Filter<Document>, payload.update as Document, {});
 }

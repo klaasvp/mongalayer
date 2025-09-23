@@ -98,7 +98,7 @@ export abstract class AccessService {
         protected database: string,
         protected collection: string,
         protected accessData: AccessPayload,
-        accessConfig: AccessConfig,
+        protected accessConfig: AccessConfig,
         protected documentSchema: ZodObject,
         public accessDefaults: AccessDefaults
     ) {
