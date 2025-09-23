@@ -95,8 +95,21 @@ describe('Access - Insert - One vs Many', () => {
         const invalidProject = getRandomProject(userObjects);
         invalidProject.description = 123 as unknown as string;
 
-        await expect(testSimpleInsert("insertOne", { document: invalidProject }, [], {})).rejects.toThrowError(expect.objectContaining({
+        await expect(testSimpleInsert("insertOne", { document: invalidProject }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
             message: JSON.stringify([{ expected: "string", code: "invalid_type", path: [0, "description"], message: "Invalid input: expected string, received number" }], null, 2),
+            name: "ZodError"
+        }));
+    });
+
+    test("Insert One - Unknown property", async () => {
+        const invalidProject = getRandomProject(userObjects);
+        // @ts-ignore -> invalid
+        invalidProject.unknown = 123;
+        // @ts-ignore -> valid
+        invalidProject.data.unknown = "test";
+
+        await expect(testSimpleInsert("insertOne", { document: invalidProject }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
+            message: JSON.stringify([{ code: "unrecognized_keys", keys: ["unknown"], path: [0], message: `Unrecognized key: "unknown"` }], null, 2),
             name: "ZodError"
         }));
     });

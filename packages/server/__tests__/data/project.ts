@@ -32,12 +32,12 @@ export type Project = {
 
 const projectTypes: Project["type"][] = ["lite", "standard", "premium"];
 
-export const projectSchema = z.object({
+export const projectSchema = z.strictObject({
     _id: z.string(),
     type: z.enum(projectTypes),
     name: z.string(),
     description: z.string().optional(),
-    access: z.object({
+    access: z.strictObject({
         owners: z.array(z.string()),
         contributors: z.array(z.string()),
         readers: z.array(z.string())
@@ -45,12 +45,12 @@ export const projectSchema = z.object({
     createdAt: z.date(),
     updatedAt: z.date().nullable(),
     version: z.number(),
-    config: z.object({
+    config: z.strictObject({
         secret: z.string(),
         tags: z.array(z.string())
     }),
     data: z.object({
-        location: z.object({
+        location: z.strictObject({
             coordinates: z.tuple([z.number(), z.number()]),
             city: z.string(),
             street: z.string()
