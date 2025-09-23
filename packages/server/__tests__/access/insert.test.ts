@@ -90,6 +90,16 @@ describe('Access - Insert - One vs Many', () => {
     test("Insert Many - Duplicate", async () => {
         await expect(testSimpleInsert("insertMany", { documents: [projectZero] }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(`E11000 duplicate key error collection: test.projectsCUD index: _id_ dup key: { _id: "${projectZero._id}" }`);
     });
+
+    test("Insert One - Invalid doc", async () => {
+        const invalidProject = getRandomProject(userObjects);
+        invalidProject.description = 123 as unknown as string;
+
+        await expect(testSimpleInsert("insertOne", { document: invalidProject }, [], {})).rejects.toThrowError(expect.objectContaining({
+            message: JSON.stringify([{ expected: "string", code: "invalid_type", path: [0, "description"], message: "Invalid input: expected string, received number" }], null, 2),
+            name: "ZodError"
+        }));
+    });
 });
 
 describe('Access - Insert validate presents', async () => {
