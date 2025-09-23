@@ -3,6 +3,8 @@ import { PreloadRoleAccessService } from "./preloadRole.js";
 import { UpdateSchema } from "../schema/update.js";
 import { AccessDefinition, AccessPermissions, AccessValidatorError } from "../access.js";
 import { InsertAccessService } from "./insert.js";
+import { merge, unflatten } from "@mongalayer/core/utils/object";
+import { deepPartial } from "../schema/helper.js";
 
 export type UpdatableDocument = WithId<{ __mongalayer_role?: string | null }>;
 
@@ -32,6 +34,26 @@ class UpdateFieldsError extends Error {
 }
 
 export class UpdateAccessService extends PreloadRoleAccessService {
+    public validateUpdateFields (update: UpdateSchema) {
+        const toValidate = structuredClone(update);
+        let partialObject = {} as Record<string, any>;
+
+        for (const operator of Object.keys(toValidate) as (keyof UpdateSchema)[]) {
+            const op = toValidate[operator] as Record<string, any>;
+
+            if (["$set", "$inc"].includes(operator)) {
+                partialObject = merge([partialObject, unflatten(op)]);
+            } else if (operator === "$unset") {
+                for (const key of Object.keys(op)) {
+                    partialObject = merge([partialObject, unflatten({ [key]: undefined })]);
+                }
+            }
+        }
+
+        const partialDocumentSchema = deepPartial(this.documentSchema);
+        partialDocumentSchema.parse(partialObject);
+    }
+
     public async validateDocumentsAccess (docsWithRole: UpdatableDocument[], update: UpdateSchema): Promise<ObjectId[]> {
         const unauthorizedDocuments: { index: number, id: ObjectId, issues: UpdateIssue[] }[] = [];
 

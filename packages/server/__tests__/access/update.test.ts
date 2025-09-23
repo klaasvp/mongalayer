@@ -157,6 +157,51 @@ describe("Access - Update - Defaults & One", () => {
             unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: "No (default) create access for document" }] }]
         }));
     });
+
+    test("Update One - dot notation", async () => {
+        const result = await testSimpleUpdate({ 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { 
+                "data.location.street": "new street", 
+                "data.location.city": "new city",
+                version: 2 
+            } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+    });
+
+    test("Update One - dot notation - wrong types", async () => {
+        await expect(testSimpleUpdate({ 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { 
+                "data.location.street": null, 
+                "data.location.city": 1,
+                version: 2 
+            } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
+            message: JSON.stringify([
+                { expected: "string", code: "invalid_type", path: ["data", "location", "city"], message: "Invalid input: expected string, received number" },
+                { expected: "string", code: "invalid_type", path: ["data", "location", "street"], message: "Invalid input: expected string, received null" },
+            ], null, 2),
+            name: "ZodError"
+        }));
+    });
+
+    test("Update One - dot notation - invalid property", async () => {
+        await expect(testSimpleUpdate({ 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { 
+                "data.unknown": "test",
+                "unknown": 123,
+            } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
+            message: JSON.stringify([{ code: "unrecognized_keys", keys: ["unknown"], path: [], message: `Unrecognized key: "unknown"` }], null, 2),
+            name: "ZodError"
+        }));
+    });
 });
 
 describe("Access - Update validate presents", async () => {

@@ -55,6 +55,7 @@ export default async function <TSchema extends Document> (collection: Collection
         if (payload.options?.upsert === true) {
             const upsertAccessService = accessService.getUpsertAccessService();
 
+            // TODO conflicts in dot notation keys between filter and update operators
             const insertableDoc = {
                 ...payload.filter,
                 ...payload.update.$set,
@@ -74,6 +75,8 @@ export default async function <TSchema extends Document> (collection: Collection
             return { acknowledged: true, modifiedCount: 0, matchedCount: 0, upsertedId: null, upsertedCount: 0 };
         }
     }
+
+    accessService.validateUpdateFields(payload.update);
 
     return await collection.updateOne({ _id: documentsToUpdate[0] } as Filter<Document>, payload.update as Document, {});
 }
