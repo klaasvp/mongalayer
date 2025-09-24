@@ -4,7 +4,7 @@ import { UpdateSchema } from "../schema/update.js";
 import { AccessDefinition, AccessPermissions, AccessValidatorError } from "../access.js";
 import { InsertAccessService } from "./insert.js";
 import { merge, unflatten } from "@mongalayer/core/utils/object";
-import { deepPartial } from "../schema/helper.js";
+import { deepPartial, getSubschema } from "../schema/helper.js";
 
 export type UpdatableDocument = WithId<{ __mongalayer_role?: string | null }>;
 
@@ -45,7 +45,12 @@ export class UpdateAccessService extends PreloadRoleAccessService {
                 partialObject = merge([partialObject, unflatten(op)]);
             } else if (operator === "$unset") {
                 for (const key of Object.keys(op)) {
-                    partialObject = merge([partialObject, unflatten({ [key]: undefined })]);
+                    const keySchema = getSubschema(this.documentSchema, key);
+                    if (keySchema?.schema === void 0 ) {
+                        throw new Error(`Field "${key}" in $unset does not exist in the document schema`);
+                    } else if (keySchema?.meta?.optional !== true) {
+                        throw new Error(`Field "${key}" in $unset cannot be removed because it is not optional in the document schema`);
+                    }
                 }
             }
         }

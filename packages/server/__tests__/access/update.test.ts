@@ -202,6 +202,28 @@ describe("Access - Update - Defaults & One", () => {
             name: "ZodError"
         }));
     });
+
+    test("Update One - dot notation - unset", async () => {
+        const result = await testSimpleUpdate({ 
+            filter: { _id: projectZero._id }, 
+            update: { $unset: { 
+                "data.location.street": ""
+            } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+        
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+
+        await expect(testSimpleUpdate({ 
+            filter: { _id: projectZero._id }, 
+            update: { $unset: { 
+                "config.secret": ""
+            } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
+            message: `Field "config.secret" in $unset cannot be removed because it is not optional in the document schema`,
+        }));
+    });
 });
 
 describe("Access - Update validate presents", async () => {
