@@ -25,7 +25,7 @@ export type Project = {
         location: {
             coordinates: [number, number],
             city: string,
-            street: string
+            street?: string
         }
     }
 };
@@ -53,7 +53,7 @@ export const projectSchema = z.strictObject({
         location: z.strictObject({
             coordinates: z.tuple([z.number(), z.number()]),
             city: z.string(),
-            street: z.string()
+            street: z.string().optional()
         })   
     })
 }) satisfies ZodType<Project>;
