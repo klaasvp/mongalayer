@@ -1,4 +1,4 @@
-import { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType, DeleteOnePayload, DeleteOneReturnType, DeleteManyPayload, DeleteManyReturnType, InsertOnePayload, InsertOneReturnType, InsertManyReturnType, InsertManyPayload } from "@mongalayer/server/client";
+import { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType, DeleteOnePayload, DeleteOneReturnType, DeleteManyPayload, DeleteManyReturnType, InsertOnePayload, InsertOneReturnType, InsertManyReturnType, InsertManyPayload, UpdateOnePayload, UpdateOneReturnType, UpdateManyPayload, UpdateManyReturnType } from "@mongalayer/server/client";
 import { parseReviver, stringifyReplacer } from "@mongalayer/core/utils/json";
 import { Db } from "./db";
 import { MongalayerAPIError } from "./error";
@@ -73,6 +73,14 @@ export class Collection {
 
     public async insertMany <TSchema extends Document> (documents: TSchema[], options?: InsertManyPayload<TSchema>["options"]): Promise<InsertManyReturnType<TSchema>> {
         return await this.request("insertMany", { documents, options });
+    }
+
+    public async updateOne <TSchema extends Document> (filter: UpdateOnePayload<TSchema>["filter"], update: UpdateOnePayload<TSchema>["update"], options?: UpdateOnePayload<TSchema>["options"]): Promise<UpdateOneReturnType<TSchema>> {
+        return await this.request("updateOne", { filter, update, options });
+    }
+
+    public async updateMany <TSchema extends Document> (filter: UpdateManyPayload<TSchema>["filter"], update: UpdateManyPayload<TSchema>["update"], options?: UpdateManyPayload<TSchema>["options"]): Promise<UpdateManyReturnType<TSchema>> {
+        return await this.request("updateMany", { filter, update, options });
     }
 
     public async deleteOne <TSchema extends Document> (filter: DeleteOnePayload<TSchema>["filter"], options?: DeleteOnePayload<TSchema>["options"]): Promise<DeleteOneReturnType> {
