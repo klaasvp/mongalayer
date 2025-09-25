@@ -1,4 +1,4 @@
-import { Document, Filter, MongoClient } from "mongodb";
+import { Document, Filter, MongoClient, WithId } from "mongodb";
 import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
 import { ZodObject } from "zod/v4";
 import { AccessFilter, customOperatorKeys } from "./schema/access/filter.js";
@@ -33,17 +33,24 @@ type Fields<TSchema extends Document = Document> = {
     [K in keyof TSchema]?: AccessPermission
 }
 
+type FieldsArray<TSchema extends Document = Document> = (keyof TSchema)[];
+
 export class AccessValidatorError extends Error {}
 
 type AccessValidatorContext<TAccessPayload extends AccessPayload> = {
     database: string,
     collection: string,
-    action: "create",
+    action: "create" | "update",
     accessData: TAccessPayload,
     client: MongoClient
 }
 
 export type AccessValidator<TSchema extends Document, TAccessPayload extends AccessPayload = AccessPayload> = (context: AccessValidatorContext<TAccessPayload>, document: TSchema) => Promise<boolean | void>
+
+export type UpdateAccessValidator<TSchema extends Document, TSchemaFields extends FieldsArray<TSchema> = FieldsArray<TSchema>> = {
+    validatorFields?: TSchemaFields,
+    validator: AccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }>
+}
 
 type AccessValidators<TSchema extends Document> = {
     /**
@@ -51,7 +58,15 @@ type AccessValidators<TSchema extends Document> = {
      * If the function returns false or throws an exception, the document(s) will not be inserted.
      * If the function returns true or does not return anything, the document(s) will be inserted.
      */
-    create?: AccessValidator<TSchema>
+    create?: AccessValidator<TSchema>,
+    /**
+     * This function is called before the document is updated and after the documents have been fetched for validation + after the document & field permissions have been evaluated.
+     * If the function returns false or throws an exception, the document(s) will not be updated.
+     * If the function returns true or does not return anything, the document(s) will be updated.
+     * 
+     * Note: when specifying validatorFields over multiple roles a union of all fields over the roles is used.
+     */
+    update?: UpdateAccessValidator<TSchema>
 }
 
 /**
@@ -190,15 +205,21 @@ export abstract class AccessService {
         return permissionValues.length > 0 && (permissionValues[0] & requiredPermission) === requiredPermission;
     }
 
-    protected async invokeValidator (role: AccessDefinition<Document>, validator: keyof AccessValidators<Document>, doc: Document): Promise<boolean | null> {
-        if (role.validators !== void 0 && typeof role.validators[validator] === "function") {
-            return await role.validators[validator].call(null, {
+    protected async invokeValidator (role: AccessDefinition<Document>, validator: keyof AccessValidators<Document>, doc: WithId<Document>): Promise<boolean | null> {
+        if (role.validators !== void 0 && role.validators[validator] !== void 0) {
+            const context: AccessValidatorContext<AccessPayload> = {
                 action: validator,
                 accessData: this.accessData,
                 client: this.client,
                 database: this.database,
                 collection: this.collection
-            }, doc) ?? true; // If the validator returns nothing (undefined) or null -> return true
+            };
+
+            if (validator === "create" && typeof role.validators[validator] === "function") {
+                return await role.validators[validator].call(null, context, doc) ?? true; // If the validator returns nothing (undefined) or null -> return true
+            } else if (validator === "update" && typeof role.validators[validator].validator === "function") {
+                return await role.validators[validator].validator.call(null, context, doc) ?? true;
+            }
         }
 
         return null;

@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach } from "vitest";
 import { MongalayerCollections } from "#src/core";
 import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects, resetCUDCollections, userObjects } from "#test/lib/database";
-import { AccessConfig, AccessDefaults, AccessPermissions } from "#src/access.js";
+import { AccessConfig, AccessDefaults, AccessPermissions, AccessValidatorError, UpdateAccessValidator } from "#src/access.js";
 import { getRandomProject, Project, projectSchema } from "#test/data/project.js";
 import { MongalayerCollectionType } from "#src/index.js";
 import { Document } from "mongodb";
@@ -669,5 +669,251 @@ describe("Access - Update field permissions", () => {
         expect(resultVMany.acknowledged).toBe(true);
         expect(resultVMany.matchedCount).toBe(2);
         expect(resultVMany.modifiedCount).toBe(1);
+    });
+});
+
+describe('Access - Update validator', () => {
+    beforeEach(async () => {
+        await resetCUDCollections();
+    });
+
+    test("Validator arguments", async () => {
+        const accessConfig: AccessConfig<Project> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                update: {
+                    validator: async (context, doc) => {
+                        expect(context.accessData).toStrictEqual({user: {id: userZero._id}});
+                        expect(context.action).toBe("update");
+                        expect(context.collection).toBe("projectsCUD");
+                        expect(context.database).toBe(dbName);
+                        expect(doc).toStrictEqual({
+                            _id: projectZero._id,
+                            __mongalayer_role: "test"
+                        });
+                    }
+                }
+            }
+        }];
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { version: 10 } } 
+        }, accessConfig as AccessConfig<Document>, {});
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+    });
+
+    test("Validator arguments - extra fields", async () => {
+        const updateValidator: UpdateAccessValidator<Project, ["type", "version"]> = {
+            validatorFields: [ "type", "version" ],
+            validator: async (context, doc) => {
+                expect(context.accessData).toStrictEqual({user: {id: userZero._id}});
+                expect(context.action).toBe("update");
+                expect(context.collection).toBe("projectsCUD");
+                expect(context.database).toBe(dbName);
+                expect(doc).toStrictEqual({
+                    _id: projectZero._id,
+                    __mongalayer_role: "test",
+                    type: projectZero.type,
+                    version: projectZero.version
+                });
+            }
+        }
+
+        const accessConfig: AccessConfig<Project> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                update: updateValidator
+            }
+        }];
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { version: 10 } } 
+        }, accessConfig as AccessConfig<Document>, {});
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+    });
+
+    test("Validator should not be called without update permission", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.Read,
+            validators: {
+                update: {
+                    validator: async (context, doc) => {
+                        expect.unreachable();
+                    }
+                }
+            }
+        }];
+
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { version: 10 } } 
+        }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "document", issue: `No update access for document` }]) }]
+        }));
+    });
+
+    test("Validator should not be called without field create permission", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            fields: {
+                description: AccessPermissions.Read
+            },
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                update: {
+                    validator: async (context, doc) => {
+                        expect.unreachable();
+                    }
+                }
+            }
+        }];
+
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { description: "x" } } 
+        }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "field", field: "description", issue: `Role "test" does not have update access for field "description".` }]) }]
+        }));
+    });
+
+    test("Validator returns nothing", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                update: {
+                    validator: async (context, doc) => {}
+                }
+            }
+        }];
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { description: "x" } } 
+        }, accessConfig, {});
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+    });
+
+    test("Validator returns true", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                update: {
+                    validator: async (context, doc) => true
+                }
+            }
+        }];
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { description: "x" } } 
+        }, accessConfig, {});
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+    });
+
+    test("Validator return false", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                update: {
+                    validator: async (context, doc) => false
+                }
+            }
+        }];
+
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { description: "x" } } 
+        }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "document", issue: `Document failed custom validation` }]) }]
+        }));
+    });
+
+    test("Validator throws AccessValidatorError", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                update: {
+                    validator: async (context, doc) => {
+                        throw new AccessValidatorError("AccessValidatorError test")
+                    }
+                }
+            }
+        }];
+
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { description: "x" } } 
+        }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "document", issue: `AccessValidatorError test` }]) }]
+        }));
+    });
+
+    test("Validator throws multiple AccessValidatorError", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                update: {
+                    validator: async (context, doc) => {
+                        throw new AccessValidatorError("AccessValidatorError test")
+                    }
+                }
+            }
+        }];
+
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectOne._id ] } }, 
+            update: { $set: { description: "x" } } 
+        }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: expect.arrayContaining([
+                expect.objectContaining({ id: projectZero._id, issues: expect.arrayContaining([{ type: "document", issue: `AccessValidatorError test` }]) }),
+                expect.objectContaining({ id: projectOne._id, issues: expect.arrayContaining([{ type: "document", issue: `AccessValidatorError test` }]) })
+            ])
+        }));
+    });
+
+    test("Validator throws error/exception (not AccessValidatorError)", async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "test",
+            document: AccessPermissions.ReadWrite,
+            validators: {
+                update: {
+                    validator: async (context, doc) => {
+                        throw "validator exception test"
+                    }
+                }
+            }
+        }];
+
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { description: "x" } } 
+        }, accessConfig, {})).rejects.toThrowError(`validator exception test`);
     });
 });

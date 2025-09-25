@@ -1,5 +1,5 @@
 import { Filter, Document, WithId, ObjectId } from "mongodb";
-import { PreloadRoleAccessService } from "./preloadRole.js";
+import { PreloadRoleAccessService, PreloadRoleStages } from "./preloadRole.js";
 import { UpdateSchema } from "../schema/update.js";
 import { AccessDefinition, AccessPermissions, AccessValidatorError } from "../access.js";
 import { InsertAccessService } from "./insert.js";
@@ -7,6 +7,10 @@ import { merge, unflatten } from "@mongalayer/core/utils/object";
 import { deepPartial, getSubschema } from "../schema/helper.js";
 
 export type UpdatableDocument = WithId<{ __mongalayer_role?: string | null }>;
+
+type UpdateStages = PreloadRoleStages & {
+    $project: Record<string, 1>
+}
 
 type UpdateIssue = {
     type: "field",
@@ -88,12 +92,12 @@ export class UpdateAccessService extends PreloadRoleAccessService {
 
                     if (fieldUpdateIssues.length > 0) throw new UpdateFieldsError("Field permission errors found for document", fieldUpdateIssues);
 
-                    /*const validatorResult = await this.invokeValidator(accessRole, "update", doc);
+                    const validatorResult = await this.invokeValidator(accessRole, "update", doc);
 
                     // The validator is allowed to return an exception which is caught below or false to indicate that the document is invalid in which case we throw an exception
                     if (validatorResult === false) {
                         throw new UpdateDocumentError("Document failed custom validation");
-                    }*/                   
+                    }                 
                 } else if (!this.hasPermission(AccessPermissions.Update, this.accessDefaults.document)) {
                     throw new UpdateDocumentError("No (default) update access for document");
                 }
@@ -148,4 +152,20 @@ export class UpdateAccessService extends PreloadRoleAccessService {
             this.accessDefaults
         );
     }
+
+    public getStages (currentFilter: Filter<Document> = {}): UpdateStages {
+        const stages = super.getStages(currentFilter) as UpdateStages;
+
+        const projectionFields: string[] = [ "_id", "__mongalayer_role" ];
+
+        for (const role of this.hydratedConfig) {
+            if (Array.isArray(role.validators?.update?.validatorFields)) {
+                projectionFields.push(...role.validators.update.validatorFields as string[]);
+            }
+        }
+
+        stages.$project = Object.fromEntries(projectionFields.map(field => [field, 1]));
+
+        return stages;
+    };
 }

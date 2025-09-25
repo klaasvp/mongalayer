@@ -32,10 +32,7 @@ export default async function <TSchema extends Document> (collection: Collection
         pipeline.push(...stages.$role);
     }
 
-    pipeline.push({ $project: {
-        _id: 1, // Explicitly set it so there's no confusion over it being included
-        __mongalayer_role: 1
-    } });
+    pipeline.push({ $project: stages.$project });
     
     const documentsWithRole = await collection.aggregate(pipeline).toArray() as UpdatableDocument[];
     const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update);
