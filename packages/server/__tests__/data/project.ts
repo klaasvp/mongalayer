@@ -10,7 +10,7 @@ export type ProjectAccess = {
 
 export type Project = {
     _id: string,
-    type: "lite" | "standard" | "premium",
+    type: "lite" | "standard" | "premium" | "custom",
     name: string,
     description?: string,
     access: ProjectAccess,
@@ -30,7 +30,7 @@ export type Project = {
     }
 };
 
-const projectTypes: Project["type"][] = ["lite", "standard", "premium"];
+const projectTypes: Project["type"][] = ["lite", "standard", "premium", "custom"];
 
 export const projectSchema = z.strictObject({
     _id: z.string(),
@@ -67,7 +67,7 @@ export function getRandomProject (users: User[]): Project {
 
     return {
         _id: faker.string.uuid(),
-        type: faker.helpers.arrayElement(projectTypes),
+        type: faker.helpers.arrayElement(projectTypes.slice(0, 3)), // Exclude "custom" for random projects
         name: faker.company.name(),
         description: faker.company.catchPhrase(),
         access: {
