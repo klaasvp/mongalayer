@@ -1,4 +1,4 @@
-import { Document, Filter, MongoClient, WithId } from "mongodb";
+import { Document, Filter, MongoClient, OptionalUnlessRequiredId, WithId } from "mongodb";
 import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
 import { ZodObject } from "zod/v4";
 import { AccessFilter, customOperatorKeys } from "./schema/access/filter.js";
@@ -51,6 +51,14 @@ export type UpdateAccessValidator<TSchema extends Document, TSchemaFields extend
     validatorFields?: TSchemaFields,
     validator: AccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }>
 }
+
+export const defineUpdateAccessValidator = <TSchema extends Document> () => <TSchemaFields extends FieldsArray<TSchema>> (
+    validatorFields: TSchemaFields,
+    validator: AccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }>
+) => ({
+    validatorFields,
+    validator
+});
 
 type AccessValidators<TSchema extends Document> = {
     /**
@@ -205,7 +213,7 @@ export abstract class AccessService {
         return permissionValues.length > 0 && (permissionValues[0] & requiredPermission) === requiredPermission;
     }
 
-    protected async invokeValidator (role: AccessDefinition<Document>, validator: keyof AccessValidators<Document>, doc: WithId<Document>): Promise<boolean | null> {
+    protected async invokeValidator (role: AccessDefinition<Document>, validator: keyof AccessValidators<Document>, doc: OptionalUnlessRequiredId<Document>): Promise<boolean | null> {
         if (role.validators !== void 0 && role.validators[validator] !== void 0) {
             const context: AccessValidatorContext<AccessPayload> = {
                 action: validator,

@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach } from "vitest";
 import { MongalayerCollections } from "#src/core";
 import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects, resetCUDCollections, userObjects } from "#test/lib/database";
-import { AccessConfig, AccessDefaults, AccessPermissions, AccessValidatorError, UpdateAccessValidator } from "#src/access.js";
+import { AccessConfig, AccessDefaults, AccessPermissions, AccessValidatorError, defineUpdateAccessValidator } from "#src/access.js";
 import { getRandomProject, Project, projectSchema } from "#test/data/project.js";
 import { MongalayerCollectionType } from "#src/index.js";
 import { Document } from "mongodb";
@@ -682,18 +682,16 @@ describe('Access - Update validator', () => {
             role: "test",
             document: AccessPermissions.ReadWrite,
             validators: {
-                update: {
-                    validator: async (context, doc) => {
-                        expect(context.accessData).toStrictEqual({user: {id: userZero._id}});
-                        expect(context.action).toBe("update");
-                        expect(context.collection).toBe("projectsCUD");
-                        expect(context.database).toBe(dbName);
-                        expect(doc).toStrictEqual({
-                            _id: projectZero._id,
-                            __mongalayer_role: "test"
-                        });
-                    }
-                }
+                update: defineUpdateAccessValidator<Project>()([], async (context, doc) => {
+                    expect(context.accessData).toStrictEqual({user: {id: userZero._id}});
+                    expect(context.action).toBe("update");
+                    expect(context.collection).toBe("projectsCUD");
+                    expect(context.database).toBe(dbName);
+                    expect(doc).toStrictEqual({
+                        _id: projectZero._id,
+                        __mongalayer_role: "test"
+                    });
+                })
             }
         }];
 
@@ -707,28 +705,26 @@ describe('Access - Update validator', () => {
         expect(result.modifiedCount).toBe(1);
     });
 
-    test("Validator arguments - extra fields", async () => {
-        const updateValidator: UpdateAccessValidator<Project, ["type", "version"]> = {
-            validatorFields: [ "type", "version" ],
-            validator: async (context, doc) => {
-                expect(context.accessData).toStrictEqual({user: {id: userZero._id}});
-                expect(context.action).toBe("update");
-                expect(context.collection).toBe("projectsCUD");
-                expect(context.database).toBe(dbName);
-                expect(doc).toStrictEqual({
-                    _id: projectZero._id,
-                    __mongalayer_role: "test",
-                    type: projectZero.type,
-                    version: projectZero.version
-                });
-            }
-        }
-
+    test("Validator arguments - extra fields", async () => {        
         const accessConfig: AccessConfig<Project> = [{
             role: "test",
             document: AccessPermissions.ReadWrite,
             validators: {
-                update: updateValidator
+                update: defineUpdateAccessValidator<Project>()(
+                    [ "type", "version" ], 
+                    async (context, doc) => {
+                        expect(context.accessData).toStrictEqual({user: {id: userZero._id}});
+                        expect(context.action).toBe("update");
+                        expect(context.collection).toBe("projectsCUD");
+                        expect(context.database).toBe(dbName);
+                        expect(doc).toStrictEqual({
+                            _id: projectZero._id,
+                            __mongalayer_role: "test",
+                            type: projectZero.type,
+                            version: projectZero.version
+                        });
+                    }
+                )
             }
         }];
 
