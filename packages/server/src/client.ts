@@ -33,6 +33,11 @@ export type {
 } from "./actions/updateOne.js";
 
 export type {
+    UpdateManyPayload,
+    UpdateManyReturnType
+} from "./actions/updateMany.js";
+
+export type {
     DeleteOnePayload,
     DeleteOneReturnType
 } from "./actions/deleteOne.js";

@@ -7,17 +7,26 @@ import { MongalayerCollectionType } from "#src/index.js";
 import { Document } from "mongodb";
 import { PartialDeep } from "type-fest";
 import { getRandomUser, User } from "#test/data/user.js";
-import { Operation, UpdateOnePayload, UpdateOneReturnType } from "#src/client.js";
-import { version } from "zod/v4/core";
+import { Operation, UpdateManyPayload, UpdateManyReturnType, UpdateOnePayload, UpdateOneReturnType } from "#src/client.js";
 
-const projectZero: Project = projectObjects[0], userZero: User = userObjects[0];
+const 
+    projectZero: Project = projectObjects[0],
+    projectOne: Project = projectObjects[1],
+    projectRandom: Project = projectObjects[Math.floor(Math.random() * projectObjects.length)], 
+    userZero: User = userObjects[0];
 
-const testSimpleUpdate = async (
-    input: UpdateOnePayload<Project>,
+type UpdateOperation = Extract<Operation, "updateOne" | "updateMany">;
+
+const testSimpleUpdate = async <
+    TOperation extends UpdateOperation,
+    TResult extends TOperation extends "updateOne" ? UpdateOneReturnType<Project> : UpdateManyReturnType<Project>
+> (
+    operation: TOperation, 
+    input: TOperation extends "updateOne" ? UpdateOnePayload<Project> : UpdateManyPayload<Project>,
     access: AccessConfig<Document>,
     accessDefaults: PartialDeep<AccessDefaults>,
     userID: string = userZero._id
-): Promise<UpdateOneReturnType<Project>> => {
+): Promise<TResult> => {
     const collections: MongalayerCollections = {
         projectsCUD: {
             schema: projectSchema,
@@ -33,8 +42,8 @@ const testSimpleUpdate = async (
     return (await mongalayer.executeRaw({
         database: dbName,
         collection: "projectsCUD" as MongalayerCollectionType<Project>,
-        operation: "updateOne",
-    }, input, { user: { id: userID } })) as UpdateOneReturnType<Project>;
+        operation,
+    }, input, { user: { id: userID } })) as TResult;
 };
 
 describe("Access - Update - Defaults & One", () => {
@@ -45,17 +54,28 @@ describe("Access - Update - Defaults & One", () => {
     });
 
     test("No roles, default = undefined", async () => {
-        await expect(testSimpleUpdate({ 
+        await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
             update: { $set: { description: newDescription } } 
         }, [], {})).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: [{ type: "document", issue: "No (default) update access for document" }] }],
         }));
+
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectOne._id, projectRandom._id ] } }, 
+            update: { $set: { description: newDescription } } 
+        }, [], {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: expect.arrayContaining([
+                expect.objectContaining({ id: projectOne._id, issues: [{ type: "document", issue: "No (default) update access for document" }] }),
+                expect.objectContaining({ id: projectRandom._id, issues: [{ type: "document", issue: "No (default) update access for document" }] }),
+            ]),
+        }));
     });
 
     test("No roles, default = true", async () => {
-        const result = await testSimpleUpdate(
+        const result = await testSimpleUpdate("updateOne", 
             { filter: { _id: projectZero._id }, update: { $set: { description: newDescription } } },
             [], { document: AccessPermissions.ReadWrite }
         );
@@ -63,20 +83,40 @@ describe("Access - Update - Defaults & One", () => {
         expect(result.acknowledged).toBe(true);
         expect(result.matchedCount).toBe(1);
         expect(result.modifiedCount).toBe(1);
+
+        const resultMany = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectOne._id, projectRandom._id ] } }, 
+            update: { $set: { description: newDescription } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(resultMany.acknowledged).toBe(true);
+        expect(resultMany.matchedCount).toBe(2);
+        expect(resultMany.modifiedCount).toBe(2);
     });
 
     test("No roles, default = false", async () => {
-        await expect(testSimpleUpdate({ 
+        await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
             update: { $set: { description: newDescription } } 
         }, [], { document: AccessPermissions.ReadWrite ^ AccessPermissions.Update })).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: [{ type: "document", issue: "No (default) update access for document" }] }]
         }));
+
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectOne._id, projectRandom._id ] } }, 
+            update: { $set: { description: newDescription } } 
+        }, [], { document: AccessPermissions.ReadWrite ^ AccessPermissions.Update })).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: expect.arrayContaining([
+                expect.objectContaining({ id: projectOne._id, issues: [{ type: "document", issue: "No (default) update access for document" }] }),
+                expect.objectContaining({ id: projectRandom._id, issues: [{ type: "document", issue: "No (default) update access for document" }] }),
+            ]),
+        }));
     });
 
-    test("Update One", async () => {
-        const result = await testSimpleUpdate({ 
+    test("Update", async () => {
+        const result = await testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
             update: { $inc: { version: 1 }, $set: { description: newDescription } } 
         }, [], { document: AccessPermissions.ReadWrite });
@@ -84,10 +124,19 @@ describe("Access - Update - Defaults & One", () => {
         expect(result.acknowledged).toBe(true);
         expect(result.matchedCount).toBe(1);
         expect(result.modifiedCount).toBe(1);
+
+        const resultMany = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            update: { $set: { description: newDescription } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(resultMany.acknowledged).toBe(true);
+        expect(resultMany.matchedCount).toBe(2);
+        expect(resultMany.modifiedCount).toBe(1); // Project zero is already updated
     });
 
     test("Update One - No match", async () => {
-        const result = await testSimpleUpdate({ 
+        const result = await testSimpleUpdate("updateOne", { 
             filter: { _id: "non-existing-id" }, 
             update: { $set: { description: newDescription } } 
         }, [], { document: AccessPermissions.ReadWrite });
@@ -96,13 +145,26 @@ describe("Access - Update - Defaults & One", () => {
         expect(result.matchedCount).toBe(0);
         expect(result.modifiedCount).toBe(0);
     });
+
+    test("Update Many - 1 match (out of 2)", async () => {
+        const result = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ "non-existing-id", projectRandom._id ] } }, 
+            update: { $set: { description: newDescription } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+    });
     
     test("Update One - Upsert = true (with ReadWrite)", async () => {
         const upsertProject = getRandomProject(userObjects);
 
         const { _id: upsertProjectID, version, updatedAt, ...upsertUpdate } = upsertProject;
 
-        const result = await testSimpleUpdate({ 
+        upsertUpdate.type = "custom";
+
+        const result = await testSimpleUpdate("updateOne", { 
             filter: { _id: upsertProjectID }, 
             update: {
                 $set: upsertUpdate,
@@ -124,7 +186,7 @@ describe("Access - Update - Defaults & One", () => {
 
         const { _id: upsertProjectID, version, updatedAt, ...upsertUpdate } = upsertProject;
 
-        await expect(testSimpleUpdate({ 
+        await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: upsertProjectID }, 
             update: { 
                 $set: upsertUpdate
@@ -144,7 +206,7 @@ describe("Access - Update - Defaults & One", () => {
 
         const { _id: upsertProjectID, version, updatedAt, ...upsertUpdate } = upsertProject;
 
-        await expect(testSimpleUpdate({ 
+        await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: upsertProjectID }, 
             update: { 
                 $set: upsertUpdate,
@@ -158,8 +220,8 @@ describe("Access - Update - Defaults & One", () => {
         }));
     });
 
-    test("Update One - dot notation", async () => {
-        const result = await testSimpleUpdate({ 
+    test("Update - dot notation", async () => {
+        const result = await testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
             update: { $set: { 
                 "data.location.street": "new street", 
@@ -171,16 +233,42 @@ describe("Access - Update - Defaults & One", () => {
         expect(result.acknowledged).toBe(true);
         expect(result.matchedCount).toBe(1);
         expect(result.modifiedCount).toBe(1);
+
+        const resultMany = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            update: { $set: { 
+                "data.location.street": "new street", 
+                "data.location.city": "new city",
+                version: 2
+             } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(resultMany.acknowledged).toBe(true);
+        expect(resultMany.matchedCount).toBe(2);
+        expect(resultMany.modifiedCount).toBe(1);
     });
 
     test("Update One - dot notation - wrong types", async () => {
-        await expect(testSimpleUpdate({ 
+        const update = { 
+            "data.location.street": null, 
+            "data.location.city": 1,
+            version: 2 
+        };
+
+        await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
-            update: { $set: { 
-                "data.location.street": null, 
-                "data.location.city": 1,
-                version: 2 
-            } } 
+            update: { $set: update } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
+            message: JSON.stringify([
+                { expected: "string", code: "invalid_type", path: ["data", "location", "city"], message: "Invalid input: expected string, received number" },
+                { expected: "string", code: "invalid_type", path: ["data", "location", "street"], message: "Invalid input: expected string, received null" },
+            ], null, 2),
+            name: "ZodError"
+        }));
+
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            update: { $set: update } 
         }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
             message: JSON.stringify([
                 { expected: "string", code: "invalid_type", path: ["data", "location", "city"], message: "Invalid input: expected string, received number" },
@@ -190,13 +278,23 @@ describe("Access - Update - Defaults & One", () => {
         }));
     });
 
-    test("Update One - dot notation - invalid property", async () => {
-        await expect(testSimpleUpdate({ 
+    test("Update - dot notation - invalid property", async () => {
+        const update = { 
+            "data.unknown": "test",
+            "unknown": 123,
+        };
+
+        await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
-            update: { $set: { 
-                "data.unknown": "test",
-                "unknown": 123,
-            } } 
+            update: { $set: update } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
+            message: JSON.stringify([{ code: "unrecognized_keys", keys: ["unknown"], path: [], message: `Unrecognized key: "unknown"` }], null, 2),
+            name: "ZodError"
+        }));
+
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            update: { $set: update } 
         }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
             message: JSON.stringify([{ code: "unrecognized_keys", keys: ["unknown"], path: [], message: `Unrecognized key: "unknown"` }], null, 2),
             name: "ZodError"
@@ -204,7 +302,7 @@ describe("Access - Update - Defaults & One", () => {
     });
 
     test("Update One - dot notation - unset", async () => {
-        const result = await testSimpleUpdate({ 
+        const result = await testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
             update: { $unset: { 
                 "data.location.street": ""
@@ -215,8 +313,28 @@ describe("Access - Update - Defaults & One", () => {
         expect(result.matchedCount).toBe(1);
         expect(result.modifiedCount).toBe(1);
 
-        await expect(testSimpleUpdate({ 
+        const resultMany = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            update: { $unset: { 
+                "data.location.street": ""
+            } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(resultMany.acknowledged).toBe(true);
+        expect(resultMany.matchedCount).toBe(2);
+        expect(resultMany.modifiedCount).toBe(1);
+
+        await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
+            update: { $unset: { 
+                "config.secret": ""
+            } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
+            message: `Field "config.secret" in $unset cannot be removed because it is not optional in the document schema`,
+        }));
+
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
             update: { $unset: { 
                 "config.secret": ""
             } } 
@@ -235,7 +353,7 @@ describe("Access - Update validate presents", async () => {
     });
 
     test("Success", async () => {
-        await testSimpleUpdate({ 
+        await testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
             update: { $set: { description: newDescription } } 
         }, [], { document: AccessPermissions.ReadWrite });
@@ -243,10 +361,21 @@ describe("Access - Update validate presents", async () => {
         const result = await database.collection<Project>("projectsCUD").findOne({ _id: projectZero._id });
 
         expect(result?.description).toBe(newDescription);
+
+        await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectOne._id, projectRandom._id ] } }, 
+            update: { $set: { description: newDescription } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        const resultMany = await database.collection<Project>("projectsCUD").find({ _id: { $in: [ projectOne._id, projectRandom._id ] } }).toArray();
+
+        resultMany.forEach(r => {
+            expect(r.description).toBe(newDescription);
+        });
     });
 
     test("Failure", async () => {
-        await expect(testSimpleUpdate({ 
+        await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
             update: { $set: { description: newDescription } } 
         }, [], {})).rejects.toThrowError(expect.objectContaining({
@@ -259,6 +388,24 @@ describe("Access - Update validate presents", async () => {
         const result = await database.collection<Project>("projectsCUD").findOne({ _id: projectZero._id });
 
         expect(result?.description).toBe(projectZero.description);
+
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectOne._id, projectRandom._id ] } }, 
+            update: { $set: { description: newDescription } } 
+        }, [], {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: expect.arrayContaining([
+                expect.objectContaining({ id: projectOne._id, issues: [{ type: "document", issue: "No (default) update access for document" }] }),
+                expect.objectContaining({ id: projectRandom._id, issues: [{ type: "document", issue: "No (default) update access for document" }] }),
+            ]),
+        }));
+
+        const resultMany = await database.collection<Project>("projectsCUD").find({ _id: { $in: [ projectOne._id, projectRandom._id ] } }).toArray();
+
+        resultMany.forEach(r => {
+            const projectDesc = projectObjects.find(p => p._id === r._id)!.description;
+            expect(r.description).toBe(projectDesc);
+        });
     });
 });
 
@@ -282,12 +429,13 @@ describe("Access - Update permissions", () => {
         await resetCUDCollections();
     });
 
-    test("Update document as owner", async () => {
+    // updateOne
+    test("Update document as owner (one)", async () => {
         // Pick a project where we know an owner exists
         const project = projectObjects.find(p => p.access.owners.length > 0)!;
         const userID = project.access.owners[0];
 
-        const result = await testSimpleUpdate({ 
+        const result = await testSimpleUpdate("updateOne", { 
             filter: { _id: project._id }, 
             update: { $set: { description: newDescription } } 
         }, accessConfig, {}, userID);
@@ -297,11 +445,11 @@ describe("Access - Update permissions", () => {
         expect(result.modifiedCount).toBe(1);
     });
 
-    test("Update document as contributor", async () => {
+    test("Update document as contributor (one)", async () => {
         const project = projectObjects.find(p => p.access.contributors.length > 0)!;
         const userID = project.access.contributors[0];
 
-        await expect(testSimpleUpdate({ 
+        await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: project._id }, 
             update: { $set: { description: newDescription } } 
         }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
@@ -312,11 +460,11 @@ describe("Access - Update permissions", () => {
         }));
     });
 
-    test("Update document as reader", async () => {
+    test("Update document as reader (one)", async () => {
         const project = projectObjects.find(p => p.access.readers.length > 0)!;
         const userID = project.access.readers[0];
 
-        await expect(testSimpleUpdate({ 
+        await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: project._id }, 
             update: { $set: { description: newDescription } } 
         }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
@@ -327,12 +475,73 @@ describe("Access - Update permissions", () => {
         }));
     });
 
-    test("Update document as unknown", async () => {
+    test("Update document as unknown (one)", async () => {
         const project = projectObjects[0];
         const userID = getRandomUser()._id;
 
         // This one returns 0 matches because no documents were found matching the filter & access filter
-        const result = await testSimpleUpdate({ 
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: project._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID);
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(0);
+        expect(result.modifiedCount).toBe(0);        
+    });
+
+    // updateMany
+    test("Update document as owner (many)", async () => {
+        // Pick a project where we know an owner exists
+        const project = projectObjects.find(p => p.access.owners.length > 0)!;
+        const userID = project.access.owners[0];
+
+        const result = await testSimpleUpdate("updateMany", { 
+            filter: { _id: project._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID);
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+    });
+
+    test("Update document as contributor (many)", async () => {
+        const project = projectObjects.find(p => p.access.contributors.length > 0)!;
+        const userID = project.access.contributors[0];
+
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: project._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [
+                { index: 0, id: project._id, issues: [{ type: "document", issue: `No update access for document` }] },
+            ],
+        }));
+    });
+
+    test("Update document as reader (many)", async () => {
+        const project = projectObjects.find(p => p.access.readers.length > 0)!;
+        const userID = project.access.readers[0];
+
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: project._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [
+                { index: 0, id: project._id, issues: [{ type: "document", issue: `No update access for document` }] },
+            ],
+        }));
+    });
+
+    test("Update document as unknown (many)", async () => {
+        const project = projectObjects[0];
+        const userID = getRandomUser()._id;
+
+        // This one returns 0 matches because no documents were found matching the filter & access filter
+        const result = await testSimpleUpdate("updateMany", { 
             filter: { _id: project._id }, 
             update: { $set: { description: newDescription } } 
         }, accessConfig, {}, userID);
@@ -354,7 +563,7 @@ describe("Access - Update field permissions", () => {
             document: AccessPermissions.ReadWrite ^ AccessPermissions.Update,
         }];
 
-        await expect(testSimpleUpdate({ 
+        await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
             update: { $set: { description: "x" } } 
         }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
@@ -362,6 +571,17 @@ describe("Access - Update field permissions", () => {
             unauthorizedDocuments: [
                 { index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "document", issue: `No update access for document` }]) },
             ]
+        }));
+
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectOne._id, projectRandom._id ] } }, 
+            update: { $set: { description: "x" } } 
+        }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: expect.arrayContaining([
+                expect.objectContaining({ id: projectRandom._id, issues: expect.arrayContaining([{ type: "document", issue: `No update access for document` }]) }),
+                expect.objectContaining({ id: projectOne._id, issues: expect.arrayContaining([{ type: "document", issue: `No update access for document` }]) }),
+            ])
         }));
     });
 
@@ -377,7 +597,7 @@ describe("Access - Update field permissions", () => {
             document: AccessPermissions.ReadWrite,
         }];
 
-        await expect(testSimpleUpdate({ 
+        await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
             update: { $set: { description: "x" } } 
         }, accessConfig as AccessConfig<Document>, {})).rejects.toThrowError(expect.objectContaining({
@@ -385,7 +605,18 @@ describe("Access - Update field permissions", () => {
             unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "field", field: "description", issue: `Role "test" does not have update access for field "description".` }])}]
         }));
 
-        const resultN = await testSimpleUpdate({ 
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectOne._id, projectRandom._id ] } }, 
+            update: { $set: { description: "x" } } 
+        }, accessConfig as AccessConfig<Document>, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: expect.arrayContaining([
+                expect.objectContaining({ id: projectOne._id, issues: expect.arrayContaining([{ type: "field", field: "description", issue: `Role "test" does not have update access for field "description".` }]) }),
+                expect.objectContaining({ id: projectRandom._id, issues: expect.arrayContaining([{ type: "field", field: "description", issue: `Role "test" does not have update access for field "description".` }]) })
+            ])
+        }));
+
+        const resultN = await testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
             update: { $set: { name: "Renamed" } } 
         }, accessConfig as AccessConfig<Document>, {});
@@ -394,16 +625,34 @@ describe("Access - Update field permissions", () => {
         expect(resultN.matchedCount).toBe(1);
         expect(resultN.modifiedCount).toBe(1);
 
-        const resultT = await testSimpleUpdate({ 
+        const resultNMany = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            update: { $set: { name: "Renamed" } } 
+        }, accessConfig as AccessConfig<Document>, {});
+
+        expect(resultNMany.acknowledged).toBe(true);
+        expect(resultNMany.matchedCount).toBe(2);
+        expect(resultNMany.modifiedCount).toBe(1);
+
+        const resultT = await testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
-            update: { $set: { type: "premium" } } 
+            update: { $set: { type: "custom" } } 
         }, accessConfig as AccessConfig<Document>, {});
 
         expect(resultT.acknowledged).toBe(true);
         expect(resultT.matchedCount).toBe(1);
         expect(resultT.modifiedCount).toBe(1);
 
-        const resultV = await testSimpleUpdate({ 
+        const resultTMany = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            update: { $set: { type: "custom" } } 
+        }, accessConfig as AccessConfig<Document>, {});
+
+        expect(resultTMany.acknowledged).toBe(true);
+        expect(resultTMany.matchedCount).toBe(2);
+        expect(resultTMany.modifiedCount).toBe(1);
+
+        const resultV = await testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
             update: { $set: { version: 10 } } 
         }, accessConfig as AccessConfig<Document>, {});
@@ -411,5 +660,14 @@ describe("Access - Update field permissions", () => {
         expect(resultV.acknowledged).toBe(true);
         expect(resultV.matchedCount).toBe(1);
         expect(resultV.modifiedCount).toBe(1);
+
+        const resultVMany = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            update: { $set: { version: 10 } } 
+        }, accessConfig as AccessConfig<Document>, {});
+
+        expect(resultVMany.acknowledged).toBe(true);
+        expect(resultVMany.matchedCount).toBe(2);
+        expect(resultVMany.modifiedCount).toBe(1);
     });
 });
