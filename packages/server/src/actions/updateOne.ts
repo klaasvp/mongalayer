@@ -64,7 +64,7 @@ export default async function <TSchema extends Document> (collection: Collection
             };
             
             // Validate the document against the schema
-            upsertAccessService.validateDocuments([insertableDoc as TSchema])[0];
+            upsertAccessService.validateDocuments([insertableDoc as TSchema]);
             
             await upsertAccessService.validateDocumentsAccess([insertableDoc as TSchema]);
 
