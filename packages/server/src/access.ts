@@ -4,6 +4,7 @@ import { ZodObject } from "zod/v4";
 import { AccessFilter, customOperatorKeys } from "./schema/access/filter.js";
 import { getValueByPath, isArray, isObject } from "@mongalayer/core/utils/object";
 import { SetRequired } from "type-fest";
+import { UpdateSchema } from "./schema/update.js";
 
 export const AccessPermissions = {
     /**
@@ -45,16 +46,17 @@ type AccessValidatorContext<TAccessPayload extends AccessPayload> = {
     client: MongoClient
 }
 
-export type AccessValidator<TSchema extends Document, TAccessPayload extends AccessPayload = AccessPayload> = (context: AccessValidatorContext<TAccessPayload>, document: TSchema) => Promise<boolean | void>
+export type CreateAccessValidator<TSchema extends Document, TAccessPayload extends AccessPayload = AccessPayload> = (context: AccessValidatorContext<TAccessPayload>, document: TSchema) => Promise<boolean | void>
+export type UpdateAccessValidator<TSchema extends Document, TAccessPayload extends AccessPayload = AccessPayload> = (context: AccessValidatorContext<TAccessPayload>, document: TSchema, update: UpdateSchema) => Promise<boolean | void>
 
-export type UpdateAccessValidator<TSchema extends Document, TSchemaFields extends FieldsArray<TSchema> = FieldsArray<TSchema>> = {
+export type UpdateAccessValidatorDef<TSchema extends Document, TSchemaFields extends FieldsArray<TSchema> = FieldsArray<TSchema>> = {
     validatorFields?: TSchemaFields,
-    validator: AccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }>
+    validator: UpdateAccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }>
 }
 
 export const defineUpdateAccessValidator = <TSchema extends Document, TAccessPayload extends AccessPayload = AccessPayload> () => <TSchemaFields extends FieldsArray<TSchema>> (
     validatorFields: TSchemaFields,
-    validator: AccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }, TAccessPayload>
+    validator: UpdateAccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }, TAccessPayload>
 ) => ({
     validatorFields,
     validator
@@ -66,7 +68,7 @@ type AccessValidators<TSchema extends Document> = {
      * If the function returns false or throws an exception, the document(s) will not be inserted.
      * If the function returns true or does not return anything, the document(s) will be inserted.
      */
-    create?: AccessValidator<TSchema>,
+    create?: CreateAccessValidator<TSchema>,
     /**
      * This function is called before the document is updated and after the documents have been fetched for validation + after the document & field permissions have been evaluated.
      * If the function returns false or throws an exception, the document(s) will not be updated.
@@ -74,7 +76,7 @@ type AccessValidators<TSchema extends Document> = {
      * 
      * Note: when specifying validatorFields over multiple roles a union of all fields over the roles is used.
      */
-    update?: UpdateAccessValidator<TSchema>
+    update?: UpdateAccessValidatorDef<TSchema>
 }
 
 /**
@@ -213,7 +215,9 @@ export abstract class AccessService {
         return permissionValues.length > 0 && (permissionValues[0] & requiredPermission) === requiredPermission;
     }
 
-    protected async invokeValidator (role: AccessDefinition<Document>, validator: keyof AccessValidators<Document>, doc: OptionalUnlessRequiredId<Document>): Promise<boolean | null> {
+    protected async invokeValidator (role: AccessDefinition<Document>, validator: "create", { document }: { document: OptionalUnlessRequiredId<Document> }): Promise<boolean | null>;
+    protected async invokeValidator (role: AccessDefinition<Document>, validator: "update", { document, update }: { document: OptionalUnlessRequiredId<Document>, update: UpdateSchema }): Promise<boolean | null>;
+    protected async invokeValidator <TValidator extends keyof AccessValidators<Document>>(role: AccessDefinition<Document>, validator: TValidator, data: Record<string, any>): Promise<boolean | null> {
         if (role.validators !== void 0 && role.validators[validator] !== void 0) {
             const context: AccessValidatorContext<AccessPayload> = {
                 action: validator,
@@ -223,10 +227,18 @@ export abstract class AccessService {
                 collection: this.collection
             };
 
-            if (validator === "create" && typeof role.validators[validator] === "function") {
-                return await role.validators[validator].call(null, context, doc) ?? true; // If the validator returns nothing (undefined) or null -> return true
-            } else if (validator === "update" && typeof role.validators[validator].validator === "function") {
-                return await role.validators[validator].validator.call(null, context, doc) ?? true;
+            if (validator === "create") {
+                const createValidator = role.validators[validator] as CreateAccessValidator<Document>;
+
+                if (typeof createValidator === "function") {
+                    return await createValidator.call(null, context, data.document) ?? true; // If the validator returns nothing (undefined) or null -> return true
+                }
+            } else if (validator === "update") {
+                const updateValidatorDef = role.validators[validator] as UpdateAccessValidatorDef<Document>;
+
+                if (typeof updateValidatorDef.validator === "function") {
+                    return await updateValidatorDef.validator.call(null, context, data.document, data.update) ?? true;
+                }
             }
         }
 

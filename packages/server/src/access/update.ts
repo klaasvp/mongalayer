@@ -92,7 +92,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
 
                     if (fieldUpdateIssues.length > 0) throw new UpdateFieldsError("Field permission errors found for document", fieldUpdateIssues);
 
-                    const validatorResult = await this.invokeValidator(accessRole, "update", doc);
+                    const validatorResult = await this.invokeValidator(accessRole, "update", { document: doc, update });
 
                     // The validator is allowed to return an exception which is caught below or false to indicate that the document is invalid in which case we throw an exception
                     if (validatorResult === false) {
