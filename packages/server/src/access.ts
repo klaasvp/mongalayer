@@ -52,9 +52,9 @@ export type UpdateAccessValidator<TSchema extends Document, TSchemaFields extend
     validator: AccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }>
 }
 
-export const defineUpdateAccessValidator = <TSchema extends Document> () => <TSchemaFields extends FieldsArray<TSchema>> (
+export const defineUpdateAccessValidator = <TSchema extends Document, TAccessPayload extends AccessPayload = AccessPayload> () => <TSchemaFields extends FieldsArray<TSchema>> (
     validatorFields: TSchemaFields,
-    validator: AccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }>
+    validator: AccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }, TAccessPayload>
 ) => ({
     validatorFields,
     validator
