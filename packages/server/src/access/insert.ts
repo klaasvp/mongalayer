@@ -91,7 +91,7 @@ export class InsertAccessService extends AccessService {
         }
     }
 
-    private getAccessRole (doc: InsertableDocument<Document>): AccessDefinition | null {
+    public getAccessRole (doc: InsertableDocument<Document>): AccessDefinition | null {
         for (const accessDef of this.hydratedRawConfig) {
             // Get the first matching role
             if (matches(doc, accessDef.filter ?? {})) {

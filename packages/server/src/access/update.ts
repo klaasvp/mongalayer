@@ -64,7 +64,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
         partialDocumentSchema.parse(partialObject);
     }
 
-    public async validateDocumentsAccess (docsWithRole: UpdatableDocument[], update: UpdateSchema): Promise<ObjectId[]> {
+    public async validateDocumentsAccess (docsWithRole: UpdatableDocument[], update: UpdateSchema, requireReadPermission: boolean = false): Promise<ObjectId[]> {
         const unauthorizedDocuments: { index: number, id: ObjectId, issues: UpdateIssue[] }[] = [];
 
         const fields = this.getRootPropertiesFromUpdate(update);
@@ -79,6 +79,12 @@ export class UpdateAccessService extends PreloadRoleAccessService {
                     const hasUpdatePermission = this.hasPermission(AccessPermissions.Update, accessRole.document, this.accessDefaults.document);
 
                     if (!hasUpdatePermission) throw new UpdateDocumentError("No update access for document");
+
+                    if (requireReadPermission) {
+                        const hasReadPermission = this.hasPermission(AccessPermissions.Read, accessRole.document, this.accessDefaults.document);
+
+                        if (!hasReadPermission) throw new UpdateDocumentError("No read access for document");
+                    }
 
                     const fieldUpdateIssues: UpdateIssue[] = [];
 
@@ -101,6 +107,8 @@ export class UpdateAccessService extends PreloadRoleAccessService {
                     }                 
                 } else if (!this.hasPermission(AccessPermissions.Update, this.accessDefaults.document)) {
                     throw new UpdateDocumentError("No (default) update access for document");
+                } else if (requireReadPermission && !this.hasPermission(AccessPermissions.Read, this.accessDefaults.document)) {
+                    throw new UpdateDocumentError("No (default) read access for document");
                 }
             } catch (e) {
                 if (e instanceof UpdateFieldsError) {
@@ -142,7 +150,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
         return rootProperties;
     }
 
-    public async getUpsertDocument (filter: FilterSchema, update: UpdateSchema): Promise<Document> {
+    public async getUpsertDocument (filter: FilterSchema, update: UpdateSchema): Promise<{ doc: Document, role: AccessDefinition | null }> {
         const upsertAccessService = new InsertAccessService(
             this.client,
             this.database,
@@ -166,7 +174,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
 
         await upsertAccessService.validateDocumentsAccess([insertableDoc]);
 
-        return insertableDoc;
+        return { doc: insertableDoc, role: upsertAccessService.getAccessRole(insertableDoc) };
     }
 
     public getStages (currentFilter: Filter<Document> = {}): UpdateStages {

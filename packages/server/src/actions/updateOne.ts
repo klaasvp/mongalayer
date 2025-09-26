@@ -50,7 +50,7 @@ export default async function <TSchema extends Document> (collection: Collection
     if (documentsToUpdate.length === 0) {
         // If upsert is true and now matching documents were found, validate & upsert the document
         if (payload.options?.upsert === true) {
-            const insertableDoc = await accessService.getUpsertDocument(payload.filter, payload.update);
+            const { doc: insertableDoc } = await accessService.getUpsertDocument(payload.filter, payload.update);
 
             return await collection.updateOne({ _id: insertableDoc._id } as Filter<Document>, { $set: insertableDoc } as Document, { upsert: true });
         } 
