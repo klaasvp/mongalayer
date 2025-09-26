@@ -13,6 +13,11 @@ export type {
 } from "./actions/findOne.js";
 
 export type {
+    FindOneAndUpdatePayload,
+    FindOneAndUpdateReturnType
+} from "./actions/findOneAndUpdate.js";
+
+export type {
     AggregatePayload,
     AggregateReturnType
 } from "./actions/aggregate.js";

@@ -1,10 +1,11 @@
 import { MongoClient, Document, Db, ClientSession } from "mongodb";
 import { ZodObject, ZodType } from "zod/v4";
-import { Action, find, findOne, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany, insertOne, insertMany, updateOne, updateMany } from "./actions/index.js";
-import { AccessConfig, AccessDefaults, AccessPermission, AccessPermissions, AccessPayload, AccessService } from "./access.js";
+import { Action, find, findOne, findOneAndUpdate, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany, insertOne, insertMany, updateOne, updateMany } from "./actions/index.js";
+import { AccessConfig, AccessDefaults, AccessPermissions, AccessPayload } from "./access.js";
 import z from "zod/v4";
 import { FindOnePayload, FindOneReturnType } from "./actions/findOne.js";
 import { FindPayload, FindReturnType } from "./actions/find.js";
+import { FindOneAndUpdatePayload } from "./actions/findOneAndUpdate.js";
 import { InsertOnePayload } from "./actions/insertOne.js";
 import { InsertManyPayload } from "./actions/insertMany.js";
 import { UpdateOnePayload } from "./actions/updateOne.js";
@@ -103,6 +104,7 @@ export class Mongalayer {
                     break;
                 case "updateOne":
                 case "updateMany":
+                case "findOneAndUpdate":
                     accessService = new UpdateAccessService(this.mongodbClient, action.database, action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
                     break;
                 case "deleteOne":
@@ -115,6 +117,7 @@ export class Mongalayer {
                 switch (action.operation) {
                     case "findOne": result = await findOne(collection, accessService as QueryAccessService, actionPayload as FindOnePayload<Document>); break;
                     case "find": result = await find(collection, accessService as QueryAccessService, actionPayload as FindPayload<Document>); break;
+                    case "findOneAndUpdate": result = await findOneAndUpdate(collection, accessService as UpdateAccessService, actionPayload as FindOneAndUpdatePayload<Document>); break;
                     case "aggregate": result = await aggregate(collection, accessService as AggregationAccessService, actionPayload as AggregatePayload); break;
                     case "insertOne": result = await insertOne(collection, accessService as InsertAccessService, actionPayload as InsertOnePayload<Document>); break;
                     case "insertMany": result = await insertMany(collection, accessService as InsertAccessService, actionPayload as InsertManyPayload<Document>); break;
