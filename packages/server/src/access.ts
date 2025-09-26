@@ -2,7 +2,7 @@ import { Document, Filter, MongoClient, OptionalUnlessRequiredId, WithId } from 
 import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
 import { ZodObject } from "zod/v4";
 import { AccessFilter, customOperatorKeys } from "./schema/access/filter.js";
-import { getValueByPath, isArray, isObject } from "@mongalayer/core/utils/object";
+import { deleteObjectProperty, getValueByPath, isArray, isObject } from "@mongalayer/core/utils/object";
 import { SetRequired } from "type-fest";
 import { UpdateSchema } from "./schema/update.js";
 
@@ -243,6 +243,85 @@ export abstract class AccessService {
         }
 
         return null;
+    }
+    
+    protected getProjectionType (projection?: Document): 0 | 1 | null {
+        if (isObject(projection)) {
+            try {
+                iteratePrimitives(projection, (key, value, replace, path) => {
+                    const projectionValue = !!value ? 1 : 0, isID = key === "_id" && path.length === 1;
+
+                    if (!isID && projectionValue === 0) {
+                        throw "exit";
+                    }
+                });
+
+                // This is an edge case, if only _id is excluded we want to type to be exclusive
+                if (Object.keys(projection).length === 1 && projection["_id"] === 0) {
+                    return 0;
+                }
+
+                return 1;
+            } catch (e) {
+                if (e !== "exit") throw e;
+
+                return 0;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Delete the fields in-place
+     */
+    public processFields <TSchema extends Document> (docs: TSchema[], projection?: Document): Partial<TSchema>[] {
+        const pathsToDelete: string[] = [
+            "__mongalayer_role",
+            "__mongalayer_geonear_distance"
+        ]
+
+        const projectionType = this.getProjectionType(projection);
+
+        if (projectionType !== null && isObject(projection)) {
+            // _id is a special one, it's always included in the final document.
+            if (projection["_id"] === 0) {
+                pathsToDelete.push("_id");
+            }
+
+            if (projectionType === 0) {
+                iteratePrimitives(projection, (key, value, replace, path, parent) => {
+                    const isID = key === "_id" && path.length === 1;
+
+                    if (!isID) {
+                       pathsToDelete.push(path.join("."));
+                    }
+                });
+            }
+        }
+
+        for (const doc of docs) {
+            const { fields, document } = { 
+                fields: {}, 
+                document: this.accessDefaults.document,
+                ...this.hydratedConfigMap[doc.__mongalayer_role] ?? {}
+            }
+
+            // Pre-clean the document that need to be delete anyway
+            for (const pathToDelete of pathsToDelete) {
+                deleteObjectProperty(pathToDelete, doc);
+            }
+
+            const remainingKeys = Object.keys(doc).filter(key => key !== "_id");
+
+            for (const key of remainingKeys) {                
+                if (!this.hasPermission(AccessPermissions.Read, fields[key], document)) {
+                    delete doc[key];
+                }
+            }
+        }
+
+        return docs;
     }
 }
 
