@@ -455,7 +455,7 @@ describe("Access - Update permissions", () => {
         }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: [
-                { index: 0, id: project._id, issues: [{ type: "document", issue: `No update access for document` }] },
+                { index: 0, id: project._id, issues: [{ type: "field", field: "description", issue: `Role "contributor" does not have update access for field "description".` }] },
             ],
         }));
     });
@@ -470,7 +470,7 @@ describe("Access - Update permissions", () => {
         }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: [
-                { index: 0, id: project._id, issues: [{ type: "document", issue: `No update access for document` }] },
+                { index: 0, id: project._id, issues: [{ type: "field", field: "description", issue: `Role "reader" does not have update access for field "description".` }] },
             ],
         }));
     });
@@ -516,7 +516,7 @@ describe("Access - Update permissions", () => {
         }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: [
-                { index: 0, id: project._id, issues: [{ type: "document", issue: `No update access for document` }] },
+                { index: 0, id: project._id, issues: [{ type: "field", field: "description", issue: `Role "contributor" does not have update access for field "description".` }] },
             ],
         }));
     });
@@ -531,7 +531,7 @@ describe("Access - Update permissions", () => {
         }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: [
-                { index: 0, id: project._id, issues: [{ type: "document", issue: `No update access for document` }] },
+                { index: 0, id: project._id, issues: [{ type: "field", field: "description", issue: `Role "reader" does not have update access for field "description".` }] },
             ],
         }));
     });
@@ -569,7 +569,7 @@ describe("Access - Update field permissions", () => {
         }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: [
-                { index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "document", issue: `No update access for document` }]) },
+                { index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "field", field: "description", issue: `Role "test" does not have update access for field "description".` }]) },
             ]
         }));
 
@@ -579,13 +579,13 @@ describe("Access - Update field permissions", () => {
         }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: expect.arrayContaining([
-                expect.objectContaining({ id: projectRandom._id, issues: expect.arrayContaining([{ type: "document", issue: `No update access for document` }]) }),
-                expect.objectContaining({ id: projectOne._id, issues: expect.arrayContaining([{ type: "document", issue: `No update access for document` }]) }),
+                expect.objectContaining({ id: projectRandom._id, issues: expect.arrayContaining([{ type: "field", field: "description", issue: `Role "test" does not have update access for field "description".` }]) }),
+                expect.objectContaining({ id: projectOne._id, issues: expect.arrayContaining([{ type: "field", field: "description", issue: `Role "test" does not have update access for field "description".` }]) }),
             ])
         }));
     });
 
-    test("Update document with document = true & field = false", async () => {
+    test("Update document with document = false & fields", async () => {
         const accessConfig: AccessConfig<Project> = [{
             role: "test",
             fields: {
@@ -594,7 +594,7 @@ describe("Access - Update field permissions", () => {
                 type: AccessPermissions.ReadWrite,
                 version: AccessPermissions.ReadUpdate,
             },
-            document: AccessPermissions.ReadWrite,
+            document: AccessPermissions.Read,
         }];
 
         await expect(testSimpleUpdate("updateOne", { 
@@ -669,6 +669,67 @@ describe("Access - Update field permissions", () => {
         expect(resultVMany.acknowledged).toBe(true);
         expect(resultVMany.matchedCount).toBe(2);
         expect(resultVMany.modifiedCount).toBe(1);
+    });
+
+    test("Update document with document = undefined & field = R", async () => {
+        const accessConfig: AccessConfig<Project> = [{
+            role: "test",
+            fields: {
+                description: AccessPermissions.Read,
+            }
+        }];
+
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { description: "x" } } 
+        }, accessConfig as AccessConfig<Document>, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "field", field: "description", issue: `Role "test" does not have update access for field "description".` }])}]
+        }));
+    });
+
+    test("Update document with document = undefined & field = RW", async () => {
+        const accessConfig: AccessConfig<Project> = [{
+            role: "test",
+            fields: {
+                description: AccessPermissions.ReadWrite,
+            }
+        }];
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { description: "x" } } 
+        }, accessConfig as AccessConfig<Document>, {});
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { version: 1 } } 
+        }, accessConfig as AccessConfig<Document>, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "field", field: "version", issue: `Role "test" does not have update access for field "version".` }])}]
+        }));
+    });
+
+    test("Update document with document = undefined & field = U", async () => {
+        const accessConfig: AccessConfig<Project> = [{
+            role: "test",
+            fields: {
+                description: AccessPermissions.Update,
+            }
+        }];
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { description: "x" } } 
+        }, accessConfig as AccessConfig<Document>, {});
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
     });
 });
 
@@ -756,7 +817,7 @@ describe('Access - Update validator', () => {
             update: { $set: { version: 10 } } 
         }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
-            unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "document", issue: `No update access for document` }]) }]
+            unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "field", field: "version", issue: `Role "test" does not have update access for field "version".` }]) }]
         }));
     });
 

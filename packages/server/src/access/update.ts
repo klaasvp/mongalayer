@@ -78,13 +78,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
 
                     const hasUpdatePermission = this.hasPermission(AccessPermissions.Update, accessRole.document, this.accessDefaults.document);
 
-                    if (!hasUpdatePermission) throw new UpdateDocumentError("No update access for document");
-
-                    if (requireReadPermission) {
-                        const hasReadPermission = this.hasPermission(AccessPermissions.Read, accessRole.document, this.accessDefaults.document);
-
-                        if (!hasReadPermission) throw new UpdateDocumentError("No read access for document");
-                    }
+                    if (!hasUpdatePermission && fields.length === 0) throw new UpdateDocumentError("No update access for document");
 
                     const fieldUpdateIssues: UpdateIssue[] = [];
 

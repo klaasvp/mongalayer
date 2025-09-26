@@ -346,7 +346,7 @@ describe("Access - Update permissions", () => {
         }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: [
-                { index: 0, id: project._id, issues: [{ type: "document", issue: `No update access for document` }] },
+                { index: 0, id: project._id, issues: [{ type: "field", field: "description", issue: `Role "contributor" does not have update access for field "description".` }] },
             ],
         }));
     });
@@ -361,7 +361,7 @@ describe("Access - Update permissions", () => {
         }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: [
-                { index: 0, id: project._id, issues: [{ type: "document", issue: `No update access for document` }] },
+                { index: 0, id: project._id, issues: [{ type: "field", field: "description", issue: `Role "reader" does not have update access for field "description".` }] },
             ],
         }));
     });
@@ -417,15 +417,12 @@ describe("Access - Read permissions", () => {
         const project = projectObjects.find(p => p.access.contributors.length > 0)!;
         const userID = project.access.contributors[0];
 
-        await expect(testSimpleFindOneAndUpdate({ 
+        const result = await testSimpleFindOneAndUpdate({ 
             filter: { _id: project._id }, 
             update: { $set: { description: newDescription } } 
-        }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
-            message: `Unauthorized documents found`,
-            unauthorizedDocuments: [
-                { index: 0, id: project._id, issues: [{ type: "document", issue: `No read access for document` }] },
-            ],
-        }));
+        }, accessConfig, {}, userID);
+
+        expect(result).toStrictEqual({ _id: project._id }); // Only _id is returned because no read access
     });
 
     test("Find & Update document as reader (one)", async () => {
@@ -438,7 +435,7 @@ describe("Access - Read permissions", () => {
         }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: [
-                { index: 0, id: project._id, issues: [{ type: "document", issue: `No update access for document` }] },
+                { index: 0, id: project._id, issues: [{ type: "field", field: "description", issue: `Role "reader" does not have update access for field "description".` }] },
             ],
         }));
     });
@@ -461,7 +458,7 @@ describe("Access - Find & Update field permissions", () => {
         }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
             message: `Unauthorized documents found`,
             unauthorizedDocuments: [
-                { index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "document", issue: `No update access for document` }]) },
+                { index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "field", field: "description", issue: `Role "test" does not have update access for field "description".` }]) },
             ]
         }));
     });
@@ -472,15 +469,12 @@ describe("Access - Find & Update field permissions", () => {
             document: AccessPermissions.ReadWrite ^ AccessPermissions.Read,
         }];
 
-        await expect(testSimpleFindOneAndUpdate({ 
+        const result = await testSimpleFindOneAndUpdate({ 
             filter: { _id: projectZero._id }, 
             update: { $set: { description: "x" } } 
-        }, accessConfig, {})).rejects.toThrowError(expect.objectContaining({
-            message: `Unauthorized documents found`,
-            unauthorizedDocuments: [
-                { index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "document", issue: `No read access for document` }]) },
-            ]
-        }));
+        }, accessConfig, {});
+
+        expect(result).toStrictEqual({ _id: projectZero._id }); // Only _id is returned because no read access
     });
 
     test("Find & Update document with document = true & field = false", async () => {
@@ -525,5 +519,22 @@ describe("Access - Find & Update field permissions", () => {
         }, accessConfig as AccessConfig<Document>, {});
 
         expect(resultV).toStrictEqual({ ...projectZeroWithoutName, type: "custom", version });
+    });
+
+    test("Find & Update document with document = undefined & field read vs update", async () => {
+        const accessConfig: AccessConfig<Project> = [{
+            role: "test",
+            fields: {
+                name: AccessPermissions.Update,
+                description: AccessPermissions.Read
+            }
+        }];
+
+        const result = await testSimpleFindOneAndUpdate({ 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { name: "Renamed" } } 
+        }, accessConfig as AccessConfig<Document>, { document: AccessPermissions.None });
+
+        expect(result).toStrictEqual({ _id: projectZero._id, description: projectZero.description }); // Only _id & description are returned because no read access for name or default read
     });
 });
