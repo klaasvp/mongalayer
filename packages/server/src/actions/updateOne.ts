@@ -50,20 +50,7 @@ export default async function <TSchema extends Document> (collection: Collection
     if (documentsToUpdate.length === 0) {
         // If upsert is true and now matching documents were found, validate & upsert the document
         if (payload.options?.upsert === true) {
-            const upsertAccessService = accessService.getUpsertAccessService();
-
-            // TODO conflicts in dot notation keys between filter and update operators
-            const insertableDoc = {
-                ...payload.filter,
-                ...payload.update.$set,
-                ...payload.update.$unset ? Object.fromEntries(Object.keys(payload.update.$unset).map(key => [key, null])) : {},
-                ...payload.update.$inc ? Object.fromEntries(Object.keys(payload.update.$inc).map(key => [key, payload.update.$inc?.[key] ?? 0])) : {}
-            };
-            
-            // Validate the document against the schema
-            upsertAccessService.validateDocuments([insertableDoc as TSchema]);
-            
-            await upsertAccessService.validateDocumentsAccess([insertableDoc as TSchema]);
+            const insertableDoc = await accessService.getUpsertDocument(payload.filter, payload.update);
 
             return await collection.updateOne({ _id: insertableDoc._id } as Filter<Document>, { $set: insertableDoc } as Document, { upsert: true });
         } 

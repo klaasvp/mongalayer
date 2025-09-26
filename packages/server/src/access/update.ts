@@ -5,6 +5,7 @@ import { AccessDefinition, AccessPermissions, AccessValidatorError } from "../ac
 import { InsertAccessService } from "./insert.js";
 import { merge, unflatten } from "@mongalayer/core/utils/object";
 import { deepPartial, getSubschema } from "../schema/helper.js";
+import { FilterSchema } from "../schema/query.js";
 
 export type UpdatableDocument = WithId<{ __mongalayer_role?: string | null }>;
 
@@ -141,8 +142,8 @@ export class UpdateAccessService extends PreloadRoleAccessService {
         return rootProperties;
     }
 
-    public getUpsertAccessService (): InsertAccessService {
-        return new InsertAccessService(
+    public async getUpsertDocument (filter: FilterSchema, update: UpdateSchema): Promise<Document> {
+        const upsertAccessService = new InsertAccessService(
             this.client,
             this.database,
             this.collection,
@@ -151,6 +152,21 @@ export class UpdateAccessService extends PreloadRoleAccessService {
             this.documentSchema,
             this.accessDefaults
         );
+
+        // TODO conflicts in dot notation keys between filter and update operators
+        const insertableDoc = {
+            ...filter,
+            ...update.$set,
+            ...update.$unset ? Object.fromEntries(Object.keys(update.$unset).map(key => [key, null])) : {},
+            ...update.$inc ? Object.fromEntries(Object.keys(update.$inc).map(key => [key, update.$inc?.[key] ?? 0])) : {}
+        };
+        
+        // Validate the document against the schema
+        upsertAccessService.validateDocuments([insertableDoc]);
+
+        await upsertAccessService.validateDocumentsAccess([insertableDoc]);
+
+        return insertableDoc;
     }
 
     public getStages (currentFilter: Filter<Document> = {}): UpdateStages {
