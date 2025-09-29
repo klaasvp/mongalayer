@@ -12,30 +12,30 @@ const valuesTable: ValueTest[] = [
     { value: '^[a-z]+$', success: true, message: 'should validate with valid string regex' },
     { value: '^\\d+$', success: true, message: 'should validate with escaped string regex' },
     { value: /^[a-z]+$/, success: false, message: 'should invalidate with regex notation', exceptions: {
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_type", message: 'Invalid input: expected string, received RegExp' }
     } },
     { value: new RegExp('^[a-z]+$'), success: false, message: 'should invalidate with RegExp object', exceptions: {
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_type", message: 'Invalid input: expected string, received RegExp' }
     } },
     { value: 123, success: false, message: 'should invalidate with number', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "$regex has to be a string" },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_type", message: 'Invalid input: expected string, received number' }
     } },
     { value: true, success: false, message: 'should invalidate with boolean', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "$regex has to be a string" },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_type", message: 'Invalid input: expected string, received boolean' }
     } },
     { value: null, success: false, message: 'should invalidate with null', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "$regex has to be a string" },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_type", message: 'Invalid input: expected string, received null' }
     } },
     { value: [], success: false, message: 'should invalidate with array', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "$regex has to be a string" },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_type", message: 'Invalid input: expected string, received array' }
     } },
     { value: {}, success: false, message: 'should invalidate with object', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "$regex has to be a string" },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_type", message: 'Invalid input: expected string, received object' }
     } }
 ];
 

@@ -41,15 +41,15 @@ const valuesTable: ValueTest[] = [
     { value: { $geometry: [0, 0] }, message: 'should validate with legacy coordinates', exceptions: {} },
     { value: { $geometry: { type: "Polygon", coordinates: [] } }, message: 'should invalidate with empty coordinates', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "Polygon has no loops." },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "too_small", message: 'Too small: expected array to have >=1 items' }
     } },
     { value: { $geometry: { type: "Polygon", coordinates: [[[0, 0], [0, 0]]] } }, message: 'should invalidate with invalid polygon (< 3 coordinates)', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "Loop must have at least 3 different vertices, " },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "too_small", message: 'Too small: expected array to have >=3 items' }
     } },
     { value: { $geometry: { type: "Polygon", coordinates: [[[0, 0], [1, 1], [1, 0]]] } }, message: 'should invalidate with invalid polygon (not closed)', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "Loop is not closed, first vertex does not equal last vertex: " },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "custom", message: 'Invalid input' }
     } },
     { value: { $geometry: {} }, message: 'should invalidate with empty geometry object', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "unknown GeoJSON type: {}" },

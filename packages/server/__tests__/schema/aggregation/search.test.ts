@@ -89,7 +89,7 @@ const valuesTable: ValueTest[] = [
             should: []
         }
     }, message: 'should invalidate compound with empty compound operator', exceptions: {
-        zod: { code: 'invalid_union', message: 'Invalid input' }
+        zod: { code: 'too_small', message: 'Too small: expected array to have >=1 items' }
     } },
     { value: { 
         compound: {

@@ -15,7 +15,7 @@ const valuesTable: ValueTest[] = [
     } },
     { filter: { field: { $rand: {} } }, message: 'should invalidate as operator', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "unknown operator: $rand" },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "custom", message: 'Invalid filter operator' }
     } },
 ];
 

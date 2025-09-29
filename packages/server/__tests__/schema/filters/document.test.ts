@@ -43,7 +43,7 @@ describe('filter - basis', () => {
         { filter: { child: { key: "value" } }, success: true, message: `should validate with nested object`},
         { filter: { child: { $unknown: "value" } }, success: false, message: `should invalidate with nested object & unknown operator`, exceptions: {
             mongodb: { code: 2, codeName: "BadValue", message: "unknown operator: $unknown" },
-            zod: { code: "invalid_union", message: 'Invalid input' }
+            zod: { code: "custom", message: 'Invalid filter operator' }
         } },
         { filter: {}, success: true, message: `should validate with empty object`}
     ];

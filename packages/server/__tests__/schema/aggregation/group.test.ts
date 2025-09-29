@@ -68,7 +68,7 @@ const valuesTable: ValueTest[] = [
         zod: { code: 'invalid_union', message: 'Invalid input' }
     } },
     { value: { _id: "a", result: { $avg: "$prop" } }, message: 'should invalidate with _id string', exceptions: {
-        zod: { code: 'invalid_union', message: 'Invalid input' }
+        zod: { code: 'invalid_format', message: 'Invalid string: must match pattern /^\\$/' }
     } },
     { value: { _id: null, result: { $avg: "$prop" } }, message: 'should validate with _id null', exceptions: {} },
     { value: { _id: true, result: { $avg: "$prop" } }, message: 'should invalidate with _id boolean', exceptions: {

@@ -13,7 +13,7 @@ const valuesTable: ValueTest[] = [
         zod: { code: "invalid_union", message: 'Invalid input' }
     } },
     { value: "a", message: `should not validate with string`, exceptions: {
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_format", message: 'Invalid string: must match pattern /^\\$/' }
     } },
     { value: true, message: `should not validate with true`, exceptions: {
         zod: { code: "invalid_union", message: 'Invalid input' }
@@ -22,10 +22,10 @@ const valuesTable: ValueTest[] = [
         zod: { code: "invalid_union", message: 'Invalid input' }
     } },
     { value: "false", message: `should not validate with "false"`, exceptions: {
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_format", message: 'Invalid string: must match pattern /^\\$/' }
     } },
     { value: "true", message: `should not validate with "true"`, exceptions: {
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_format", message: 'Invalid string: must match pattern /^\\$/' }
     } },
     { value: 0, message: `should not validate with 0`, exceptions: {
         zod: { code: "invalid_union", message: 'Invalid input' }
@@ -37,7 +37,7 @@ const valuesTable: ValueTest[] = [
         zod: { code: "invalid_union", message: 'Invalid input' }
     } },
     { value: { key: 'value' }, message: `should not validate with object`, exceptions: {
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_format", message: 'Invalid string: must match pattern /^\\$/' }
     } },
     { value: "$field", message: `should validate with $path`, exceptions: {} },
     { value: { $in: [ "$field", "$otherField" ] }, message: `should validate with expression operator`, exceptions: {} },

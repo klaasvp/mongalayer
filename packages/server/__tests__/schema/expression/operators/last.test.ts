@@ -6,7 +6,7 @@ import { getMongoDBDatabase } from '#test/lib/database';
 const valuesTable: ValueTest[] = [
     { value: "string", message: 'should invalidate with non path', exceptions: {
         mongodb: { code: 28689, codeName: "Location28689", message: 'argument must be an array, but is string' },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_format", message: 'Invalid string: must match pattern /^\\$/' }
     } },
     { value: "$path", message: 'should validate with $path', exceptions: {} },
     { value: ["$path"], message: 'should invalidate with [$path]', exceptions: {
@@ -26,7 +26,7 @@ const valuesTable: ValueTest[] = [
         zod: { code: "invalid_union", message: 'Invalid input' }} },
     { value: {}, message: 'should invalidate with empty object', exceptions: {
         mongodb: { code: 28689, codeName: "Location28689", message: 'argument must be an array, but is object' },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "custom", message: 'Invalid input' }
     } },
     { value: { $last: "$path" }, message: 'should validate with known operator', exceptions: { } },
     { value: { $x: "$path" }, message: 'should invalidate with unknown operator', exceptions: {

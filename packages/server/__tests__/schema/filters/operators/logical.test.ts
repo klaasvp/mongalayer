@@ -28,7 +28,7 @@ const valuesTable: ValueTest[] = [
     { value: [{ $nor: [{ name: 'John' }, { age: 30 }] }], success: true, message: `should validate with nested $nor array of objects`},
     { value: [{ valid: { $and: [{ name: 'John' }, { age: 30 }] } }], success: false, message: `should invalidate with $and as operator`, exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "unknown operator: " },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "custom", message: 'Invalid filter operator' }
     }},
     { value: 'invalid', success: false, message: `should invalidate with string`, exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "argument must be an array" },

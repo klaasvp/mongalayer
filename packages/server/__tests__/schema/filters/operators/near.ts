@@ -87,10 +87,10 @@ export const getValuesTable = (operator: "$near" | "$nearSphere") => [
     } },
     { value: { $geometry: { type: "Point", coordinates: [0, 0] }, $minDistance: -1 }, message: 'should invalidate with negative minDistance', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "$minDistance must be non-negative" },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "too_small", message: 'Too small: expected number to be >0' }
     } },
     { value: { $geometry: { type: "Point", coordinates: [0, 0] }, $maxDistance: -1 }, message: 'should invalidate with negative maxDistance', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "$maxDistance must be non-negative" },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "too_small", message: 'Too small: expected number to be >0' }
     } },
 ];

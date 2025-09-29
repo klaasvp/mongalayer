@@ -19,7 +19,7 @@ const valuesTable: ValueTest[] = [
     { value: "$prop", message: 'should validate with path string', exceptions: {} },
     { value: "a", message: 'should invalidate with non-path string', exceptions: {
         mongodb: { code: 28818, codeName: "Location28818", message: "path option to $unwind stage should be prefixed with a '$'" },
-        zod: { code: 'invalid_union', message: 'Invalid input' }
+        zod: { code: 'invalid_format', message: 'Invalid string: must match pattern /^\\$/' }
     } },
     { value: true, message: 'should invalidate with boolean', exceptions: {
         mongodb: { code: 15981, codeName: "Location15981", message: "expected either a string or an object as specification for $unwind stage" },
@@ -44,7 +44,7 @@ const valuesTable: ValueTest[] = [
     { value: { path: "$prop" }, message: 'should validate with obj path', exceptions: {} },
     { value: { path: "a" }, message: 'should invalidate with obj non-path', exceptions: {
         mongodb: { code: 28818, codeName: "Location28818", message: "path option to $unwind stage should be prefixed with a '$'" },
-        zod: { code: 'invalid_union', message: 'Invalid input' }
+        zod: { code: 'invalid_format', message: 'Invalid string: must match pattern /^\\$/' }
     } },
     { value: { path: "$prop", includeArrayIndex: "a" }, message: 'should validate with includeArrayIndex', exceptions: {} },
     { value: { path: "$prop", includeArrayIndex: 1 }, message: 'should invalidate with includeArrayIndex number', exceptions: {

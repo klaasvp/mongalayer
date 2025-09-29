@@ -19,14 +19,14 @@ const valuesTable: ValueTest[] = [
     } },
     { value: { $or: [{ $eq: 123 }] }, message: 'should not validate with operator in $or', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "unknown top level operator:" },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "custom", message: 'Invalid filter root operator' }
     } },
     { value: { $or: [{ prop: { $eq: 123 } }] }, message: 'should validate with operator on prop in $or', exceptions: {} },
     { value: { $and: [{ prop: { $eq: 123 } }] }, message: 'should validate with operator on prop in $and', exceptions: {} },
     { value: { $nor: [{ prop: { $eq: 123 } }] }, message: 'should validate with operator on prop in $nor', exceptions: {} },
     { value: { $text: { $search: "x" } }, message: 'should not validate with operator $text', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "$text can only be applied to the top-level document" },
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "custom", message: 'Invalid filter operator' }
     } },
     { value: { $where: "x" }, message: 'should not validate with operator $where', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "$where can only be applied to the top-level document" },

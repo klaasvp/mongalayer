@@ -7,14 +7,14 @@ import { Mongalayer } from '#src/core';
 
 const valuesTable: ValueTest[] = [
     { value: "string", message: 'should invalidate with non path', exceptions: {
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "invalid_format", message: 'Invalid string: must match pattern /^\\$/' }
     } },
     { value: "$path", message: 'should validate with $path', exceptions: {} },
     { value: [], message: 'should validate with empty array', exceptions: {} },
     { value: ["$path", "$path"], message: 'should validate with $path array', exceptions: {} },
     { value: [{ $avg: "$path" }, { $avg: "$path" }], message: 'should validate with nested operator array', exceptions: {} },
     { value: {}, message: 'should invalidate with empty object', exceptions: {
-        zod: { code: "invalid_union", message: 'Invalid input' }
+        zod: { code: "custom", message: 'Invalid input' }
     } },
     { value: { $avg: "$path" }, message: 'should validate with known operator', exceptions: { } },
     { value: { $x: "$path" }, message: 'should invalidate with unknown operator', exceptions: {
