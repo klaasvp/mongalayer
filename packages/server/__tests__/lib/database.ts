@@ -9,7 +9,11 @@ import { getRandomProjectAssets } from "#test/data/projectAsset.js";
 
 let client: MongoClient | null = null;
 
-export const userObjects = getRandomUsers(20), projectObjects = getRandomProjects(50, userObjects), filterTestObjects = getFilterTests(), projectAssetObjects = getRandomProjectAssets(200, projectObjects);
+export const 
+    userObjects = getRandomUsers(20), 
+    projectObjects = getRandomProjects(200, userObjects), 
+    filterTestObjects = getFilterTests(), 
+    projectAssetObjects = getRandomProjectAssets(1000, projectObjects);
 
 export const dbName = "test";
 
