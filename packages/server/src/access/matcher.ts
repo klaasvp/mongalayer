@@ -1,4 +1,4 @@
-import { getValueByPathWithExists, isObject, typedEntries } from "@mongalayer/core/utils/object";
+import { getValueByPathWithExists, isObject, typedEntries } from "@mongalayer/core";
 import { AccessFilter, AccessFilterPropertyOperators, AccessFilterPropertyValue, accessFilterSchema, propertyOperatorKeys, rootOperatorKeys } from "../schema/access/filter.js";
 import { Document } from "mongodb";
 

@@ -1,4 +1,4 @@
-import { iteratePrimitives } from "@mongalayer/core/utils/replacer";
+import { iteratePrimitives } from "@mongalayer/core";
 import z from "zod/v4";
 import { keyWithoutDollar } from "../index.js";
 

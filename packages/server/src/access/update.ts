@@ -3,7 +3,7 @@ import { PreloadRoleAccessService, PreloadRoleStages } from "./preloadRole.js";
 import { UpdateSchema } from "../schema/update.js";
 import { AccessDefinition, AccessPermissions, AccessValidatorError } from "../access.js";
 import { InsertAccessService } from "./insert.js";
-import { merge, unflatten } from "@mongalayer/core/utils/object";
+import { merge, unflatten } from "@mongalayer/core";
 import { deepPartial, getSubschema } from "../schema/helper.js";
 import { FilterSchema } from "../schema/query.js";
 

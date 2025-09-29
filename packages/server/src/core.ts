@@ -10,7 +10,7 @@ import { InsertOnePayload } from "./actions/insertOne.js";
 import { InsertManyPayload } from "./actions/insertMany.js";
 import { UpdateOnePayload } from "./actions/updateOne.js";
 import { UpdateManyPayload } from "./actions/updateMany.js";
-import { parseReviver, stringifyReplacer } from "@mongalayer/core/utils/json"
+import { parseReviver, stringifyReplacer } from "@mongalayer/core"
 import { AggregatePayload, AggregateReturnType } from "./actions/aggregate.js";
 import { QueryAccessService } from "./access/query.js";
 import { AggregationAccessService } from "./access/aggregation.js";
