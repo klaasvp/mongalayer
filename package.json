@@ -3,7 +3,7 @@
     "private": true,
     "scripts": {
         "build": "npm --prefix ./packages/core run build && npm --prefix ./packages/server run build && npm --prefix ./packages/client run build",
-        "test": "npm run build && npm --prefix ./packages/core test && npm --prefix ./packages/server test"
+        "test": "npm --prefix ./packages/core test && npm --prefix ./packages/server test"
     },
     "workspaces": [
         "./packages/core",
