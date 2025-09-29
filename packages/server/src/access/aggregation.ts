@@ -54,7 +54,7 @@ export class AggregationAccessService extends AccessService {
 
         const filterIndex = this.addFilterStage(pipeline);
 
-        if (filterIndex >= 0) {
+        if (filterIndex >= 0 || this.hasRolesWithAlternativeAccessCollection) {
             const roleStages = this.getRoleStages();
 
             if (roleStages !== null) {

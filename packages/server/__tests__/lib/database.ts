@@ -5,10 +5,11 @@ import { exampleObject1, FilterTest, filterTestsSchema, getFilterTests } from "#
 import { SchemaTest, schemaTestSchema } from "#test/data/schemaTest";
 import { Mongalayer, MongalayerCollection, MongalayerCollections, MongalayerOptions } from "#src/core";
 import { PartialDeep } from "type-fest";
+import { getRandomProjectAssets } from "#test/data/projectAsset.js";
 
 let client: MongoClient | null = null;
 
-export const userObjects = getRandomUsers(20), projectObjects = getRandomProjects(50, userObjects), filterTestObjects = getFilterTests();
+export const userObjects = getRandomUsers(20), projectObjects = getRandomProjects(50, userObjects), filterTestObjects = getFilterTests(), projectAssetObjects = getRandomProjectAssets(200, projectObjects);
 
 export const dbName = "test";
 
@@ -16,6 +17,7 @@ const collections: Record<string, Document[]> = {
     "users": userObjects,
     "projects": projectObjects,
     "projectsCUD": structuredClone(projectObjects),
+    "projectAssets": projectAssetObjects,
     "filterTest": filterTestObjects,
     "filterTestSolo": [exampleObject1]
 }

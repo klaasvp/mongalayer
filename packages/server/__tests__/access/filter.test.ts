@@ -3,8 +3,9 @@ import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/co
 import { User, userSchema } from "#test/data/user";
 import { Project, projectSchema } from "#test/data/project";
 import { JwtPayload } from "jsonwebtoken";
-import { dbName, getMongaLayerForCollections, projectObjects, userObjects } from "#test/lib/database";
+import { dbName, getMongaLayerForCollections, projectAssetObjects, projectObjects, userObjects } from "#test/lib/database";
 import { MongalayerCollectionType } from "#src/index.js";
+import { ProjectAsset, projectAssetSchema } from "#test/data/projectAsset.js";
 
 describe('Access - Filter', () => {
     describe('Schema missing', () => {
@@ -204,6 +205,134 @@ describe('Access - Filter', () => {
             }, userZeroAccessPayload);
 
             expect(result).toStrictEqual(null);
+        });
+    });
+
+    describe('Access project asset - user owner (via project)', () => {
+        let mongalayer: Mongalayer, userZero: User, userZeroAccessPayload: JwtPayload, projectAssetWithoutUserAsOwner: ProjectAsset, projectAssetWithUserAsOwner: ProjectAsset;
+
+        beforeAll(async () => {
+            const projectAssetCollection: MongalayerCollection<ProjectAsset> = {
+                schema: projectAssetSchema,
+                access: [{
+                    role: "owner",
+                    filter: {
+                        "access.owners": {"$in":["%%user.sub"]}
+                    },
+                    collection: {
+                        target: "projects",
+                        targetField: "_id",
+                        localField: "projectID"
+                    }
+                }]
+            };
+
+            const collections: MongalayerCollections = {
+                projectAssets: projectAssetCollection
+            }
+        
+            userZero = userObjects[0];
+            userZeroAccessPayload = {
+                user: {
+                    sub: userZero._id
+                }
+            };
+
+            const 
+                projectWithUserAsOwner = projectObjects.find(project => project.access.owners.includes(userZero._id))!,
+                projectWithoutUserAsOwner = projectObjects.find(project => !project.access.owners.includes(userZero._id))!;
+
+            projectAssetWithUserAsOwner = projectAssetObjects.find(pa => pa.projectID === projectWithUserAsOwner._id)!;
+            projectAssetWithoutUserAsOwner = projectAssetObjects.find(pa => pa.projectID === projectWithoutUserAsOwner._id)!;
+
+            mongalayer = await getMongaLayerForCollections(collections, { debugging: true });
+        });
+
+        test("findOne - project asset as owner = project", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "projectAssets" as MongalayerCollectionType<Project>,
+                operation: "findOne"
+            }, {
+                filter: {
+                    _id: projectAssetWithUserAsOwner._id
+                }
+            }, userZeroAccessPayload);
+
+            expect(result).toStrictEqual(projectAssetWithUserAsOwner);
+        });
+
+        test("findOne - project asset not as owner = null", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "projectAssets" as MongalayerCollectionType<Project>,
+                operation: "findOne"
+            }, {
+                filter: {
+                    _id: projectAssetWithoutUserAsOwner._id
+                }
+            }, userZeroAccessPayload);
+
+            expect(result).toStrictEqual(null);
+        });
+
+        test("aggregate - count project assets as owner", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "projectAssets" as MongalayerCollectionType<Project>,
+                operation: "aggregate"
+            }, {
+                pipeline: [ 
+                    { $group: { _id: null, count: { $count: {} } } },
+                    { $project: { _id: 0 } }
+                ]
+            }, userZeroAccessPayload) as { count: number }[];
+
+            const 
+                userZeroProjects = projectObjects.filter(project => project.access.owners.includes(userZero._id)).map(p => p._id),
+                userZeroProjectAssets = projectAssetObjects.filter(pa => userZeroProjects.includes(pa.projectID));
+
+            expect(result.length).toBe(1);
+            
+            if (result.length === 1) {
+                expect(result[0].count).toBe(userZeroProjectAssets.length);
+            }
+        });
+
+        test("aggregate - match project asset as owner", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "projectAssets" as MongalayerCollectionType<Project>,
+                operation: "aggregate"
+            }, {
+                pipeline: [ 
+                    { $match: { _id: projectAssetWithUserAsOwner._id } },
+                    { $group: { _id: null, count: { $count: {} } } },
+                    { $project: { _id: 0 } }
+                ]
+            }, userZeroAccessPayload) as { count: number }[];
+
+            expect(result.length).toBe(1);
+            
+            if (result.length === 1) {
+                expect(result[0].count).toBe(1);
+            }
+        });
+
+        test("aggregate - match project asset not as owner", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "projectAssets" as MongalayerCollectionType<Project>,
+                operation: "aggregate"
+            }, {
+                pipeline: [ 
+                    { $match: { _id: projectAssetWithoutUserAsOwner._id } },
+                    { $group: { _id: null, count: { $count: {} } } },
+                    { $project: { _id: 0 } } 
+                ] 
+            }, userZeroAccessPayload) as { count: number }[];
+
+            expect(result.length).toBe(0);
         });
     });
 });

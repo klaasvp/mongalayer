@@ -28,7 +28,7 @@ export const AccessPermissions = {
 export type AccessPermissionsType = typeof AccessPermissions;
 export type AccessPermission = AccessPermissionsType[keyof AccessPermissionsType] | number;
 
-type AccessDefinitionFilter<TSchema extends Document = Document> = AccessFilter | Filter<TSchema>
+export type AccessDefinitionFilter<TSchema extends Document = Document> = AccessFilter | Filter<TSchema>
 
 type Fields<TSchema extends Document = Document> = {
     [K in keyof TSchema]?: AccessPermission
@@ -79,12 +79,21 @@ type AccessValidators<TSchema extends Document> = {
     update?: UpdateAccessValidatorDef<TSchema>
 }
 
+export type AccessAlternativeCollection<TSchema extends Document = Document, TTargetSchema extends Document = Document> = {
+    target: string,
+    /** Only supports root level properties. Make sure to index this field for performance. */
+    targetField: keyof TTargetSchema,
+    /** Only supports root level properties. Make sure to index this field for performance. */
+    localField: keyof TSchema
+}
+
 /**
  * Fields access only supports defining root level properties from the Document.
  */
 export type AccessDefinition<TSchema extends Document = Document, TFilter extends AccessDefinitionFilter<TSchema> = AccessFilter> = {
     role: string,
     filter?: TFilter,
+    collection?: AccessAlternativeCollection<TSchema, any>,
     fields?: Fields<TSchema>,
     document?: AccessPermission,
     delete?: boolean,
@@ -117,6 +126,7 @@ export abstract class AccessService {
     protected hydratedRawConfig: AccessConfig;
     protected hydratedConfig: InternalAccessConfig;
     protected hydratedConfigMap: Record<string, InternalAccessConfig[number]> = {};
+    protected hasRolesWithAlternativeAccessCollection: boolean;
 
     constructor (
         protected client: MongoClient,
@@ -136,6 +146,8 @@ export abstract class AccessService {
             filter: access.filter ? this.translateAccessFilter(access.filter) : {}
         }));
         this.hydratedConfigMap = this.hydratedConfig.reduce((acc, access) => ({ ...acc, [access.role]: access }), {});
+
+        this.hasRolesWithAlternativeAccessCollection = this.hydratedConfig.some(access => access.collection !== void 0);
     }
 
     private hydrateAccessFilter (filter: AccessFilter): AccessFilter {
@@ -161,7 +173,12 @@ export abstract class AccessService {
     protected getAccessFilters (): Filter<Document> | null {
         const filters: Filter<Document>[] = [];
 
-        filters.push(...this.hydratedConfig.map(access => access.filter));
+        // If there are roles with an alternative access collection we cannot combine the filters into a single $or filter
+        // because those filters need to be applied in a $lookup stage.
+        // In that case we will only apply the filters of the roles without an alternative access collection.
+        if (!this.hasRolesWithAlternativeAccessCollection) {
+            filters.push(...this.hydratedConfig.map(access => access.filter));
+        }
 
         if (filters.length === 0) return null;
 
@@ -175,10 +192,10 @@ export abstract class AccessService {
             const rolePipeline: Document[] = [
                 ...this.hydratedConfig.map(access => ({
                     $lookup: {
-                        from: this.collection,
+                        from: access.collection?.target ?? this.collection,
                         pipeline: [
                             { $match: access.filter },
-                            { $project: { _id: 1 } } // Project only the ID
+                            { $project: { [access.collection?.targetField ?? "_id"]: 1 } } // Project only the ID
                         ],
                         as: `__mongalayer_role.${access.role}`
                     }
@@ -190,7 +207,7 @@ export abstract class AccessService {
                     $switch: {
                         branches: this.hydratedConfig.map(access => ({
                             case: {$in: [
-                                { _id: "$_id" }, // Match the projected ID
+                                { [access.collection?.targetField ?? "_id"]: `$${access.collection?.localField ?? "_id"}` }, // Match the projected ID
                                 `$__mongalayer_role.${access.role}`
                             ]},
                             then: access.role
@@ -199,6 +216,14 @@ export abstract class AccessService {
                     }
                 }
             } })
+
+            // Normally null roles are not present due to the access filter, but when using alternative collections this is possible.
+            // So we need to filter them out here.
+            if (this.hasRolesWithAlternativeAccessCollection) {
+                rolePipeline.push({ $match: {
+                    __mongalayer_role: { $ne: null }
+                } });
+            }
 
             return rolePipeline;
         }
