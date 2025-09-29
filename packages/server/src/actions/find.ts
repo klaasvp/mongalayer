@@ -43,8 +43,12 @@ export default async function <TSchema extends Document> (collection: Collection
         pipeline.push({ $sort: payload.options.sort });
     }
     
-    if (payload.options?.limit) pipeline.push({ $limit: payload.options.limit });
+    if (payload.options?.skip !== void 0 && payload.options?.limit !== void 0) {
+        pipeline.push({ $limit: payload.options.skip + payload.options.limit });
+    }
+
     if (payload.options?.skip) pipeline.push({ $skip: payload.options.skip });
+    if (payload.options?.limit) pipeline.push({ $limit: payload.options.limit });
     
     const result = await collection.aggregate(pipeline).toArray() as TSchema[];
 
