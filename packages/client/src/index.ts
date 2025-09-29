@@ -13,5 +13,5 @@ export {
 } from "./collection"
 
 export {
-    type MongalayerAPIError
+    MongalayerAPIError
 } from "./error";
