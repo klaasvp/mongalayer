@@ -9,9 +9,32 @@ describe('json replacer', () => {
 
         expect(result).toBe(JSON.stringify({ a: { __$date: date.getTime() }, b: 'hello' }));
     });
+
+    test('should replace RegExp objects with flags', () => {
+        const regex = /test/gi;
+        const obj = { a: { $regex: regex }, b: 'hello' };
+        const result = JSON.stringify(obj, stringifyReplacer);
+
+        expect(result).toBe(JSON.stringify({ a: { $regex: 'test', $options: 'gi' }, b: 'hello' }));
+    });
+
+    test('should replace RegExp objects without flags', () => {
+        const regex = /test/;
+        const obj = { a: { $regex: regex }, b: 'hello' };
+        const result = JSON.stringify(obj, stringifyReplacer);
+
+        expect(result).toBe(JSON.stringify({ a: { $regex: 'test' }, b: 'hello' }));
+    });
     
-    test('should not modify non-Date objects', () => {
+    test('should not modify regular objects', () => {
         const obj = { a: 'hello', b: 123 };
+        const result = JSON.stringify(obj, stringifyReplacer);
+
+        expect(result).toBe(JSON.stringify(obj));
+    });
+    
+    test('should not modify deeply nested objects and arrays', () => {
+        const obj = { a: { b: [1, 2, { c: 'hello' }] }, d: 123 };
         const result = JSON.stringify(obj, stringifyReplacer);
 
         expect(result).toBe(JSON.stringify(obj));
