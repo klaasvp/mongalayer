@@ -2,9 +2,11 @@ import { Db } from "./db";
 
 type RequestFormat = "routed" | "json";
 
+type RequestHeaders = RequestInit["headers"] | (() => RequestInit["headers"]) | (() => Promise<RequestInit["headers"]>);
+
 export type ClientOptions = {
     format: RequestFormat,
-    headers?: RequestInit["headers"],
+    headers?: RequestHeaders,
     credentials?: RequestInit["credentials"]
 }
 
@@ -26,7 +28,7 @@ export class Client {
         this.options.format = format;
     }
 
-    public setHeaders (headers: RequestInit["headers"]) {
+    public setHeaders (headers: RequestHeaders) {
         this.options.headers = headers;
     }
 

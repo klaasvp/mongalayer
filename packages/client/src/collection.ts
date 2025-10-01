@@ -32,7 +32,7 @@ export class Collection {
             body: JSON.stringify(body, stringifyReplacer)
         }
 
-        if (this.db.client.options.headers !== void 0) requestInit.headers = this.db.client.options.headers;
+        if (this.db.client.options.headers !== void 0) requestInit.headers = this.db.client.options.headers instanceof Function ? await this.db.client.options.headers() : this.db.client.options.headers;
         if (this.db.client.options.credentials !== void 0) requestInit.credentials = this.db.client.options.credentials;
 
         const request = fetch(url, requestInit);
