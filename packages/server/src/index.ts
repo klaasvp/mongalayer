@@ -1,5 +1,13 @@
 export * from "./core.js";
-export { MongalayerError, MongalayerErrorType, MongalayerErrorName } from "./error.js";
+
+export {
+    MongalayerErrorType,
+    MongalayerErrorName,
+    MongalayerError,
+    AuthorizationErrorCode,
+    DatabaseErrorCode,
+    ValidationErrorCode
+} from "./error.js"
 
 export type { MongalayerCollectionType } from "./actions/index.js";
 

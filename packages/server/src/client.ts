@@ -68,12 +68,3 @@ export type {
 export type {
     Document
 } from "mongodb"
-
-export {
-    MongalayerErrorType,
-    MongalayerErrorName,
-    MongalayerError,
-    AuthorizationErrorCode,
-    DatabaseErrorCode,
-    ValidationErrorCode
-} from "./error.js"

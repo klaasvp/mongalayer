@@ -1,7 +1,8 @@
-import { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType, DeleteOnePayload, DeleteOneReturnType, DeleteManyPayload, DeleteManyReturnType, InsertOnePayload, InsertOneReturnType, InsertManyReturnType, InsertManyPayload, UpdateOnePayload, UpdateOneReturnType, UpdateManyPayload, UpdateManyReturnType, FindOneAndUpdatePayload, FindOneAndUpdateReturnType, MongalayerError } from "@mongalayer/server/client";
+import type { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType, DeleteOnePayload, DeleteOneReturnType, DeleteManyPayload, DeleteManyReturnType, InsertOnePayload, InsertOneReturnType, InsertManyReturnType, InsertManyPayload, UpdateOnePayload, UpdateOneReturnType, UpdateManyPayload, UpdateManyReturnType, FindOneAndUpdatePayload, FindOneAndUpdateReturnType } from "@mongalayer/server/client";
 import { parseReviver, stringifyReplacer } from "@mongalayer/core/utils/json";
 import { Db } from "./db";
 import { MongalayerAPIError } from "./error";
+import { MongalayerError } from "@mongalayer/server";
 
 export class Collection {
     constructor (
