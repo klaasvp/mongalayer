@@ -6,7 +6,7 @@ import { InsertAccessService } from "./insert.js";
 import { merge, unflatten } from "@mongalayer/core";
 import { deepPartial, getSubschema } from "../schema/helper.js";
 import { FilterSchema } from "../schema/query.js";
-import { AuthorizationError, AuthorizationIssue, UnauthorizedDocument } from "../error.js";
+import { AuthorizationError, AuthorizationErrorCode, AuthorizationIssue, UnauthorizedDocument } from "../error.js";
 
 export type UpdatableDocument = WithId<{ __mongalayer_role?: string | null }>;
 
@@ -100,7 +100,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
         }
 
         if (unauthorizedDocuments.length > 0) {
-            throw new AuthorizationError("Unauthorized documents found", unauthorizedDocuments);
+            throw new AuthorizationError("Unauthorized documents found", unauthorizedDocuments, AuthorizationErrorCode.UnauthorizedUpdate);
         } else {
             return docsWithRole.map(({ _id }) => _id);
         }

@@ -1,4 +1,4 @@
-import { MongoClient, Document, Db, ClientSession } from "mongodb";
+import { MongoClient, Document, Db, ClientSession, MongoServerError } from "mongodb";
 import { ZodObject, ZodType } from "zod/v4";
 import { Action, find, findOne, findOneAndUpdate, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany, insertOne, insertMany, updateOne, updateMany } from "./actions/index.js";
 import { AccessConfig, AccessDefaults, AccessPermissions, AccessPayload } from "./access.js";
@@ -20,6 +20,7 @@ import { PartialDeep } from "type-fest";
 import { DeleteManyPayload } from "./actions/deleteMany.js";
 import { InsertAccessService } from "./access/insert.js";
 import { UpdateAccessService } from "./access/update.js";
+import { DatabaseError, ValidationError } from "./error.js";
 
 export type MongalayerCollection<TSchema extends Document> = {
     schema: ZodObject,
@@ -132,8 +133,14 @@ export class Mongalayer {
                         throw e;
                     } else {
                         console.log(z.prettifyError(e));
-                        // TODO: Added a nice error to report to the client (without exposing the schema)
-                        throw "Validation error";
+                        
+                        throw new ValidationError("Failed to validate action payload");
+                    }
+                } else if (e instanceof MongoServerError) {
+                    if (this.options.debugging) {
+                        throw e;
+                    } else {
+                        throw DatabaseError.buildFromMongoError(e);
                     }
                 } else {
                     throw e;

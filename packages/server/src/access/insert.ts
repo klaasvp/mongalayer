@@ -2,7 +2,7 @@ import { Filter, Document, OptionalUnlessRequiredId } from "mongodb";
 import { AccessDefinition, AccessPermission, AccessPermissions, AccessService, AccessValidatorError } from "../access.js";
 import z from "zod/v4";
 import { matches } from "./matcher.js";
-import { AuthorizationError, AuthorizationIssue, UnauthorizedDocument } from "../error.js";
+import { AuthorizationError, AuthorizationErrorCode, AuthorizationIssue, UnauthorizedDocument } from "../error.js";
 
 export type InsertableDocument<TSchema extends Document> = OptionalUnlessRequiredId<TSchema>;
 
@@ -71,7 +71,7 @@ export class InsertAccessService extends AccessService {
         }
 
         if (unauthorizedDocuments.length > 0) {
-            throw new AuthorizationError("Unauthorized documents found", unauthorizedDocuments);
+            throw new AuthorizationError("Unauthorized documents found", unauthorizedDocuments, AuthorizationErrorCode.UnauthorizedInsert);
         }
     }
 
