@@ -6,6 +6,7 @@ import { InsertAccessService } from "./insert.js";
 import { merge, unflatten } from "@mongalayer/core";
 import { deepPartial, getSubschema } from "../schema/helper.js";
 import { FilterSchema } from "../schema/query.js";
+import { AuthorizationError, AuthorizationIssue, UnauthorizedDocument } from "../error.js";
 
 export type UpdatableDocument = WithId<{ __mongalayer_role?: string | null }>;
 
@@ -13,27 +14,10 @@ type UpdateStages = PreloadRoleStages & {
     $project: Record<string, 1>
 }
 
-type UpdateIssue = {
-    type: "field",
-    field: string,
-    issue: string
-} | {
-    type: "document",
-    issue: string
-}
-
-type UnauthorizedDocument = { index: number, issues: UpdateIssue[] };
-
-export class UpdateError extends Error {
-    constructor (message: string, public unauthorizedDocuments: UnauthorizedDocument[]) {
-        super(message);
-    }
-}
-
 class UpdateDocumentError extends Error {}
 
 class UpdateFieldsError extends Error {
-    constructor (message: string, public issues: UpdateIssue[]) {
+    constructor (message: string, public issues: AuthorizationIssue[]) {
         super(message);
     }
 }
@@ -65,7 +49,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
     }
 
     public async validateDocumentsAccess (docsWithRole: UpdatableDocument[], update: UpdateSchema, requireReadPermission: boolean = false): Promise<ObjectId[]> {
-        const unauthorizedDocuments: { index: number, id: ObjectId, issues: UpdateIssue[] }[] = [];
+        const unauthorizedDocuments: UnauthorizedDocument[] = [];
 
         const fields = this.getRootPropertiesFromUpdate(update);
 
@@ -80,7 +64,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
 
                     if (!hasUpdatePermission && fields.length === 0) throw new UpdateDocumentError("No update access for document");
 
-                    const fieldUpdateIssues: UpdateIssue[] = [];
+                    const fieldUpdateIssues: AuthorizationIssue[] = [];
 
                     const fieldPermissions = accessRole.fields ?? {};
 
@@ -116,7 +100,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
         }
 
         if (unauthorizedDocuments.length > 0) {
-            throw new UpdateError("Unauthorized documents found", unauthorizedDocuments);
+            throw new AuthorizationError("Unauthorized documents found", unauthorizedDocuments);
         } else {
             return docsWithRole.map(({ _id }) => _id);
         }

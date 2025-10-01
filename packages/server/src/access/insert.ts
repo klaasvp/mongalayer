@@ -2,30 +2,14 @@ import { Filter, Document, OptionalUnlessRequiredId } from "mongodb";
 import { AccessDefinition, AccessPermission, AccessPermissions, AccessService, AccessValidatorError } from "../access.js";
 import z from "zod/v4";
 import { matches } from "./matcher.js";
+import { AuthorizationError, AuthorizationIssue, UnauthorizedDocument } from "../error.js";
 
 export type InsertableDocument<TSchema extends Document> = OptionalUnlessRequiredId<TSchema>;
-
-type InsertIssue = {
-    type: "field",
-    field: string,
-    issue: string
-} | {
-    type: "document",
-    issue: string
-}
-
-type UnauthorizedDocument = { index: number, issues: InsertIssue[] };
-
-export class InsertError extends Error {
-    constructor (message: string, public unauthorizedDocuments: UnauthorizedDocument[]) {
-        super(message);
-    }
-}
 
 class InsertDocumentError extends Error {}
 
 class InsertFieldsError extends Error {
-    constructor (message: string, public issues: InsertIssue[]) {
+    constructor (message: string, public issues: AuthorizationIssue[]) {
         super(message);
     }
 }
@@ -40,7 +24,7 @@ export class InsertAccessService extends AccessService {
     }
 
     public async validateDocumentsAccess (docs: InsertableDocument<Document>[]) {
-        const unauthorizedDocuments: { index: number, issues: InsertIssue[] }[] = [];
+        const unauthorizedDocuments: UnauthorizedDocument[] = [];
 
         for (const [index, doc] of docs.entries()) {
             const accessRole = this.getAccessRole(doc);
@@ -53,7 +37,7 @@ export class InsertAccessService extends AccessService {
 
                     if (!hasInsertPermission) throw new InsertDocumentError("No create access for document");
 
-                    const fieldInsertIssues: InsertIssue[] = [];
+                    const fieldInsertIssues: AuthorizationIssue[] = [];
 
                     const fields = Object.keys(doc), fieldPermissions = accessRole.fields ?? {};
 
@@ -87,7 +71,7 @@ export class InsertAccessService extends AccessService {
         }
 
         if (unauthorizedDocuments.length > 0) {
-            throw new InsertError("Unauthorized documents found", unauthorizedDocuments);
+            throw new AuthorizationError("Unauthorized documents found", unauthorizedDocuments);
         }
     }
 
