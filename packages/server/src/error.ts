@@ -30,12 +30,12 @@ export type MongalayerErrorCode<T extends MongalayerErrorType> =
 
 export const MongalayerErrorName = "MongalayerError" as const;
 
-export class MongalayerError extends Error {
+export class MongalayerError<ErrorType extends MongalayerErrorType = MongalayerErrorType> extends Error {
     public readonly name = MongalayerErrorName;
     
     constructor (
-        public readonly type: MongalayerErrorType, 
-        public readonly code: MongalayerErrorCode<typeof type>, 
+        public readonly type: ErrorType, 
+        public readonly code: MongalayerErrorCode<ErrorType>, 
         message: string
     ) {
         super(message);
