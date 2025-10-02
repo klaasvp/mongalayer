@@ -1,3 +1,5 @@
+import { MongalayerError } from "@mongalayer/core";
+
 export type * from "@mongalayer/server/client";
 
 export {
@@ -15,3 +17,5 @@ export {
 export {
     MongalayerAPIError
 } from "./error";
+
+export { MongalayerError };

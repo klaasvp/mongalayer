@@ -2,14 +2,14 @@ import { Filter, Document, OptionalUnlessRequiredId } from "mongodb";
 import { AccessDefinition, AccessPermission, AccessPermissions, AccessService, AccessValidatorError } from "../access.js";
 import z from "zod/v4";
 import { matches } from "./matcher.js";
-import { AuthorizationError, AuthorizationErrorCode, AuthorizationIssue, UnauthorizedDocument } from "../error.js";
+import { MongalayerError } from "@mongalayer/core";
 
 export type InsertableDocument<TSchema extends Document> = OptionalUnlessRequiredId<TSchema>;
 
 class InsertDocumentError extends Error {}
 
 class InsertFieldsError extends Error {
-    constructor (message: string, public issues: AuthorizationIssue[]) {
+    constructor (message: string, public issues: MongalayerError.AuthorizationIssue[]) {
         super(message);
     }
 }
@@ -24,7 +24,7 @@ export class InsertAccessService extends AccessService {
     }
 
     public async validateDocumentsAccess (docs: InsertableDocument<Document>[]) {
-        const unauthorizedDocuments: UnauthorizedDocument[] = [];
+        const unauthorizedDocuments: MongalayerError.UnauthorizedDocument[] = [];
 
         for (const [index, doc] of docs.entries()) {
             const accessRole = this.getAccessRole(doc);
@@ -37,7 +37,7 @@ export class InsertAccessService extends AccessService {
 
                     if (!hasInsertPermission) throw new InsertDocumentError("No create access for document");
 
-                    const fieldInsertIssues: AuthorizationIssue[] = [];
+                    const fieldInsertIssues: MongalayerError.AuthorizationIssue[] = [];
 
                     const fields = Object.keys(doc), fieldPermissions = accessRole.fields ?? {};
 
@@ -71,7 +71,7 @@ export class InsertAccessService extends AccessService {
         }
 
         if (unauthorizedDocuments.length > 0) {
-            throw new AuthorizationError("Unauthorized documents found", unauthorizedDocuments, AuthorizationErrorCode.UnauthorizedInsert);
+            throw new MongalayerError.AuthorizationError("Unauthorized documents found", unauthorizedDocuments, MongalayerError.AuthorizationErrorCode.UnauthorizedInsert);
         }
     }
 

@@ -20,7 +20,7 @@ import { PartialDeep } from "type-fest";
 import { DeleteManyPayload } from "./actions/deleteMany.js";
 import { InsertAccessService } from "./access/insert.js";
 import { UpdateAccessService } from "./access/update.js";
-import { DatabaseError, ValidationError } from "./error.js";
+import { MongalayerError } from "@mongalayer/core";
 
 export type MongalayerCollection<TSchema extends Document> = {
     schema: ZodObject,
@@ -134,13 +134,13 @@ export class Mongalayer {
                     } else {
                         console.log(z.prettifyError(e));
                         
-                        throw new ValidationError("Failed to validate action payload");
+                        throw new MongalayerError.ValidationError("Failed to validate action payload");
                     }
                 } else if (e instanceof MongoServerError) {
                     if (this.options.debugging) {
                         throw e;
                     } else {
-                        throw DatabaseError.buildFromMongoError(e);
+                        throw MongalayerError.DatabaseError.buildFromMongoError(e);
                     }
                 } else {
                     throw e;

@@ -6,7 +6,7 @@ import { InsertAccessService } from "./insert.js";
 import { merge, unflatten } from "@mongalayer/core";
 import { deepPartial, getSubschema } from "../schema/helper.js";
 import { FilterSchema } from "../schema/query.js";
-import { AuthorizationError, AuthorizationErrorCode, AuthorizationIssue, UnauthorizedDocument } from "../error.js";
+import { MongalayerError } from "@mongalayer/core";
 
 export type UpdatableDocument = WithId<{ __mongalayer_role?: string | null }>;
 
@@ -17,7 +17,7 @@ type UpdateStages = PreloadRoleStages & {
 class UpdateDocumentError extends Error {}
 
 class UpdateFieldsError extends Error {
-    constructor (message: string, public issues: AuthorizationIssue[]) {
+    constructor (message: string, public issues: MongalayerError.AuthorizationIssue[]) {
         super(message);
     }
 }
@@ -49,7 +49,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
     }
 
     public async validateDocumentsAccess (docsWithRole: UpdatableDocument[], update: UpdateSchema, requireReadPermission: boolean = false): Promise<ObjectId[]> {
-        const unauthorizedDocuments: UnauthorizedDocument[] = [];
+        const unauthorizedDocuments: MongalayerError.UnauthorizedDocument[] = [];
 
         const fields = this.getRootPropertiesFromUpdate(update);
 
@@ -64,7 +64,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
 
                     if (!hasUpdatePermission && fields.length === 0) throw new UpdateDocumentError("No update access for document");
 
-                    const fieldUpdateIssues: AuthorizationIssue[] = [];
+                    const fieldUpdateIssues: MongalayerError.AuthorizationIssue[] = [];
 
                     const fieldPermissions = accessRole.fields ?? {};
 
@@ -100,7 +100,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
         }
 
         if (unauthorizedDocuments.length > 0) {
-            throw new AuthorizationError("Unauthorized documents found", unauthorizedDocuments, AuthorizationErrorCode.UnauthorizedUpdate);
+            throw new MongalayerError.AuthorizationError("Unauthorized documents found", unauthorizedDocuments, MongalayerError.AuthorizationErrorCode.UnauthorizedUpdate);
         } else {
             return docsWithRole.map(({ _id }) => _id);
         }
