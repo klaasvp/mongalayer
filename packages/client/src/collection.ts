@@ -2,7 +2,7 @@ import type { FindOnePayload, Document, FindOneReturnType, Operation, FindPayloa
 import { parseReviver, stringifyReplacer } from "@mongalayer/core/utils/json";
 import { Db } from "./db";
 import { MongalayerAPIError } from "./error";
-import { MongalayerError } from "@mongalayer/core";
+import { serverErrorName, ServerError } from "@mongalayer/core";
 
 export class Collection {
     constructor (
@@ -45,15 +45,15 @@ export class Collection {
             if (response.ok) {
                 return JSON.parse(responseText, parseReviver);
             } else {
-                const mongalayerErrorRegex = new RegExp(`"name":"MongalayerError"`);
+                const mongalayerErrorRegex = new RegExp(`"name":"${serverErrorName}"`);
                 if (mongalayerErrorRegex.test(responseText)) {
-                    throw MongalayerError.ServerError.fromJSON(responseText);
+                    throw ServerError.fromJSON(responseText);
                 } else {
                     throw new MongalayerAPIError(response.status, responseText);
                 }
             }
         } catch (e) {
-            if (e instanceof MongalayerAPIError || e instanceof MongalayerError.ServerError) {
+            if (e instanceof MongalayerAPIError || e instanceof ServerError) {
                 throw e;
             }
 

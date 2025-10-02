@@ -10,7 +10,7 @@ import { InsertOnePayload } from "./actions/insertOne.js";
 import { InsertManyPayload } from "./actions/insertMany.js";
 import { UpdateOnePayload } from "./actions/updateOne.js";
 import { UpdateManyPayload } from "./actions/updateMany.js";
-import { parseReviver, stringifyReplacer } from "@mongalayer/core"
+import { DatabaseError, parseReviver, stringifyReplacer, ValidationError } from "@mongalayer/core"
 import { AggregatePayload, AggregateReturnType } from "./actions/aggregate.js";
 import { QueryAccessService } from "./access/query.js";
 import { AggregationAccessService } from "./access/aggregation.js";
@@ -20,7 +20,7 @@ import { PartialDeep } from "type-fest";
 import { DeleteManyPayload } from "./actions/deleteMany.js";
 import { InsertAccessService } from "./access/insert.js";
 import { UpdateAccessService } from "./access/update.js";
-import { MongalayerError } from "@mongalayer/core";
+import {  } from "@mongalayer/core";
 
 export type MongalayerCollection<TSchema extends Document> = {
     schema: ZodObject,
@@ -134,13 +134,13 @@ export class Mongalayer {
                     } else {
                         console.log(z.prettifyError(e));
                         
-                        throw new MongalayerError.ValidationError("Failed to validate action payload");
+                        throw new ValidationError("Failed to validate action payload");
                     }
                 } else if (e instanceof MongoServerError) {
                     if (this.options.debugging) {
                         throw e;
                     } else {
-                        throw MongalayerError.DatabaseError.buildFromMongoError(e);
+                        throw DatabaseError.buildFromMongoError(e);
                     }
                 } else {
                     throw e;
