@@ -1,4 +1,4 @@
-import { Filter, Document, WithId, ObjectId } from "mongodb";
+import type { WithId, ObjectId } from "mongodb";
 import { PreloadRoleAccessService } from "./preloadRole.js";
 
 export type DeletableDocument = WithId<{ __mongalayer_role?: string | null }>;

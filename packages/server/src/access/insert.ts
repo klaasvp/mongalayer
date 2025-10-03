@@ -1,5 +1,5 @@
-import { Filter, Document, OptionalUnlessRequiredId } from "mongodb";
-import { AccessDefinition, AccessPermission, AccessPermissions, AccessService, AccessValidatorError } from "../access.js";
+import type { Document, OptionalUnlessRequiredId } from "mongodb";
+import { AccessDefinition, AccessPermissions, AccessService, AccessValidatorError } from "../access.js";
 import z from "zod/v4";
 import { matches } from "./matcher.js";
 import { AuthorizationError, AuthorizationErrorCode, AuthorizationIssue, UnauthorizedDocument } from "@mongalayer/core";

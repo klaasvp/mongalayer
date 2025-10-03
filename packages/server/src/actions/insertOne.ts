@@ -1,4 +1,4 @@
-import { Collection, Document, InsertOneResult } from "mongodb";
+import type { Collection, Document, InsertOneResult } from "mongodb";
 import z from "zod/v4";
 import { InsertableDocument, InsertAccessService } from "#src/access/insert.js";
 import insert from "./insertMany.js";

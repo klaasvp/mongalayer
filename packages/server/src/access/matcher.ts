@@ -1,6 +1,6 @@
 import { getValueByPathWithExists, isObject, typedEntries } from "@mongalayer/core";
-import { AccessFilter, AccessFilterPropertyOperators, AccessFilterPropertyValue, accessFilterSchema, propertyOperatorKeys, rootOperatorKeys } from "../schema/access/filter.js";
-import { Document } from "mongodb";
+import { AccessFilter, AccessFilterPropertyOperators, AccessFilterPropertyValue, propertyOperatorKeys, rootOperatorKeys } from "../schema/access/filter.js";
+import type { Document } from "mongodb";
 
 export const isPrimitive = (value: string): boolean => {
     return ["string", "number", "boolean", "null", "undefined"].includes(value.slice(8, -1).toLowerCase()); // Removed "[object" & "]" from [object Type]

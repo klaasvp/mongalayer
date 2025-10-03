@@ -1,8 +1,4 @@
-import { Filter, Document } from "mongodb";
-import { iteratePrimitives } from "@mongalayer/core";
-import { AccessPermissions } from "../access.js";
-import { hasNearQuery, transformNearToGeoNear } from "../query/near.js";
-import { deleteObjectProperty, isObject } from "@mongalayer/core";
+import type { Filter, Document } from "mongodb";
 import { AccessService } from "../access.js";
 
 export type PreloadRoleStages = {

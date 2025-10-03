@@ -1,6 +1,6 @@
 import { $geometryNearSchema, positionSchema } from "#src/schema/geo.js";
 import { isArray, isObject } from "@mongalayer/core";
-import { Document, Filter } from "mongodb";
+import type { Document, Filter } from "mongodb";
 import z from "zod";
 
 type NearLegacy = z.infer<typeof positionSchema>;

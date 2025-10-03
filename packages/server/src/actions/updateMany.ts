@@ -1,7 +1,6 @@
-import { Collection, Document, Filter, UpdateResult } from "mongodb";
+import type { Collection, Document, Filter, UpdateResult } from "mongodb";
 import z from "zod/v4";
 import { FilterSchema, filterSchema } from "../schema/query.js";
-import { Sort, sortSchema } from "../schema/index.js";
 import { updateSchema, UpdateSchema } from "../schema/update.js";
 import { UpdatableDocument, UpdateAccessService } from "../access/update.js";
 

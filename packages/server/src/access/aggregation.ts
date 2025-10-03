@@ -1,8 +1,5 @@
-import { Filter, Document } from "mongodb";
-import { iteratePrimitives } from "@mongalayer/core";
+import type { Document } from "mongodb";
 import { AccessPermissions } from "../access.js";
-import { hasNearQuery, transformNearToGeoNear } from "../query/near.js";
-import { deleteObjectProperty, isObject } from "@mongalayer/core";
 import { AccessService } from "../access.js";
 import { PipelineSchema, StageSchema } from "#src/schema/aggregate.js";
 import { KeysOfUnion } from "type-fest";

@@ -1,4 +1,4 @@
-import { Document } from "mongodb"
+import type { Document } from "mongodb"
 import find, { FindPayload, FindReturnType } from "./find.js"
 import findOne, { FindOnePayload, FindOneReturnType } from "./findOne.js"
 import findOneAndUpdate, { FindOneAndUpdatePayload, FindOneAndUpdateReturnType } from "./findOneAndUpdate.js"

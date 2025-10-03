@@ -1,4 +1,4 @@
-import { MongoClient, Document, Db, ClientSession, MongoServerError } from "mongodb";
+import type { MongoClient, Document, Db, ClientSession, MongoServerError } from "mongodb";
 import { ZodObject, ZodType } from "zod/v4";
 import { Action, find, findOne, findOneAndUpdate, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany, insertOne, insertMany, updateOne, updateMany } from "./actions/index.js";
 import { AccessConfig, AccessDefaults, AccessPermissions, AccessPayload } from "./access.js";
@@ -136,7 +136,7 @@ export class Mongalayer {
                         
                         throw new ValidationError("Failed to validate action payload");
                     }
-                } else if (e instanceof MongoServerError) {
+                } else if (e instanceof Error && e.name === "MongoServerError") { // MongoServerError don't use this class as we only want to use types
                     if (this.options.debugging) {
                         throw e;
                     } else {

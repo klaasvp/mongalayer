@@ -1,4 +1,4 @@
-import { Collection, Document, Filter } from "mongodb";
+import type { Collection, Document, Filter } from "mongodb";
 import z from "zod/v4";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { Projection, projectionSchema, Sort, sortSchema } from "../schema/index.js";

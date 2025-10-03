@@ -1,4 +1,4 @@
-import { Collection, Document } from "mongodb";
+import type { Collection, Document } from "mongodb";
 import z from "zod/v4";
 import { pipelineSchema, PipelineSchema } from "../schema/aggregate.js";
 import { AggregationAccessService } from "../access/aggregation.js";

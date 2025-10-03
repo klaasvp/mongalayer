@@ -1,4 +1,4 @@
-import { Filter, Document, WithId, ObjectId } from "mongodb";
+import type { Filter, Document, WithId, ObjectId } from "mongodb";
 import { PreloadRoleAccessService, PreloadRoleStages } from "./preloadRole.js";
 import { UpdateSchema } from "../schema/update.js";
 import { AccessDefinition, AccessPermissions, AccessValidatorError } from "../access.js";

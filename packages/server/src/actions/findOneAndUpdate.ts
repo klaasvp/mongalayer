@@ -1,9 +1,11 @@
-import { Collection, Document, Filter, FindOneAndUpdateOptions, ReturnDocument, WithId } from "mongodb";
+import type { Collection, Document, Filter, FindOneAndUpdateOptions, ReturnDocument } from "mongodb";
 import z from "zod/v4";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { Projection, projectionSchema, Sort, sortSchema } from "../schema/index.js";
 import { updateSchema, UpdateSchema } from "../schema/update.js";
 import { UpdatableDocument, UpdateAccessService } from "../access/update.js";
+
+const returnDocument: ReturnDocument[] = [ "before", "after" ]
 
 export type FindOneAndUpdatePayload <TSchema extends Document> = {
     filter: FilterSchema,
@@ -25,7 +27,7 @@ const payloadSchema: z.ZodType<FindOneAndUpdatePayload<Document>> = z.object({
         projection: projectionSchema.optional(),
         upsert: z.boolean().optional(),
         sort: sortSchema.optional(),
-        returnDocument: z.enum(Object.values(ReturnDocument)).optional()
+        returnDocument: z.enum(returnDocument).optional()
     }).optional()
 });
 

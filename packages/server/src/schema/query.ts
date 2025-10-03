@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 import { $geometryIntersectsSchema, $geometryNearSchema, $geometryWithinSchema, polygonSchema, positionSchema } from "../schema/geo.js";
-import { BSONTypeAliasSchema, BSONTypeSchema } from "../schema/bson.js";
+import { BSONTypeAliasSchema } from "../schema/bson.js";
 import { Expression, expressionSchema } from "./expression/index.js";
 import { documentValueSchema, JSONValue, keyWithoutDollar } from "./index.js";
 
@@ -37,7 +37,7 @@ const filterOperatorsSchemaBase = z.object({ // Not strict as it's combined with
     },
     $exists: z.boolean(),
     $type: z.union([
-        BSONTypeSchema,
+        //BSONTypeSchema,
         BSONTypeAliasSchema
     ]),
     // The $mod expression rounds decimal input towards zero. (So min 1 for the divisor to avoid division by zero)
