@@ -136,7 +136,7 @@ export class Mongalayer {
                         
                         throw new ValidationError("Failed to validate action payload");
                     }
-                } else if (e instanceof Error && e.name === "MongoServerError") { // MongoServerError don't use this class as we only want to use types
+                } else if (e instanceof Error && /^Mongo/.test(e.name)) { // MongoServerError don't use this class as we only want to use types
                     if (this.options.debugging) {
                         throw e;
                     } else {

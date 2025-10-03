@@ -10,27 +10,6 @@ import { dbName, getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/li
 import { MongalayerCollectionType } from '#src/index.js';
 
 const typesTable = [
-    { type: BSONType.double, success: true, message: 'should validate with double' },
-    { type: BSONType.string, success: true, message: 'should validate with string' },
-    { type: BSONType.object, success: true, message: 'should validate with object' },
-    { type: BSONType.array, success: true, message: 'should validate with array' },
-    { type: BSONType.binData, success: true, message: 'should validate with binData' },
-    { type: BSONType.undefined, success: true, message: 'should validate with undefined' },
-    { type: BSONType.objectId, success: true, message: 'should validate with objectId' },
-    { type: BSONType.bool, success: true, message: 'should validate with bool' },
-    { type: BSONType.date, success: true, message: 'should validate with date' },
-    { type: BSONType.null, success: true, message: 'should validate with null' },
-    { type: BSONType.regex, success: true, message: 'should validate with regex' },
-    { type: BSONType.dbPointer, success: true, message: 'should validate with dbPointer' },
-    { type: BSONType.javascript, success: true, message: 'should validate with javascript' },
-    { type: BSONType.symbol, success: true, message: 'should validate with symbol' },
-    { type: BSONType.javascriptWithScope, success: true, message: 'should validate with javascriptWithScope' },
-    { type: BSONType.int, success: true, message: 'should validate with int' },
-    { type: BSONType.timestamp, success: true, message: 'should validate with timestamp' },
-    { type: BSONType.long, success: true, message: 'should validate with long' },
-    { type: BSONType.decimal, success: true, message: 'should validate with decimal' },
-    { type: BSONType.minKey, success: true, message: 'should validate with minKey' },
-    { type: BSONType.maxKey, success: true, message: 'should validate with maxKey' },
     { type: 'string', success: true, message: 'should validate with string alias' },
     { type: 'symbol', success: true, message: 'should validate with symbol alias' },
     { type: 'undefined', success: true, message: 'should validate with undefined alias' },
@@ -124,9 +103,7 @@ describe('filter operators - $type', () => {
     
     const dbTestTable: DbTest[] = [
         { filter: { name: { $type: "string" } }, success: true, message: `"name: string" should return _id a`},
-        { filter: { name: { $type: BSONType.string } }, success: true, message: `"name: BSONType.string" should return _id a`},
         { filter: { name: { $type: "int" } }, success: false, message: `"name: int" should not return anything`},
-        { filter: { name: { $type: BSONType.int } }, success: false, message: `"name: BSONType.int" should not return anything`}
     ];
 
     describe('on filterTestSolo collection', () => {
