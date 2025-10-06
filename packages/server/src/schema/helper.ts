@@ -1,4 +1,4 @@
-import z, { ZodArray, ZodDefault, ZodDiscriminatedUnion, ZodIntersection, ZodLazy, ZodMap, ZodNever, ZodNullable, ZodObject, ZodOptional, ZodRecord, ZodSet, ZodTuple, ZodUnion } from "zod/v4";
+import z, { ZodArray, ZodCustom, ZodDefault, ZodDiscriminatedUnion, ZodIntersection, ZodLazy, ZodMap, ZodNever, ZodNullable, ZodObject, ZodOptional, ZodRecord, ZodSet, ZodTuple, ZodUnion } from "zod/v4";
 
 export function deepPartial(schema: any): any {
     // Unwrap wrappers while preserving optional/nullable at the wrapper level
@@ -222,6 +222,10 @@ export function getSubschema(sourceSchema: ZodTypeUnknown, path: string, unwrapS
                     return undefined;
                 }
             }
+        } else if (current instanceof ZodCustom) {
+            current = z.unknown().optional();
+            
+            break; // Stop further processing
         } else {
             // Any other type can't be descended into
             return undefined;
