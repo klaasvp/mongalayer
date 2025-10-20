@@ -17,7 +17,7 @@ export class PreloadRoleAccessService extends AccessService {
     }
 
     public getStages (currentFilter: Filter<Document> = {}): PreloadRoleStages {
-        const role = this.getRoleStages();
+        const role = this.getRoleStages(currentFilter);
 
         const stages = {
             $query: this.getFilterStage(currentFilter),

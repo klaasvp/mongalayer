@@ -50,7 +50,7 @@ export class QueryAccessService extends AccessService {
     }
 
     public getStages (currentFilter: Filter<Document> = {}, projection?: Document): QueryStages {
-        const role = this.getRoleStages(), project = this.getProjection(projection);
+        const role = this.getRoleStages(currentFilter), project = this.getProjection(projection);
 
         const stages = {
             $query: this.getFilterStage(currentFilter),

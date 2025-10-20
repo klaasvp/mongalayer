@@ -5,6 +5,7 @@ import { AccessFilter, customOperatorKeys } from "./schema/access/filter.js";
 import { deleteObjectProperty, getValueByPath, isArray, isObject } from "@mongalayer/core";
 import { SetRequired } from "type-fest";
 import { UpdateSchema } from "./schema/update.js";
+import { hasNearQuery } from "./query/near.js";
 
 export const AccessPermissions = {
     /**
@@ -185,7 +186,7 @@ export abstract class AccessService {
         return { $or: filters };
     } 
 
-    protected getRoleStages (): Document[] | null {
+    protected getRoleStages (currentFilter: Filter<Document> = {}): Document[] | null {
         if (this.hydratedConfig.length > 0) {
             // The lookup workaround is to support query predicates in the role filter mechanism.
             // On of the more powerfull features or this is that $in supports array on array matching. ["a", "b"] in ["b", "c"] will return true.
@@ -194,7 +195,11 @@ export abstract class AccessService {
                     $lookup: {
                         from: access.collection?.target ?? this.collection,
                         pipeline: [
-                            { $match: access.filter },
+                            { 
+                                $match: access.collection === void 0 && Object.keys(currentFilter).length > 0 && !hasNearQuery(currentFilter)
+                                ? { $and: [currentFilter, access.filter] } // Only apply the current filter when not using an alternative collection and has no near query
+                                : access.filter 
+                            },
                             { $project: { [access.collection?.targetField ?? "_id"]: 1 } } // Project only the ID
                         ],
                         as: `__mongalayer_role.${access.role}`

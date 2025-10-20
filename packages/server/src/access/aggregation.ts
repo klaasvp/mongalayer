@@ -9,7 +9,7 @@ type AggregationStages = {
 }
 
 export class AggregationAccessService extends AccessService {
-    private addFilterStage (pipeline: Document[] = []): number {
+    private addFilterStage (pipeline: Document[] = []): { accessFilterIndex: number, firstFilterStage: Document | {} } {
         const accessFilters = this.getAccessFilters();
 
         // Only add the access filter $and condition when there are access filters defined.
@@ -23,41 +23,43 @@ export class AggregationAccessService extends AccessService {
                         $match: accessFilters
                     });
                     
-                    return 1;
+                    return { accessFilterIndex: 1, firstFilterStage: pipeline[0] };
                 // Merge the first $match with the access filters
                 case "$match":
-                    const $match = Object.keys(pipeline[0].$match).length > 0
-                        ? { $and: [ accessFilters, pipeline[0].$match ] }
+                    const originalMatch = pipeline[0].$match as Document;
+
+                    const $match = Object.keys(originalMatch).length > 0
+                        ? { $and: [ accessFilters, originalMatch ] }
                         : accessFilters
 
                     pipeline[0] = { $match };
                     
-                    return 0;
+                    return { accessFilterIndex: 0, firstFilterStage: originalMatch };
                 // If not filter is available as the first stage, insert it
                 default: 
                     pipeline.unshift({
                         $match: accessFilters
                     });
-                    
-                    return 0;
+
+                    return { accessFilterIndex: 0, firstFilterStage: {} };
             }
         }
 
-        return -1;
+        return { accessFilterIndex: -1, firstFilterStage: {} };
     }
 
     public getStages (currentPipeline: PipelineSchema = []): AggregationStages {
         const pipeline = structuredClone(currentPipeline) as Document[];
 
-        const filterIndex = this.addFilterStage(pipeline);
+        const { accessFilterIndex, firstFilterStage } = this.addFilterStage(pipeline);
 
-        if (filterIndex >= 0 || this.hasRolesWithAlternativeAccessCollection) {
-            const roleStages = this.getRoleStages();
+        if (accessFilterIndex >= 0 || this.hasRolesWithAlternativeAccessCollection) {
+            const roleStages = this.getRoleStages(firstFilterStage);
 
             if (roleStages !== null) {
-                pipeline.splice(filterIndex + 1, 0, ...roleStages);
-                
-                const roleProjectionStartIndex = filterIndex + 1 + roleStages.length;
+                pipeline.splice(accessFilterIndex + 1, 0, ...roleStages);
+
+                const roleProjectionStartIndex = accessFilterIndex + 1 + roleStages.length;
 
                 this.addRoleProjection(pipeline, roleProjectionStartIndex);
             }
