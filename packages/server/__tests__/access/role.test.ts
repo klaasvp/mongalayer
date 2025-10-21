@@ -180,4 +180,127 @@ describe('Access - Roles', () => {
             expect(projectAsset.__mongalayer_role).toBe(projectRoleMapping[projectAsset._id]);
         });
     });
+
+    test("Project Assets - Roles through alternative collection - array", async () => {
+        const altCollection: AccessAlternativeCollection<ProjectAsset, Project> = {
+            target: "projects",
+            targetField: "latestAssets",
+            localField: "_id"
+        };
+        
+        const collection: MongalayerCollection<ProjectAsset> = {
+            schema: projectAssetSchema,
+            access: [{
+                role: "owner",
+                filter: {
+                    "access.owners": {"$in": ["%%user.sub"]}
+                },
+                collection: altCollection
+            }, {
+                role: "contributor",
+                filter: {
+                    "access.contributors": {"$in": ["%%user.sub"]}
+                },
+                collection: altCollection
+            }, {
+                role: "reader",
+                filter: {
+                    "access.readers": {"$in": ["%%user.sub"]}
+                },
+                collection: altCollection
+            }]
+        };
+
+        const projectRoleMapping = projectAssetObjects.reduce((mapping, projectAsset) => {
+            const project = projectObjects.find(p => p.latestAssets.includes(projectAsset._id))!;
+
+            if (project) {
+                if (project.access.owners.includes(userZero._id)) mapping[projectAsset._id] = "owner";
+                else if (project.access.contributors.includes(userZero._id)) mapping[projectAsset._id] = "contributor";
+                else if (project.access.readers.includes(userZero._id)) mapping[projectAsset._id] = "reader";
+                else mapping[projectAsset._id] = null;
+            }
+
+            return mapping;
+        }, {} as Record<string, string | null>);
+
+        const accessService = new QueryAccessService(client, dbName, "projectAssets", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
+
+        const stages = accessService.getStages({});
+
+        const pipeline: Document[] = [ { $match: {} } ];
+
+        if (stages.$role) pipeline.push(...stages.$role);
+        
+        const result = await database.collection("projectAssets").aggregate<WithAccessRole<ProjectAsset>>(pipeline).toArray();
+
+        expect(result.length).toEqual(Object.entries(projectRoleMapping).filter(([_, role]) => role !== null).length);
+
+        result.forEach(projectAsset => {
+            expect(projectAsset).toHaveProperty("__mongalayer_role");
+            expect(projectAsset.__mongalayer_role).toBe(projectRoleMapping[projectAsset._id]);
+        });
+    });
+
+    test("Project Assets - Roles through alternative collection - field in embedded array", async () => {
+        const altCollection: AccessAlternativeCollection<ProjectAsset, Project> = {
+            target: "projects",
+            targetField: "id",
+            targetFieldArrayPath: "unfinishedAssets",
+            localField: "_id"
+        };
+        
+        const collection: MongalayerCollection<ProjectAsset> = {
+            schema: projectAssetSchema,
+            access: [{
+                role: "owner",
+                filter: {
+                    "access.owners": {"$in": ["%%user.sub"]}
+                },
+                collection: altCollection
+            }, {
+                role: "contributor",
+                filter: {
+                    "access.contributors": {"$in": ["%%user.sub"]}
+                },
+                collection: altCollection
+            }, {
+                role: "reader",
+                filter: {
+                    "access.readers": {"$in": ["%%user.sub"]}
+                },
+                collection: altCollection
+            }]
+        };
+
+        const projectRoleMapping = projectAssetObjects.reduce((mapping, projectAsset) => {
+            const project = projectObjects.find(p => p.unfinishedAssets.map(unfinishedAsset => unfinishedAsset.id).includes(projectAsset._id))!;
+
+            if (project) {
+                if (project.access.owners.includes(userZero._id)) mapping[projectAsset._id] = "owner";
+                else if (project.access.contributors.includes(userZero._id)) mapping[projectAsset._id] = "contributor";
+                else if (project.access.readers.includes(userZero._id)) mapping[projectAsset._id] = "reader";
+                else mapping[projectAsset._id] = null;
+            }
+            
+            return mapping;
+        }, {} as Record<string, string | null>);
+
+        const accessService = new QueryAccessService(client, dbName, "projectAssets", {user: {sub: userZero._id}}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
+
+        const stages = accessService.getStages({});
+
+        const pipeline: Document[] = [ { $match: {} } ];
+
+        if (stages.$role) pipeline.push(...stages.$role);
+        
+        const result = await database.collection("projectAssets").aggregate<WithAccessRole<ProjectAsset>>(pipeline).toArray();
+
+        expect(result.length).toEqual(Object.entries(projectRoleMapping).filter(([_, role]) => role !== null).length);
+
+        result.forEach(projectAsset => {
+            expect(projectAsset).toHaveProperty("__mongalayer_role");
+            expect(projectAsset.__mongalayer_role).toBe(projectRoleMapping[projectAsset._id]);
+        });
+    });
 });

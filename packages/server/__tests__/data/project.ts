@@ -1,11 +1,17 @@
 import { faker } from "@faker-js/faker";
 import z, { ZodType } from "zod/v4"
 import { User } from "./user.js";
+import { ProjectAsset } from "./projectAsset.js";
 
 export type ProjectAccess = {
     owners: string[],
     contributors: string[],
     readers: string[]
+}
+
+export type UnfinishProjectAssets = {
+    id: ProjectAsset["_id"],
+    status: "design" | "testing" | "production"
 }
 
 export type Project = {
@@ -27,10 +33,14 @@ export type Project = {
             city: string,
             street?: string
         }
-    }
+    },
+    latestAssets: ProjectAsset["_id"][],
+    unfinishedAssets: UnfinishProjectAssets[]
 };
 
 const projectTypes: Project["type"][] = ["lite", "standard", "premium", "custom"];
+
+export const projectAssetUnfinishedStatus: UnfinishProjectAssets["status"][] = ["design", "testing", "production"]
 
 export const projectSchema = z.strictObject({
     _id: z.string(),
@@ -55,7 +65,12 @@ export const projectSchema = z.strictObject({
             city: z.string(),
             street: z.string().optional()
         })   
-    })
+    }),
+    latestAssets: z.array(z.string()),
+    unfinishedAssets: z.array(z.strictObject({
+        id: z.string(),
+        status: z.enum(projectAssetUnfinishedStatus)
+    }))
 }) satisfies ZodType<Project>;
 
 export function getRandomProject (users: User[]): Project {
@@ -88,7 +103,9 @@ export function getRandomProject (users: User[]): Project {
                 city: faker.location.city(),
                 street: faker.location.street()
             }
-        }
+        },
+        latestAssets: [],
+        unfinishedAssets: []
     };
 }
 

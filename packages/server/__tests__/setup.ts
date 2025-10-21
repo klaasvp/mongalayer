@@ -5,6 +5,7 @@ import { User } from '#test/data/user';
 import { dbName } from '#test/lib/database';
 import { MongoClient, ServerApiVersion } from 'mongodb';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import { ProjectAsset } from './data/projectAsset.js';
 
 let mongod: MongoMemoryServer, client: MongoClient;
 
@@ -32,9 +33,22 @@ export async function setup () {
     await database.createCollection<User>("users");
     await database.createCollection<Project>("projects"); 
     await database.createCollection<Project>("projectsCUD"); // Create, update, delete
+    await database.createCollection<ProjectAsset>("projectAssets"); 
     await database.createCollection<FilterTest>("filterTest");
     await database.createCollection<FilterTest>("filterTestSolo");
     await database.createCollection<SchemaTest>("schemaTest");
+
+    await database.collection<Project>("projects").createIndexes([
+        { key: { "access.owners": 1 } },
+        { key: { "access.contributors": 1 } },
+        { key: { "access.readers": 1 } },
+        { key: { "latestAssets": 1 } },
+        { key: { "unfinishedAssets.id": 1 } }
+    ]);
+
+    await database.collection<ProjectAsset>("projectAssets").createIndexes([
+        { key: { "projectID": 1 } }
+    ]);
 
     await database.collection<SchemaTest>("schemaTest").createIndexes([
         { key: { "property": "2dsphere" } },

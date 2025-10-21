@@ -3,8 +3,8 @@ import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/co
 import { User, userSchema } from "#test/data/user";
 import { Project, projectSchema } from "#test/data/project";
 import { JwtPayload } from "jsonwebtoken";
-import { dbName, getMongaLayerForCollections, projectAssetObjects, projectObjects, userObjects } from "#test/lib/database";
-import { MongalayerCollectionType } from "#src/index.js";
+import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectAssetObjects, projectObjects, userObjects } from "#test/lib/database";
+import { AccessAlternativeCollection, MongalayerCollectionType } from "#src/index.js";
 import { ProjectAsset, projectAssetSchema } from "#test/data/projectAsset.js";
 
 describe('Access - Filter', () => {
@@ -208,7 +208,24 @@ describe('Access - Filter', () => {
         });
     });
 
-    describe('Access project asset - user owner (via project)', () => {
+    describe.each<{ collection: AccessAlternativeCollection<ProjectAsset, any>, desc: "projectID" | "latestAssets" | "unfinishedAssets" }>([
+        { collection: {
+            target: "projects",
+            targetField: "_id",
+            localField: "projectID"
+        }, desc: "projectID" },
+        { collection: {
+            target: "projects",
+            targetField: "latestAssets",
+            localField: "_id"
+        }, desc: "latestAssets" },
+        { collection: {
+            target: "projects",
+            targetField: "id",
+            targetFieldArrayPath: "unfinishedAssets",
+            localField: "_id"
+        }, desc: "unfinishedAssets" }
+    ])('Access project asset - user owner (via project - $desc)', ({ collection: alternativeCollection, desc }) => {
         let mongalayer: Mongalayer, userZero: User, userZeroAccessPayload: JwtPayload, projectAssetWithoutUserAsOwner: ProjectAsset, projectAssetWithUserAsOwner: ProjectAsset;
 
         beforeAll(async () => {
@@ -219,11 +236,7 @@ describe('Access - Filter', () => {
                     filter: {
                         "access.owners": {"$in":["%%user.sub"]}
                     },
-                    collection: {
-                        target: "projects",
-                        targetField: "_id",
-                        localField: "projectID"
-                    }
+                    collection: alternativeCollection
                 }]
             };
 
@@ -242,10 +255,20 @@ describe('Access - Filter', () => {
                 projectWithUserAsOwner = projectObjects.find(project => project.access.owners.includes(userZero._id))!,
                 projectWithoutUserAsOwner = projectObjects.find(project => !project.access.owners.includes(userZero._id))!;
 
-            projectAssetWithUserAsOwner = projectAssetObjects.find(pa => pa.projectID === projectWithUserAsOwner._id)!;
-            projectAssetWithoutUserAsOwner = projectAssetObjects.find(pa => pa.projectID === projectWithoutUserAsOwner._id)!;
+            const db = await getMongoDBDatabase();
 
             mongalayer = await getMongaLayerForCollections(collections, { debugging: true });
+
+            if (desc === "projectID") {
+                projectAssetWithUserAsOwner = projectAssetObjects.find(pa => pa.projectID === projectWithUserAsOwner._id)!;
+                projectAssetWithoutUserAsOwner = projectAssetObjects.find(pa => pa.projectID === projectWithoutUserAsOwner._id)!;
+            } else if (desc === "latestAssets") {
+                projectAssetWithUserAsOwner = projectAssetObjects.find(pa => pa._id === projectWithUserAsOwner.latestAssets[0])!;
+                projectAssetWithoutUserAsOwner = projectAssetObjects.find(pa => pa._id === projectWithoutUserAsOwner.latestAssets[0])!;
+            } else if (desc === "unfinishedAssets") {
+                projectAssetWithUserAsOwner = projectAssetObjects.find(pa => pa._id === projectWithUserAsOwner.unfinishedAssets[0]?.id)!;
+                projectAssetWithoutUserAsOwner = projectAssetObjects.find(pa => pa._id === projectWithoutUserAsOwner.unfinishedAssets[0]?.id)!;
+            }
         });
 
         test("findOne - project asset as owner = project", async () => {
@@ -288,14 +311,30 @@ describe('Access - Filter', () => {
                 ]
             }, userZeroAccessPayload) as { count: number }[];
 
+            let userZeroProjectAssetsLength = 0;
+
             const 
-                userZeroProjects = projectObjects.filter(project => project.access.owners.includes(userZero._id)).map(p => p._id),
-                userZeroProjectAssets = projectAssetObjects.filter(pa => userZeroProjects.includes(pa.projectID));
+                userZeroProjects = projectObjects.filter(project => project.access.owners.includes(userZero._id)),
+                userZeroProjectIDs = userZeroProjects.map(p => p._id);
+                
+            if (desc === "projectID") {
+                userZeroProjectAssetsLength = projectAssetObjects.filter(pa => userZeroProjectIDs.includes(pa.projectID)).length;
+            } else if (desc === "latestAssets") {
+                userZeroProjectAssetsLength = userZeroProjects.reduce((assetIDs, project) => {
+                    assetIDs.push(...project.latestAssets.filter(la => !assetIDs.includes(la)));
+                    return assetIDs;
+                }, [] as string[]).length;
+            } else if (desc === "unfinishedAssets") {
+                userZeroProjectAssetsLength = userZeroProjects.reduce((assetIDs, project) => {
+                    assetIDs.push(...project.unfinishedAssets.map(ua => ua.id).filter(id => !assetIDs.includes(id)));
+                    return assetIDs;
+                }, [] as string[]).length;
+            }
 
             expect(result.length).toBe(1);
             
             if (result.length === 1) {
-                expect(result[0].count).toBe(userZeroProjectAssets.length);
+                expect(result[0].count).toBe(userZeroProjectAssetsLength);
             }
         });
 
