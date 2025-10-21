@@ -12,11 +12,15 @@ export class Collection {
         
     }
 
-    private async request (action: Operation, payload: any): Promise<any> {
-        const url = this.db.client.options.format === "routed" 
+    private async request (action: Operation, payload: any, context?: any): Promise<any> {
+        const url = new URL(this.db.client.options.format === "routed" 
             ? `${this.db.client.endpoint}/${this.db.name}/${this.name}/${action}` 
-            : this.db.client.endpoint;
+            : this.db.client.endpoint);
         
+        if (context !== void 0) {
+            url.searchParams.append("context", btoa(JSON.stringify(context, stringifyReplacer)));
+        }
+
         const body = this.db.client.options.format === "routed" 
             ? payload 
             : {
@@ -61,43 +65,43 @@ export class Collection {
         }
     }
 
-    public async findOne <TSchema extends Document> (filter: FindOnePayload<TSchema>["filter"], options?: FindOnePayload<TSchema>["options"]): Promise<FindOneReturnType<TSchema>> {
-        return await this.request("findOne", { filter, options });
+    public async findOne <TSchema extends Document> (filter: FindOnePayload<TSchema>["filter"], options?: FindOnePayload<TSchema>["options"], context?: any): Promise<FindOneReturnType<TSchema>> {
+        return await this.request("findOne", { filter, options }, context);
     }
 
-    public async find <TSchema extends Document> (filter: FindPayload<TSchema>["filter"], options?: FindPayload<TSchema>["options"]): Promise<FindReturnType<TSchema>> {
-        return await this.request("find", { filter, options });
+    public async find <TSchema extends Document> (filter: FindPayload<TSchema>["filter"], options?: FindPayload<TSchema>["options"], context?: any): Promise<FindReturnType<TSchema>> {
+        return await this.request("find", { filter, options }, context);
     }
 
-    public async findOneAndUpdate <TSchema extends Document> (filter: FindOneAndUpdatePayload<TSchema>["filter"], update: FindOneAndUpdatePayload<TSchema>["update"], options?: FindOneAndUpdatePayload<TSchema>["options"]): Promise<FindOneAndUpdateReturnType<TSchema>> {
-        return await this.request("findOneAndUpdate", { filter, update, options });
+    public async findOneAndUpdate <TSchema extends Document> (filter: FindOneAndUpdatePayload<TSchema>["filter"], update: FindOneAndUpdatePayload<TSchema>["update"], options?: FindOneAndUpdatePayload<TSchema>["options"], context?: any): Promise<FindOneAndUpdateReturnType<TSchema>> {
+        return await this.request("findOneAndUpdate", { filter, update, options }, context);
     }
 
-    public async aggregate <TSchema extends Document> (pipeline: AggregatePayload["pipeline"], options?: AggregatePayload["options"]): Promise<AggregateReturnType<TSchema>> {
-        return await this.request("aggregate", { pipeline, options });
+    public async aggregate <TSchema extends Document> (pipeline: AggregatePayload["pipeline"], options?: AggregatePayload["options"], context?: any): Promise<AggregateReturnType<TSchema>> {
+        return await this.request("aggregate", { pipeline, options }, context);
     }
 
-    public async insertOne <TSchema extends Document> (document: TSchema, options?: InsertOnePayload<TSchema>["options"]): Promise<InsertOneReturnType<TSchema>> {
-        return await this.request("insertOne", { document, options });
+    public async insertOne <TSchema extends Document> (document: TSchema, options?: InsertOnePayload<TSchema>["options"], context?: any): Promise<InsertOneReturnType<TSchema>> {
+        return await this.request("insertOne", { document, options }, context);
     }
 
-    public async insertMany <TSchema extends Document> (documents: TSchema[], options?: InsertManyPayload<TSchema>["options"]): Promise<InsertManyReturnType<TSchema>> {
-        return await this.request("insertMany", { documents, options });
+    public async insertMany <TSchema extends Document> (documents: TSchema[], options?: InsertManyPayload<TSchema>["options"], context?: any): Promise<InsertManyReturnType<TSchema>> {
+        return await this.request("insertMany", { documents, options }, context);
     }
 
-    public async updateOne <TSchema extends Document> (filter: UpdateOnePayload<TSchema>["filter"], update: UpdateOnePayload<TSchema>["update"], options?: UpdateOnePayload<TSchema>["options"]): Promise<UpdateOneReturnType<TSchema>> {
-        return await this.request("updateOne", { filter, update, options });
+    public async updateOne <TSchema extends Document> (filter: UpdateOnePayload<TSchema>["filter"], update: UpdateOnePayload<TSchema>["update"], options?: UpdateOnePayload<TSchema>["options"], context?: any): Promise<UpdateOneReturnType<TSchema>> {
+        return await this.request("updateOne", { filter, update, options }, context);
     }
 
-    public async updateMany <TSchema extends Document> (filter: UpdateManyPayload<TSchema>["filter"], update: UpdateManyPayload<TSchema>["update"], options?: UpdateManyPayload<TSchema>["options"]): Promise<UpdateManyReturnType<TSchema>> {
-        return await this.request("updateMany", { filter, update, options });
+    public async updateMany <TSchema extends Document> (filter: UpdateManyPayload<TSchema>["filter"], update: UpdateManyPayload<TSchema>["update"], options?: UpdateManyPayload<TSchema>["options"], context?: any): Promise<UpdateManyReturnType<TSchema>> {
+        return await this.request("updateMany", { filter, update, options }, context);
     }
 
-    public async deleteOne <TSchema extends Document> (filter: DeleteOnePayload<TSchema>["filter"], options?: DeleteOnePayload<TSchema>["options"]): Promise<DeleteOneReturnType> {
-        return await this.request("deleteOne", { filter, options });
+    public async deleteOne <TSchema extends Document> (filter: DeleteOnePayload<TSchema>["filter"], options?: DeleteOnePayload<TSchema>["options"], context?: any): Promise<DeleteOneReturnType> {
+        return await this.request("deleteOne", { filter, options }, context);
     }
 
-    public async deleteMany <TSchema extends Document> (filter: DeleteManyPayload<TSchema>["filter"], options?: DeleteManyPayload<TSchema>["options"]): Promise<DeleteManyReturnType> {
-        return await this.request("deleteMany", { filter, options });
+    public async deleteMany <TSchema extends Document> (filter: DeleteManyPayload<TSchema>["filter"], options?: DeleteManyPayload<TSchema>["options"], context?: any): Promise<DeleteManyReturnType> {
+        return await this.request("deleteMany", { filter, options }, context);
     }
 }
