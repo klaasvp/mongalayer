@@ -84,11 +84,11 @@ describe('Access - Insert - One vs Many', () => {
     });
 
     test("Insert One - Duplicate", async () => {
-        await expect(testSimpleInsert("insertOne", { document: projectZero }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(`E11000 duplicate key error collection: test.projectsCUD index: _id_ dup key: { _id: "${projectZero._id}" }`);
+        await expect(testSimpleInsert("insertOne", { document: projectZero }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(`E11000 duplicate key error collection: mongalayer.projectsCUD index: _id_ dup key: { _id: "${projectZero._id}" }`);
     });
 
     test("Insert Many - Duplicate", async () => {
-        await expect(testSimpleInsert("insertMany", { documents: [projectZero] }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(`E11000 duplicate key error collection: test.projectsCUD index: _id_ dup key: { _id: "${projectZero._id}" }`);
+        await expect(testSimpleInsert("insertMany", { documents: [projectZero] }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(`E11000 duplicate key error collection: mongalayer.projectsCUD index: _id_ dup key: { _id: "${projectZero._id}" }`);
     });
 
     test("Insert One - Invalid doc", async () => {

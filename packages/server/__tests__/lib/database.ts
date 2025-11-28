@@ -15,7 +15,7 @@ export const
     filterTestObjects = getFilterTests(), 
     projectAssetObjects = getRandomProjectAssets(5000, projectObjects);
 
-export const dbName = "test";
+export const dbName = "mongalayer";
 
 const collections: Record<string, Document[]> = {
     "users": userObjects,
@@ -34,7 +34,7 @@ export const getMongoDBClient = async (): Promise<MongoClient> => {
                 strict: false,
                 deprecationErrors: true
             },
-            retryWrites: true,
+            retryWrites: true
         });
 
         const database = client.db(dbName);
