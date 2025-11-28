@@ -18,7 +18,8 @@
     "devDependencies": {
         "@types/jsonwebtoken": "^9.0.10",
         "type-fest": "^5.0.1",
-        "typescript": "^5.9.2"
+        "typescript": "^5.9.2",
+        "vitest": "^4.0.14"
     },
     "exports": {
         "./server": {
