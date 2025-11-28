@@ -12,7 +12,7 @@ import { Operation, UpdateManyPayload, UpdateManyReturnType, UpdateOnePayload, U
 const 
     projectZero: Project = projectObjects[0],
     projectOne: Project = projectObjects[1],
-    projectRandom: Project = projectObjects[Math.floor(Math.random() * projectObjects.length)], 
+    projectRandom: Project = projectObjects.filter(po => po._id !== projectZero._id && po._id !== projectOne._id)[Math.floor(Math.random() * (projectObjects.length - 2))], 
     userZero: User = userObjects[0];
 
 type UpdateOperation = Extract<Operation, "updateOne" | "updateMany">;

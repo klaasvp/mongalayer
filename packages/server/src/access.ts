@@ -80,8 +80,10 @@ type AccessValidators<TSchema extends Document> = {
     update?: UpdateAccessValidatorDef<TSchema>
 }
 
-export type AccessAlternativeCollection<TSchema extends Document = Document, TTargetSchema extends Document = Document> = {
+export type AccessAlternativeCollection<TSchema extends Document = Document, TTargetSchema extends Document = Document, TFilter extends AccessDefinitionFilter<TTargetSchema> = AccessFilter> = {
     target: string,
+    // The filter that should be applied on the alternative collection, the root filter still applies on the source collection.
+    targetFilter: TFilter,
     /** 
      * Supports root & nested object properties or string arrays. Make sure to index this field for performance. 
      * In case this field is a nested property in a array field use "targetFieldArrayPath" to define the array field path.
@@ -144,11 +146,16 @@ export abstract class AccessService {
     ) {
         this.hydratedRawConfig = Array.isArray(accessConfig) ? accessConfig.map(access => ({
             ...access,
-            filter: access.filter ? this.hydrateAccessFilter(access.filter) : void 0
+            filter: access.filter ? this.hydrateAccessFilter(access.filter) : void 0,
+            collection: access.collection ? { ...access.collection, targetFilter: this.hydrateAccessFilter(access.collection.targetFilter) } : void 0
         })) : [];
         this.hydratedConfig = this.hydratedRawConfig.map(access => ({
             ...access,
-            filter: access.filter ? this.translateAccessFilter(access.filter) : {}
+            filter: access.filter ? this.translateAccessFilter(access.filter) : {},
+            collection: access.collection ? {
+                ...access.collection,
+                targetFilter: this.translateAccessFilter(access.collection.targetFilter)
+            } : void 0
         }));
         this.hydratedConfigMap = this.hydratedConfig.reduce((acc, access) => ({ ...acc, [access.role]: access }), {});
 
@@ -181,9 +188,9 @@ export abstract class AccessService {
         // If there are roles with an alternative access collection we cannot combine the filters into a single $or filter
         // because those filters need to be applied in a $lookup stage.
         // In that case we will only apply the filters of the roles without an alternative access collection.
-        if (!this.hasRolesWithAlternativeAccessCollection) {
+        //if (!this.hasRolesWithAlternativeAccessCollection) {
             filters.push(...this.hydratedConfig.map(access => access.filter));
-        }
+        //}
 
         if (filters.length === 0) return null;
 
@@ -194,45 +201,79 @@ export abstract class AccessService {
         if (this.hydratedConfig.length > 0) {
             // The lookup workaround is to support query predicates in the role filter mechanism.
             // On of the more powerfull features or this is that $in supports array on array matching. ["a", "b"] in ["b", "c"] will return true.
-            const rolePipeline: Document[] = [
-                ...this.hydratedConfig.map(access => {
-                    const roleMatchField = access.collection?.targetFieldArrayPath !== void 0 
-                        ? `${access.collection!.targetFieldArrayPath as string}.${access.collection!.targetField as string}` 
-                        : access.collection?.targetField as string ?? "_id";
+            const rolePipeline: Document[] = [];
 
-                    const roleMatchPotentialArray = access.collection?.targetFieldArrayPath !== void 0 
-                        ? access.collection!.targetFieldArrayPath as string
+            for (const access of this.hydratedConfig) {
+                if (access.collection !== void 0) {
+                    const roleMatchField = access.collection.targetFieldArrayPath !== void 0 
+                        ? `${access.collection.targetFieldArrayPath as string}.${access.collection.targetField as string}` 
+                        : access.collection.targetField as string;
+
+                    const roleMatchPotentialArray = access.collection.targetFieldArrayPath !== void 0 
+                        ? access.collection.targetFieldArrayPath as string 
                         : roleMatchField
 
-                    return {
+                    rolePipeline.push({
                         $lookup: {
-                            from: access.collection?.target ?? this.collection,
+                            from: access.collection.target,
                             pipeline: [
-                                { 
-                                    $match: access.collection === void 0 && Object.keys(currentFilter).length > 0 && !hasNearQuery(currentFilter)
-                                    ? { $and: [currentFilter, access.filter] } // Only apply the current filter when not using an alternative collection and has no near query
-                                    : access.filter 
-                                },
+                                { $match: access.collection.targetFilter },
                                 { $project: { [roleMatchField]: 1 } }, // Project only the ID
                                 { $unwind: `$${roleMatchPotentialArray}` }, // Unwind also works for non-array fields, it interprets the field as an array with a single value
                                 { $replaceWith: { __mongalayer_role_id: `$${roleMatchField}` } },
                             ],
-                            as: `__mongalayer_role.${access.role}`
+                            as: `__mongalayer_role.target.${access.role}`
                         }
-                    };
-                })
-            ]
+                    });
+                }
+
+                // An empty filter is only necessary when there's no alternative collection
+                if (access.collection === void 0 || Object.keys(access.filter).length > 0) {
+                    rolePipeline.push({
+                        $lookup: {
+                            from: this.collection,
+                            pipeline: [
+                                { 
+                                    $match: Object.keys(currentFilter).length > 0 && !hasNearQuery(currentFilter) 
+                                        ? { $and: [currentFilter, access.filter] } // Only apply the current filter when there's one and has no near query
+                                        : access.filter 
+                                },
+                                { $project: { _id: 1 } }, // Project only the ID
+                                { $unwind: `$_id` }, // Unwind also works for non-array fields, it interprets the field as an array with a single value
+                                { $replaceWith: { __mongalayer_role_id: `$_id` } },
+                            ],
+                            as: `__mongalayer_role.local.${access.role}`
+                        }
+                    });
+                }
+            }            
 
             rolePipeline.push({ $addFields: { 
                 __mongalayer_role: {
                     $switch: {
-                        branches: this.hydratedConfig.map(access => ({
-                            case: {$in: [
-                                { __mongalayer_role_id: `$${access.collection?.localField ?? "_id"}` }, // Match the projected ID
-                                `$__mongalayer_role.${access.role}`
-                            ]},
-                            then: access.role
-                        })),
+                        branches: this.hydratedConfig.map(access => {
+                            const cases = [];
+                            
+                            if (access.collection !== void 0) {
+                                cases.push({$in: [
+                                    { __mongalayer_role_id: `$${access.collection.localField}` }, // Match the projected ID
+                                    `$__mongalayer_role.target.${access.role}`
+                                ]});
+                            }
+
+                            // An empty filter is only necessary when there's no alternative collection
+                            if (access.collection === void 0 || Object.keys(access.filter).length > 0) {
+                                cases.push({$in: [
+                                    { __mongalayer_role_id: `$_id` }, // Match the projected ID
+                                    `$__mongalayer_role.local.${access.role}`
+                                ]});
+                            }
+
+                            return {
+                                case: cases.length === 1 ? cases[0] : { $and: cases },
+                                then: access.role
+                            }
+                        }),
                         default: null
                     }
                 }

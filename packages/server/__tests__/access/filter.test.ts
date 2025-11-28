@@ -211,16 +211,19 @@ describe('Access - Filter', () => {
     describe.each<{ collection: AccessAlternativeCollection<ProjectAsset, any>, desc: "projectID" | "latestAssets" | "unfinishedAssets" }>([
         { collection: {
             target: "projects",
+            targetFilter: { "access.owners": {"$in":["%%user.sub"]} },
             targetField: "_id",
             localField: "projectID"
         }, desc: "projectID" },
         { collection: {
             target: "projects",
+            targetFilter: { "access.owners": {"$in":["%%user.sub"]} },
             targetField: "latestAssets",
             localField: "_id"
         }, desc: "latestAssets" },
         { collection: {
             target: "projects",
+            targetFilter: { "access.owners": {"$in":["%%user.sub"]} },
             targetField: "id",
             targetFieldArrayPath: "unfinishedAssets",
             localField: "_id"
@@ -233,9 +236,7 @@ describe('Access - Filter', () => {
                 schema: projectAssetSchema,
                 access: [{
                     role: "owner",
-                    filter: {
-                        "access.owners": {"$in":["%%user.sub"]}
-                    },
+                    filter: {},
                     collection: alternativeCollection
                 }]
             };
@@ -346,6 +347,178 @@ describe('Access - Filter', () => {
             }, {
                 pipeline: [ 
                     { $match: { _id: projectAssetWithUserAsOwner._id } },
+                    { $group: { _id: null, count: { $count: {} } } },
+                    { $project: { _id: 0 } }
+                ]
+            }, userZeroAccessPayload) as { count: number }[];
+
+            expect(result.length).toBe(1);
+            
+            if (result.length === 1) {
+                expect(result[0].count).toBe(1);
+            }
+        });
+
+        test("aggregate - match project asset not as owner", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "projectAssets" as MongalayerCollectionType<Project>,
+                operation: "aggregate"
+            }, {
+                pipeline: [ 
+                    { $match: { _id: projectAssetWithoutUserAsOwner._id } },
+                    { $group: { _id: null, count: { $count: {} } } },
+                    { $project: { _id: 0 } } 
+                ] 
+            }, userZeroAccessPayload) as { count: number }[];
+
+            expect(result.length).toBe(0);
+        });
+    });
+
+    describe.each<{ collection: AccessAlternativeCollection<ProjectAsset, any>, desc: "projectID" | "latestAssets" | "unfinishedAssets" }>([
+        { collection: {
+            target: "projects",
+            targetFilter: { "access.owners": {"$in":["%%user.sub"]} },
+            targetField: "_id",
+            localField: "projectID"
+        }, desc: "projectID" },
+        { collection: {
+            target: "projects",
+            targetFilter: { "access.owners": {"$in":["%%user.sub"]} },
+            targetField: "latestAssets",
+            localField: "_id"
+        }, desc: "latestAssets" },
+        { collection: {
+            target: "projects",
+            targetFilter: { "access.owners": {"$in":["%%user.sub"]} },
+            targetField: "id",
+            targetFieldArrayPath: "unfinishedAssets",
+            localField: "_id"
+        }, desc: "unfinishedAssets" }
+    ])('Access project asset - user creator (via project - $desc)', ({ collection: alternativeCollection, desc }) => {
+        let mongalayer: Mongalayer, userZero: User, userZeroAccessPayload: JwtPayload, projectAssetWithUserAsCreator: ProjectAsset, projectAssetWithoutUserAsOwner: ProjectAsset;
+
+        beforeAll(async () => {
+            const projectAssetCollection: MongalayerCollection<ProjectAsset> = {
+                schema: projectAssetSchema,
+                access: [{
+                    role: "creator",
+                    filter: {
+                        "uploaderID": "%%user.sub"
+                    },
+                    collection: alternativeCollection
+                }]
+            };
+
+            const collections: MongalayerCollections = {
+                projectAssets: projectAssetCollection
+            }
+        
+            userZero = userObjects[0];
+            userZeroAccessPayload = {
+                user: {
+                    sub: userZero._id
+                }
+            };
+
+            const 
+                projectWithUserAsOwner = projectObjects.find(project => project.access.owners.includes(userZero._id))!,
+                projectWithoutUserAsOwner = projectObjects.find(project => !project.access.owners.includes(userZero._id))!;
+
+            const db = await getMongoDBDatabase();
+
+            mongalayer = await getMongaLayerForCollections(collections, { debugging: true });
+
+            if (desc === "projectID") {
+                projectAssetWithUserAsCreator = projectAssetObjects.find(pa => pa.projectID === projectWithUserAsOwner._id && pa.uploaderID === userZero._id)!;
+                projectAssetWithoutUserAsOwner = projectAssetObjects.find(pa => pa.projectID === projectWithoutUserAsOwner._id)!;
+            } else if (desc === "latestAssets") {
+                projectAssetWithUserAsCreator = projectAssetObjects.find(pa => projectWithUserAsOwner.latestAssets.includes(pa._id) && pa.uploaderID === userZero._id)!;
+                projectAssetWithoutUserAsOwner = projectAssetObjects.find(pa => projectWithoutUserAsOwner.latestAssets.includes(pa._id))!;
+            } else if (desc === "unfinishedAssets") {
+                projectAssetWithUserAsCreator = projectAssetObjects.find(pa => projectWithUserAsOwner.unfinishedAssets.some(ua => ua.id === pa._id) && pa.uploaderID === userZero._id)!;
+                projectAssetWithoutUserAsOwner = projectAssetObjects.find(pa => projectWithoutUserAsOwner.unfinishedAssets.some(ua => ua.id === pa._id))!;
+            }
+        });
+
+        test("findOne - project asset as creator = project", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "projectAssets" as MongalayerCollectionType<Project>,
+                operation: "findOne"
+            }, {
+                filter: {
+                    _id: projectAssetWithUserAsCreator._id
+                }
+            }, userZeroAccessPayload);
+
+            expect(result).toStrictEqual(projectAssetWithUserAsCreator);
+        });
+
+        test("findOne - project asset not as owner = null", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "projectAssets" as MongalayerCollectionType<Project>,
+                operation: "findOne"
+            }, {
+                filter: {
+                    _id: projectAssetWithoutUserAsOwner._id
+                }
+            }, userZeroAccessPayload);
+
+            expect(result).toStrictEqual(null);
+        });
+
+        test("aggregate - count project assets as creator", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "projectAssets" as MongalayerCollectionType<Project>,
+                operation: "aggregate"
+            }, {
+                pipeline: [ 
+                    { $group: { _id: null, count: { $count: {} } } },
+                    { $project: { _id: 0 } }
+                ]
+            }, userZeroAccessPayload) as { count: number }[];
+
+            let userZeroProjectAssetsLength = 0;
+
+            const 
+                userZeroProjects = projectObjects.filter(project => project.access.owners.includes(userZero._id)),
+                userZeroProjectIDs = userZeroProjects.map(p => p._id),
+                userZeroProjectAssets = projectAssetObjects.filter(pa => userZeroProjectIDs.includes(pa.projectID) && pa.uploaderID === userZero._id),
+                userZeroProjectAssetsIDs = userZeroProjectAssets.map(pa => pa._id);
+                
+            if (desc === "projectID") {
+                userZeroProjectAssetsLength = userZeroProjectAssets.length;
+            } else if (desc === "latestAssets") {
+                userZeroProjectAssetsLength = userZeroProjects.reduce((assetIDs, project) => {
+                    assetIDs.push(...project.latestAssets.filter(la => !assetIDs.includes(la) && userZeroProjectAssetsIDs.includes(la)));
+                    return assetIDs;
+                }, [] as string[]).length;
+            } else if (desc === "unfinishedAssets") {
+                userZeroProjectAssetsLength = userZeroProjects.reduce((assetIDs, project) => {
+                    assetIDs.push(...project.unfinishedAssets.map(ua => ua.id).filter(id => !assetIDs.includes(id) && userZeroProjectAssetsIDs.includes(id)));
+                    return assetIDs;
+                }, [] as string[]).length;
+            }
+
+            expect(result.length).toBe(1);
+            
+            if (result.length === 1) {
+                expect(result[0].count).toBe(userZeroProjectAssetsLength);
+            }
+        });
+
+        test("aggregate - match project asset as creator", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "projectAssets" as MongalayerCollectionType<Project>,
+                operation: "aggregate"
+            }, {
+                pipeline: [ 
+                    { $match: { _id: projectAssetWithUserAsCreator._id } },
                     { $group: { _id: null, count: { $count: {} } } },
                     { $project: { _id: 0 } }
                 ]

@@ -123,7 +123,7 @@ describe('Access - Roles', () => {
     });
 
     test("Project Assets - Roles through alternative collection", async () => {
-        const altCollection: AccessAlternativeCollection<ProjectAsset, Project> = {
+        const altCollection: Pick<AccessAlternativeCollection<ProjectAsset, Project>, "target" | "targetField" | "localField"> = {
             target: "projects",
             targetField: "_id",
             localField: "projectID"
@@ -132,30 +132,39 @@ describe('Access - Roles', () => {
         const collection: MongalayerCollection<ProjectAsset> = {
             schema: projectAssetSchema,
             access: [{
-                role: "owner",
+                role: "creator",
                 filter: {
-                    "access.owners": {"$in": ["%%user.sub"]}
+                    "uploaderID": "%%user.sub"
                 },
-                collection: altCollection
+                collection: { ...altCollection, targetFilter: {
+                    "access.owners": {"$in": ["%%user.sub"]}
+                } }
+            }, {
+                role: "owner",
+                filter: {},
+                collection: { ...altCollection, targetFilter: {
+                    "access.owners": {"$in": ["%%user.sub"]}
+                } }
             }, {
                 role: "contributor",
-                filter: {
+                filter: {},
+                collection: { ...altCollection, targetFilter: {
                     "access.contributors": {"$in": ["%%user.sub"]}
-                },
-                collection: altCollection
+                } }
             }, {
                 role: "reader",
-                filter: {
+                filter: {},
+                collection: { ...altCollection, targetFilter: {
                     "access.readers": {"$in": ["%%user.sub"]}
-                },
-                collection: altCollection
+                }}
             }]
         };
 
         const projectRoleMapping = projectAssetObjects.reduce((mapping, projectAsset) => {
             const project = projectObjects.find(p => p._id === projectAsset.projectID)!;
 
-            if (project.access.owners.includes(userZero._id)) mapping[projectAsset._id] = "owner";
+            if (projectAsset.uploaderID === userZero._id) mapping[projectAsset._id] = "creator";
+            else if (project.access.owners.includes(userZero._id)) mapping[projectAsset._id] = "owner";
             else if (project.access.contributors.includes(userZero._id)) mapping[projectAsset._id] = "contributor";
             else if (project.access.readers.includes(userZero._id)) mapping[projectAsset._id] = "reader";
             else mapping[projectAsset._id] = null;
@@ -170,7 +179,7 @@ describe('Access - Roles', () => {
         const pipeline: Document[] = [ { $match: {} } ];
 
         if (stages.$role) pipeline.push(...stages.$role);
-        
+
         const result = await database.collection("projectAssets").aggregate<WithAccessRole<ProjectAsset>>(pipeline).toArray();
 
         expect(result.length).toEqual(Object.entries(projectRoleMapping).filter(([_, role]) => role !== null).length);
@@ -182,7 +191,7 @@ describe('Access - Roles', () => {
     });
 
     test("Project Assets - Roles through alternative collection - array", async () => {
-        const altCollection: AccessAlternativeCollection<ProjectAsset, Project> = {
+        const altCollection: Pick<AccessAlternativeCollection<ProjectAsset, Project>, "target" | "targetField" | "localField"> = {
             target: "projects",
             targetField: "latestAssets",
             localField: "_id"
@@ -191,23 +200,31 @@ describe('Access - Roles', () => {
         const collection: MongalayerCollection<ProjectAsset> = {
             schema: projectAssetSchema,
             access: [{
-                role: "owner",
+                role: "creator",
                 filter: {
-                    "access.owners": {"$in": ["%%user.sub"]}
+                    "uploaderID": "%%user.sub"
                 },
-                collection: altCollection
+                collection: { ...altCollection, targetFilter: {
+                    "access.owners": {"$in": ["%%user.sub"]}
+                } }
+            }, {
+                role: "owner",
+                filter: {},
+                collection: { ...altCollection, targetFilter: {
+                    "access.owners": {"$in": ["%%user.sub"]}
+                } }
             }, {
                 role: "contributor",
-                filter: {
+                filter: {},
+                collection: { ...altCollection, targetFilter: {
                     "access.contributors": {"$in": ["%%user.sub"]}
-                },
-                collection: altCollection
+                } }
             }, {
                 role: "reader",
-                filter: {
+                filter: {},
+                collection: { ...altCollection, targetFilter: {
                     "access.readers": {"$in": ["%%user.sub"]}
-                },
-                collection: altCollection
+                } }
             }]
         };
 
@@ -215,7 +232,8 @@ describe('Access - Roles', () => {
             const project = projectObjects.find(p => p.latestAssets.includes(projectAsset._id))!;
 
             if (project) {
-                if (project.access.owners.includes(userZero._id)) mapping[projectAsset._id] = "owner";
+                if (projectAsset.uploaderID === userZero._id) mapping[projectAsset._id] = "creator";
+                else if (project.access.owners.includes(userZero._id)) mapping[projectAsset._id] = "owner";
                 else if (project.access.contributors.includes(userZero._id)) mapping[projectAsset._id] = "contributor";
                 else if (project.access.readers.includes(userZero._id)) mapping[projectAsset._id] = "reader";
                 else mapping[projectAsset._id] = null;
@@ -243,7 +261,7 @@ describe('Access - Roles', () => {
     });
 
     test("Project Assets - Roles through alternative collection - field in embedded array", async () => {
-        const altCollection: AccessAlternativeCollection<ProjectAsset, Project> = {
+        const altCollection: Pick<AccessAlternativeCollection<ProjectAsset, Project>, "target" | "targetField" | "localField" | "targetFieldArrayPath"> = {
             target: "projects",
             targetField: "id",
             targetFieldArrayPath: "unfinishedAssets",
@@ -253,23 +271,31 @@ describe('Access - Roles', () => {
         const collection: MongalayerCollection<ProjectAsset> = {
             schema: projectAssetSchema,
             access: [{
-                role: "owner",
+                role: "creator",
                 filter: {
-                    "access.owners": {"$in": ["%%user.sub"]}
+                    "uploaderID": "%%user.sub"
                 },
-                collection: altCollection
+                collection: { ...altCollection, targetFilter: {
+                    "access.owners": {"$in": ["%%user.sub"]}
+                } }
+            }, {
+                role: "owner",
+                filter: {},
+                collection: { ...altCollection, targetFilter: {
+                    "access.owners": {"$in": ["%%user.sub"]}
+                } }
             }, {
                 role: "contributor",
-                filter: {
+                filter: {},
+                collection: { ...altCollection, targetFilter: {
                     "access.contributors": {"$in": ["%%user.sub"]}
-                },
-                collection: altCollection
+                } }
             }, {
                 role: "reader",
-                filter: {
+                filter: {},
+                collection: { ...altCollection, targetFilter: {
                     "access.readers": {"$in": ["%%user.sub"]}
-                },
-                collection: altCollection
+                } }
             }]
         };
 
@@ -277,7 +303,8 @@ describe('Access - Roles', () => {
             const project = projectObjects.find(p => p.unfinishedAssets.map(unfinishedAsset => unfinishedAsset.id).includes(projectAsset._id))!;
 
             if (project) {
-                if (project.access.owners.includes(userZero._id)) mapping[projectAsset._id] = "owner";
+                if (projectAsset.uploaderID === userZero._id) mapping[projectAsset._id] = "creator";
+                else if (project.access.owners.includes(userZero._id)) mapping[projectAsset._id] = "owner";
                 else if (project.access.contributors.includes(userZero._id)) mapping[projectAsset._id] = "contributor";
                 else if (project.access.readers.includes(userZero._id)) mapping[projectAsset._id] = "reader";
                 else mapping[projectAsset._id] = null;
