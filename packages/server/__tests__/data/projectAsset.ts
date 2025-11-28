@@ -8,6 +8,7 @@ export type ProjectAsset = {
     type: "document" | "image" | "other",
     name: string,
     description?: string,
+    uploaderID?: string,
     createdAt: Date
 };
 
@@ -19,6 +20,7 @@ export const projectAssetSchema = z.strictObject({
     type: z.enum(projectAssetTypes),
     name: z.string(),
     description: z.string().optional(),
+    uploaderID: z.string().optional(),
     createdAt: z.date()
 }) satisfies ZodType<ProjectAsset>;
 
@@ -31,9 +33,9 @@ export function getRandomProjectAsset (projects: Project[]): ProjectAsset {
         randomProjectID = faker.helpers.arrayElement(projectIds),
         randomProject = projects.find(({ _id }) => randomProjectID === _id)!;
 
-    if (randomProject.latestAssets.length === 0 || Math.random() < 0.1) { // At least 1 else a 10% chance
+    if (randomProject.latestAssets.length === 0 || Math.random() < 0.15) { // At least 1 else a 15% chance
         randomProject.latestAssets.push(assetID);
-    } else if (randomProject.unfinishedAssets.length === 0 || Math.random() < 0.2) {
+    } else if (randomProject.unfinishedAssets.length === 0 || Math.random() < 0.4) {
         randomProject.unfinishedAssets.push({
             id: assetID,
             status: faker.helpers.arrayElement(projectAssetUnfinishedStatus)
@@ -46,6 +48,7 @@ export function getRandomProjectAsset (projects: Project[]): ProjectAsset {
         type: faker.helpers.arrayElement(projectAssetTypes),
         name: faker.commerce.productName(),
         description: faker.commerce.productDescription(),
+        uploaderID: faker.helpers.arrayElement(randomProject.access.owners),
         createdAt: faker.date.past()
     };
 }

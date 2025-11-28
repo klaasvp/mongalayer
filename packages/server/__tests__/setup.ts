@@ -47,7 +47,8 @@ export async function setup () {
     ]);
 
     await database.collection<ProjectAsset>("projectAssets").createIndexes([
-        { key: { "projectID": 1 } }
+        { key: { "projectID": 1 } },
+        { key: { "uploaderID": 1 } }
     ]);
 
     await database.collection<SchemaTest>("schemaTest").createIndexes([

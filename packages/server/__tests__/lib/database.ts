@@ -13,7 +13,7 @@ export const
     userObjects = getRandomUsers(20), 
     projectObjects = getRandomProjects(200, userObjects), 
     filterTestObjects = getFilterTests(), 
-    projectAssetObjects = getRandomProjectAssets(5000, projectObjects);
+    projectAssetObjects = getRandomProjectAssets(7000, projectObjects);
 
 export const dbName = "mongalayer";
 

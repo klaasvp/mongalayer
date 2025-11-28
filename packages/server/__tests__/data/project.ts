@@ -77,8 +77,8 @@ export function getRandomProject (users: User[]): Project {
     const userIds = users.map(user => user._id);
     const 
         randomOwners = faker.helpers.arrayElements(userIds, 2),
-        randomContributors = faker.helpers.arrayElements(userIds, 2),
-        randomReaders = faker.helpers.arrayElements(userIds, 2);
+        randomContributors = faker.helpers.arrayElements(userIds.filter(id => !randomOwners.includes(id)), 2),
+        randomReaders = faker.helpers.arrayElements(userIds.filter(id => !randomOwners.includes(id) && !randomContributors.includes(id)), 2);
 
     return {
         _id: faker.string.uuid(),
@@ -87,8 +87,8 @@ export function getRandomProject (users: User[]): Project {
         description: faker.company.catchPhrase(),
         access: {
             owners: randomOwners,
-            contributors: randomContributors.filter(id => !randomOwners.includes(id)),
-            readers: randomReaders.filter(id => !randomOwners.includes(id) && !randomContributors.includes(id))
+            contributors: randomContributors,
+            readers: randomReaders
         },
         createdAt: faker.date.past(),
         updatedAt: faker.helpers.arrayElement([faker.date.recent(), null]),
