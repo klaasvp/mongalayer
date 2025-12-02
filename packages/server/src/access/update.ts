@@ -152,7 +152,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
 
         await upsertAccessService.validateDocumentsAccess([insertableDoc]);
 
-        return { doc: insertableDoc, role: upsertAccessService.getAccessRole(insertableDoc) };
+        return { doc: insertableDoc, role: (await upsertAccessService.getAccessRoles([insertableDoc]))[0] };
     }
 
     public getStages (currentFilter: Filter<Document> = {}): UpdateStages {

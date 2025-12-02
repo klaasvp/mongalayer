@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeEach } from "vitest";
 import { MongalayerCollections } from "#src/core";
-import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects, resetCUDCollections, userObjects } from "#test/lib/database";
+import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectAssetObjects, projectObjects, resetCUDCollections, userObjects } from "#test/lib/database";
 import { AccessConfig, AccessDefaults, AccessPermissions, AccessValidatorError, defineUpdateAccessValidator } from "#src/access.js";
 import { getRandomProject, Project, projectSchema } from "#test/data/project.js";
 import { MongalayerCollectionType } from "#src/index.js";
@@ -8,6 +8,7 @@ import { Document } from "mongodb";
 import { PartialDeep } from "type-fest";
 import { getRandomUser, User } from "#test/data/user.js";
 import { Operation, UpdateManyPayload, UpdateManyReturnType, UpdateOnePayload, UpdateOneReturnType } from "#src/client.js";
+import { getRandomProjectAsset, ProjectAsset, projectAssetSchema } from "#test/data/projectAsset.js";
 
 const 
     projectZero: Project = projectObjects[0],
@@ -45,6 +46,32 @@ const testSimpleUpdate = async <
         operation,
     }, input, { user: { id: userID } })) as TResult;
 };
+
+const testSimpleUpdateAssets = async <
+    TOperation extends UpdateOperation,
+    TResult extends TOperation extends "updateOne" ? UpdateOneReturnType<ProjectAsset> : UpdateManyReturnType<ProjectAsset>
+> (
+    operation: TOperation, 
+    input: TOperation extends "updateOne" ? UpdateOnePayload<ProjectAsset> : UpdateManyPayload<ProjectAsset>, 
+    access: AccessConfig<Document>, 
+    accessDefaults: PartialDeep<AccessDefaults>,
+    userID: string = userZero._id
+): Promise<TResult> => {
+    const collections: MongalayerCollections = {
+        projectAssetsCUD: {
+            schema: projectAssetSchema,
+            access
+        }
+    };
+
+    const mongalayer = await getMongaLayerForCollections(collections, { debugging: true, accessDefaults });
+
+    return await mongalayer.executeRaw({
+        database: dbName,
+        collection: "projectAssetsCUD" as MongalayerCollectionType<ProjectAsset>,
+        operation
+    }, input, {user: {id: userID}}) as TResult;
+}
 
 describe("Access - Update - Defaults & One", () => {
     const newDescription = "Updated description";
@@ -549,6 +576,301 @@ describe("Access - Update permissions", () => {
         expect(result.acknowledged).toBe(true);
         expect(result.matchedCount).toBe(0);
         expect(result.modifiedCount).toBe(0);        
+    });
+});
+
+describe("Access - Update permissions - Alternative collection", async () => {
+    const accessConfig: AccessConfig<Document> = [{
+        role: "owner",
+        filter: {
+            uploaderID: "%%user.id"
+        },
+        collection: {
+            target: "projectsCUD",
+            targetFilter: {
+                "access.owners": {"$in": ["%%user.id"]}
+            },
+            targetField: "_id",
+            localField: "projectID"
+        },
+        document: AccessPermissions.ReadWrite,
+    }, {
+        role: "contributor",
+        filter: {},
+        collection: {
+            target: "projectsCUD",
+            targetFilter: {
+                "access.contributors": {"$in": ["%%user.id"]}
+            },
+            targetField: "_id",
+            localField: "projectID"
+        },
+        document: AccessPermissions.Read,
+    }, {
+        role: "reader",
+        filter: {},
+        collection: {
+            target: "projectsCUD",
+            targetFilter: {
+                "access.readers": {"$in": ["%%user.id"]}
+            },
+            targetField: "_id",
+            localField: "projectID"
+        },
+    }];
+
+    const newDescription = "Updated by role";
+
+    const database = await getMongoDBDatabase();
+
+    beforeEach(async () => {
+        await resetCUDCollections();
+    });
+
+    // updateOne
+    test("Update document as owner (one), as uploader", async () => {
+        // Pick a project where we know an owner exists
+        const project = projectObjects.find(p => p.access.owners.length > 0)!;
+        const userID = project.access.owners[0];
+        const projectAsset = projectAssetObjects.find(pa => pa.projectID === project._id && pa.uploaderID === userID)!;
+
+        const result = await testSimpleUpdateAssets("updateOne", { 
+            filter: { _id: projectAsset._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID);
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+    });
+
+    test("Update document as owner (one), not uploader", async () => {
+        // Pick a project where we know an owner exists
+        const project = projectObjects.find(p => p.access.owners.length > 0)!;
+        const userID = project.access.owners[0];
+        const projectAsset = projectAssetObjects.find(pa => pa.projectID === project._id && pa.uploaderID !== userID)!;
+
+        // This one returns 0 matches because no documents were found matching the filter & access filter
+        const result = await testSimpleUpdateAssets("updateOne", { 
+            filter: { _id: projectAsset._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID);
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(0);
+        expect(result.modifiedCount).toBe(0);  
+    });
+
+    test("Update document as contributor (one), as uploader", async () => {
+        const project = projectObjects.find(p => p.access.contributors.length > 0)!;
+        const userID = project.access.contributors[0];
+        const projectAsset = projectAssetObjects.find(pa => pa.projectID === project._id)!;
+
+        await database.collection<ProjectAsset>("projectAssetsCUD").updateOne({ _id: projectAsset._id }, { $set: { uploaderID: userID } });
+
+        await expect(testSimpleUpdateAssets("updateOne", { 
+            filter: { _id: projectAsset._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [
+                { index: 0, id: projectAsset._id, issues: [{ type: "field", field: "description", issue: `Role "contributor" does not have update access for field "description".` }] },
+            ],
+        }));
+    });
+
+    test("Update document as contributor (one)", async () => {
+        const project = projectObjects.find(p => p.access.contributors.length > 0)!;
+        const userID = project.access.contributors[0];
+        const projectAsset = projectAssetObjects.find(pa => pa.projectID === project._id)!;
+
+        await expect(testSimpleUpdateAssets("updateOne", { 
+            filter: { _id: projectAsset._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [
+                { index: 0, id: projectAsset._id, issues: [{ type: "field", field: "description", issue: `Role "contributor" does not have update access for field "description".` }] },
+            ],
+        }));
+    });
+
+    test("Update document as reader (one)", async () => {
+        const project = projectObjects.find(p => p.access.readers.length > 0)!;
+        const userID = project.access.readers[0];
+        const projectAsset = projectAssetObjects.find(pa => pa.projectID === project._id)!;
+
+        await expect(testSimpleUpdateAssets("updateOne", { 
+            filter: { _id: projectAsset._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [
+                { index: 0, id: projectAsset._id, issues: [{ type: "field", field: "description", issue: `Role "reader" does not have update access for field "description".` }] },
+            ],
+        }));
+    });
+
+    test("Update document as unknown (one)", async () => {
+        const project = projectObjects[0];
+        const userID = getRandomUser()._id;
+        const projectAsset = projectAssetObjects.find(pa => pa.projectID === project._id)!;
+
+        // This one returns 0 matches because no documents were found matching the filter & access filter
+        const result = await testSimpleUpdateAssets("updateOne", { 
+            filter: { _id: projectAsset._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID);
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(0);
+        expect(result.modifiedCount).toBe(0);        
+    });
+
+    // updateMany
+    test("Update document as owner (many), as uploader", async () => {
+        // Pick a project where we know an owner exists
+        const project = projectObjects.find(p => p.access.owners.length > 0)!;
+        const userID = project.access.owners[0];
+        const projectAsset = projectAssetObjects.find(pa => pa.projectID === project._id && pa.uploaderID === userID)!;
+
+        const result = await testSimpleUpdateAssets("updateMany", { 
+            filter: { _id: projectAsset._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID);
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+    });
+
+    test("Update document as owner (many), not uploader", async () => {
+        // Pick a project where we know an owner exists
+        const project = projectObjects.find(p => p.access.owners.length > 0)!;
+        const userID = project.access.owners[0];
+        const projectAsset = projectAssetObjects.find(pa => pa.projectID === project._id && pa.uploaderID !== userID)!;
+
+        // This one returns 0 matches because no documents were found matching the filter & access filter
+        const result = await testSimpleUpdateAssets("updateMany", { 
+            filter: { _id: projectAsset._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID);
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(0);
+        expect(result.modifiedCount).toBe(0);
+    });
+
+    test("Update document as contributor (many)", async () => {
+        const project = projectObjects.find(p => p.access.contributors.length > 0)!;
+        const userID = project.access.contributors[0];
+        const projectAsset = projectAssetObjects.find(pa => pa.projectID === project._id)!;
+
+        await expect(testSimpleUpdateAssets("updateMany", { 
+            filter: { _id: projectAsset._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [
+                { index: 0, id: projectAsset._id, issues: [{ type: "field", field: "description", issue: `Role "contributor" does not have update access for field "description".` }] },
+            ],
+        }));
+    });
+
+    test("Update document as reader (many)", async () => {
+        const project = projectObjects.find(p => p.access.readers.length > 0)!;
+        const userID = project.access.readers[0];
+        const projectAsset = projectAssetObjects.find(pa => pa.projectID === project._id)!;
+
+        await expect(testSimpleUpdateAssets("updateMany", { 
+            filter: { _id: projectAsset._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [
+                { index: 0, id: projectAsset._id, issues: [{ type: "field", field: "description", issue: `Role "reader" does not have update access for field "description".` }] },
+            ],
+        }));
+    });
+
+    test("Update document as unknown (many)", async () => {
+        const project = projectObjects[0];
+        const userID = getRandomUser()._id;
+        const projectAsset = projectAssetObjects.find(pa => pa.projectID === project._id)!;
+
+        // This one returns 0 matches because no documents were found matching the filter & access filter
+        const result = await testSimpleUpdateAssets("updateMany", { 
+            filter: { _id: projectAsset._id }, 
+            update: { $set: { description: newDescription } } 
+        }, accessConfig, {}, userID);
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(0);
+        expect(result.modifiedCount).toBe(0);        
+    });
+
+    // updateOne & upsert
+    test("Upsert document as owner (one), as uploader", async () => {
+        // Pick a project where we know an owner exists
+        const project = projectObjects.find(p => p.access.owners.length > 0)!;
+        const userID = project.access.owners[0];
+        const upsertProjectAsset = getRandomProjectAsset([project]);
+
+        upsertProjectAsset.uploaderID = userID;
+
+        const { _id: upsertProjectAssetID, ...upsertUpdate } = upsertProjectAsset;
+
+        const result = await testSimpleUpdateAssets("updateOne", { 
+            filter: { _id: upsertProjectAssetID }, 
+            update: { $set: upsertUpdate },
+            options: { upsert: true }
+        }, accessConfig, {}, userID);
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(0);
+        expect(result.modifiedCount).toBe(0);
+        expect(result.upsertedId).toEqual(upsertProjectAssetID);
+        expect(result.upsertedCount).toBe(1);
+    });
+
+    test("Upsert document as owner (one), not uploader", async () => {
+        // Pick a project where we know an owner exists
+        const project = projectObjects.find(p => p.access.owners.length > 0)!;
+        const userID = project.access.owners[0];
+        const upsertProjectAsset = getRandomProjectAsset([project]);
+
+        upsertProjectAsset.uploaderID = project.access.owners[1];
+
+        const { _id: upsertProjectAssetID, ...upsertUpdate } = upsertProjectAsset;
+
+        await expect(testSimpleUpdateAssets("updateOne", { 
+            filter: { _id: upsertProjectAssetID }, 
+            update: { $set: upsertUpdate },
+            options: { upsert: true }
+        }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: `No access role found for document` }] }]
+        }));
+    });
+
+    test("Upsert document as contributor (one), as uploader", async () => {
+        // Pick a project where we know an owner exists
+        const project = projectObjects.find(p => p.access.contributors.length > 0)!;
+        const userID = project.access.contributors[0];
+        const upsertProjectAsset = getRandomProjectAsset([project]);
+
+        upsertProjectAsset.uploaderID = userID;
+
+        const { _id: upsertProjectAssetID, ...upsertUpdate } = upsertProjectAsset;
+
+        await expect(testSimpleUpdateAssets("updateOne", { 
+            filter: { _id: upsertProjectAssetID }, 
+            update: { $set: upsertUpdate },
+            options: { upsert: true }
+        }, accessConfig, {}, userID)).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: `No create access for document` }] }]
+        }));
     });
 });
 
