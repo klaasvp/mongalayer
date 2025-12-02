@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeEach } from "vitest";
 import { MongalayerCollections } from "#src/core";
-import { dbName, getMongaLayerForCollections, projectObjects, resetCUDCollections, userObjects } from "#test/lib/database";
+import { dbName, getMongaLayerForCollections, projectAssetObjects, projectObjects, resetCUDCollections, userObjects } from "#test/lib/database";
 import { AccessConfig, AccessDefaults } from "#src/access.js";
 import { Project, projectSchema } from "#test/data/project.js";
 import { MongalayerCollectionType } from "#src/index.js";
@@ -8,6 +8,7 @@ import { Document } from "mongodb";
 import { PartialDeep } from "type-fest";
 import { User } from "#test/data/user.js";
 import { Filter, Operation } from "#src/client.js";
+import { ProjectAsset, projectAssetSchema } from "#test/data/projectAsset.js";
 
 const projectZero: Project = projectObjects[0], userZero: User = userObjects[0];
 
@@ -38,6 +39,28 @@ const testSimpleDelete = async (operation: DeleteOperation, deletedCount: number
 const testSimpleDeleteOne = async (deletedCount: 0 | 1, access: AccessConfig<Document>, accessDefaults: PartialDeep<AccessDefaults>) => {
     return testSimpleDelete("deleteOne", deletedCount, { _id: projectZero._id }, access, accessDefaults);
 };
+
+const testSimpleDeleteAssets = async (operation: DeleteOperation, deletedCount: number, filter: Filter, access: AccessConfig<Document>, accessDefaults: PartialDeep<AccessDefaults>) => {
+    const collections: MongalayerCollections = {
+        projectAssetsCUD: {
+            schema: projectAssetSchema,
+            access
+        }
+    };
+
+    const mongalayer = await getMongaLayerForCollections(collections, { debugging: true, accessDefaults });
+
+    const result = await mongalayer.executeRaw({
+        database: dbName,
+        collection: "projectAssetsCUD" as MongalayerCollectionType<ProjectAsset>,
+        operation
+    }, {
+        filter
+    }, {user: {id: userZero._id}});
+
+    expect(result.acknowledged).toBeTruthy();
+    expect(result.deletedCount).toBe(deletedCount);
+}
 
 type DeleteTest = {
     operation: DeleteOperation,
@@ -173,7 +196,7 @@ describe('Access - Delete', () => {
     }
 });
 
-describe('Access - Delete many', () => {
+describe('Access - Delete role permissions', () => {
     describe('Owner (delete = true), contributor (delete = false), reader (delete = undefined)', () => {
         const accessConfig: AccessConfig<Document> = [{
             role: "owner",
@@ -229,6 +252,128 @@ describe('Access - Delete many', () => {
             }, [] as string[]);
 
             await testSimpleDelete("deleteMany", 0, { _id: { $in: projectsAsReader } }, accessConfig, {});
+        });
+    });
+
+    describe('Alternative collection - Owner (delete = true), contributor (delete = false), reader (delete = undefined)', () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "owner",
+            filter: {
+                uploaderID: "%%user.id"
+            },
+            collection: {
+                target: "projectsCUD",
+                targetFilter: {
+                    "access.owners": {"$in": ["%%user.id"]}
+                },
+                targetField: "_id",
+                localField: "projectID"
+            },
+            delete: true
+        }, {
+            role: "contributor",
+            filter: {},
+            collection: {
+                target: "projectsCUD",
+                targetFilter: {
+                    "access.contributors": {"$in": ["%%user.id"]}
+                },
+                targetField: "_id",
+                localField: "projectID"
+            },
+            delete: false
+        }, {
+            role: "reader",
+            filter: {},
+            collection: {
+                target: "projectsCUD",
+                targetFilter: {
+                    "access.readers": {"$in": ["%%user.id"]}
+                },
+                targetField: "_id",
+                localField: "projectID"
+            },
+        }];
+
+        beforeEach(async () => {
+            await resetCUDCollections();
+        });
+
+        test("Delete all documents", async () => {
+            const projectsAsOwner = projectObjects.filter(project => project.access.owners.includes(userZero._id)).map(project => project._id);
+            const projectAssetsCountByOwner = projectAssetObjects.reduce((acc, projectAsset) => projectsAsOwner.includes(projectAsset.projectID) && projectAsset.uploaderID === userZero._id ? acc + 1 : acc, 0);
+
+            await testSimpleDeleteAssets("deleteMany", projectAssetsCountByOwner, {  }, accessConfig, {});
+        });
+
+        test("Delete some documents as owner (many)", async () => {
+            const projectsAsOwner = projectObjects.filter(project => project.access.owners.includes(userZero._id)).map(project => project._id);
+            const projectAssetsAsOwner = projectAssetObjects.reduce((acc, projectAsset) => {
+                if (projectsAsOwner.includes(projectAsset.projectID) && projectAsset.uploaderID === userZero._id) acc.push(projectAsset._id);
+                return acc;
+            }, [] as string[]).slice(0, 2);
+
+            await testSimpleDeleteAssets("deleteMany", projectAssetsAsOwner.length, { _id: { $in: projectAssetsAsOwner } }, accessConfig, {});
+        });
+
+        test("Delete some documents as owner (many), not uploader", async () => {
+            const projectsAsOwner = projectObjects.filter(project => project.access.owners.includes(userZero._id)).map(project => project._id);
+            const projectAssetsAsOwner = projectAssetObjects.reduce((acc, projectAsset) => {
+                if (projectsAsOwner.includes(projectAsset.projectID) && projectAsset.uploaderID !== userZero._id) acc.push(projectAsset._id);
+                return acc;
+            }, [] as string[]).slice(0, 2);
+
+            await testSimpleDeleteAssets("deleteMany", 0, { _id: { $in: projectAssetsAsOwner } }, accessConfig, {});
+        });
+
+        test("Delete documents as contributor (many)", async () => {
+            const projectsAsContributor = projectObjects.filter(project => project.access.contributors.includes(userZero._id)).map(project => project._id);
+            const projectAssetsAsContributor = projectAssetObjects.reduce((acc, projectAsset) => {
+                if (projectsAsContributor.includes(projectAsset.projectID)) acc.push(projectAsset._id);
+                return acc;
+            }, [] as string[])
+
+            await testSimpleDeleteAssets("deleteMany", 0, { _id: { $in: projectAssetsAsContributor } }, accessConfig, {});
+        });
+
+        test("Delete documents as reader (many)", async () => {
+            const projectsAsReader = projectObjects.filter(project => project.access.readers.includes(userZero._id)).map(project => project._id);
+            const projectAssetsAsReader = projectAssetObjects.reduce((acc, projectAsset) => {
+                if (projectsAsReader.includes(projectAsset.projectID)) acc.push(projectAsset._id);
+                return acc;
+            }, [] as string[])
+
+            await testSimpleDeleteAssets("deleteMany", 0, { _id: { $in: projectAssetsAsReader } }, accessConfig, {});
+        });
+
+        test("Delete some documents as owner (one)", async () => {
+            const projectsAsOwner = projectObjects.filter(project => project.access.owners.includes(userZero._id)).map(project => project._id);
+            const projectAssetsAsOwner = projectAssetObjects.reduce((acc, projectAsset) => {
+                if (projectsAsOwner.includes(projectAsset.projectID) && projectAsset.uploaderID === userZero._id) acc.push(projectAsset._id);
+                return acc;
+            }, [] as string[]).slice(0, 2);
+
+            await testSimpleDeleteAssets("deleteOne", 1, { _id: { $in: projectAssetsAsOwner } }, accessConfig, {});
+        });
+
+        test("Delete some documents as owner (one), not uploader", async () => {
+            const projectsAsOwner = projectObjects.filter(project => project.access.owners.includes(userZero._id)).map(project => project._id);
+            const projectAssetsAsOwner = projectAssetObjects.reduce((acc, projectAsset) => {
+                if (projectsAsOwner.includes(projectAsset.projectID) && projectAsset.uploaderID !== userZero._id) acc.push(projectAsset._id);
+                return acc;
+            }, [] as string[]).slice(0, 2);
+
+            await testSimpleDeleteAssets("deleteOne", 0, { _id: { $in: projectAssetsAsOwner } }, accessConfig, {});
+        });
+
+        test("Delete documents as contributor (one)", async () => {
+            const projectsAsContributor = projectObjects.filter(project => project.access.contributors.includes(userZero._id)).map(project => project._id);
+            const projectAssetsAsContributor = projectAssetObjects.reduce((acc, projectAsset) => {
+                if (projectsAsContributor.includes(projectAsset.projectID)) acc.push(projectAsset._id);
+                return acc;
+            }, [] as string[])
+
+            await testSimpleDeleteAssets("deleteOne", 0, { _id: { $in: projectAssetsAsContributor } }, accessConfig, {});
         });
     });
 });
