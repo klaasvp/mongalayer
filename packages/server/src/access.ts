@@ -195,7 +195,32 @@ export abstract class AccessService {
         if (filters.length === 0) return null;
 
         return { $or: filters };
-    } 
+    }
+
+    protected getTargetRoleState (accessRoleName: string, accessCollection: AccessAlternativeCollection): { $lookup: { from: string,  pipeline: Document[], as: string } } {
+        // Never use .localField here as this function is used in the insert access service where the localField value, in case of _id, is potentially not yet present in the document.
+
+        const roleMatchField = accessCollection.targetFieldArrayPath !== void 0 
+            ? `${accessCollection.targetFieldArrayPath as string}.${accessCollection.targetField as string}` 
+            : accessCollection.targetField as string;
+
+        const roleMatchPotentialArray = accessCollection.targetFieldArrayPath !== void 0 
+            ? accessCollection.targetFieldArrayPath as string 
+            : roleMatchField
+
+        return {
+            $lookup: {
+                from: accessCollection.target,
+                pipeline: [
+                    { $match: accessCollection.targetFilter },
+                    { $project: { [roleMatchField]: 1 } }, // Project only the ID
+                    { $unwind: `$${roleMatchPotentialArray}` }, // Unwind also works for non-array fields, it interprets the field as an array with a single value
+                    { $replaceWith: { __mongalayer_role_id: `$${roleMatchField}` } },
+                ],
+                as: `__mongalayer_role.target.${accessRoleName}`
+            }
+        };
+    }
 
     protected getRoleStages (currentFilter: Filter<Document> = {}): Document[] | null {
         if (this.hydratedConfig.length > 0) {
@@ -205,26 +230,7 @@ export abstract class AccessService {
 
             for (const access of this.hydratedConfig) {
                 if (access.collection !== void 0) {
-                    const roleMatchField = access.collection.targetFieldArrayPath !== void 0 
-                        ? `${access.collection.targetFieldArrayPath as string}.${access.collection.targetField as string}` 
-                        : access.collection.targetField as string;
-
-                    const roleMatchPotentialArray = access.collection.targetFieldArrayPath !== void 0 
-                        ? access.collection.targetFieldArrayPath as string 
-                        : roleMatchField
-
-                    rolePipeline.push({
-                        $lookup: {
-                            from: access.collection.target,
-                            pipeline: [
-                                { $match: access.collection.targetFilter },
-                                { $project: { [roleMatchField]: 1 } }, // Project only the ID
-                                { $unwind: `$${roleMatchPotentialArray}` }, // Unwind also works for non-array fields, it interprets the field as an array with a single value
-                                { $replaceWith: { __mongalayer_role_id: `$${roleMatchField}` } },
-                            ],
-                            as: `__mongalayer_role.target.${access.role}`
-                        }
-                    });
+                    rolePipeline.push(this.getTargetRoleState(access.role, access.collection));
                 }
 
                 // An empty filter is only necessary when there's no alternative collection
