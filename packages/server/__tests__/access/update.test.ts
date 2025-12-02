@@ -812,7 +812,7 @@ describe("Access - Update permissions - Alternative collection", async () => {
     // updateOne & upsert
     test("Upsert document as owner (one), as uploader", async () => {
         // Pick a project where we know an owner exists
-        const project = projectObjects.find(p => p.access.owners.length > 0)!;
+        const project = structuredClone(projectObjects.find(p => p.access.owners.length > 0)!);
         const userID = project.access.owners[0];
         const upsertProjectAsset = getRandomProjectAsset([project]);
 
@@ -835,7 +835,7 @@ describe("Access - Update permissions - Alternative collection", async () => {
 
     test("Upsert document as owner (one), not uploader", async () => {
         // Pick a project where we know an owner exists
-        const project = projectObjects.find(p => p.access.owners.length > 0)!;
+        const project = structuredClone(projectObjects.find(p => p.access.owners.length > 0)!);
         const userID = project.access.owners[0];
         const upsertProjectAsset = getRandomProjectAsset([project]);
 
@@ -855,7 +855,7 @@ describe("Access - Update permissions - Alternative collection", async () => {
 
     test("Upsert document as contributor (one), as uploader", async () => {
         // Pick a project where we know an owner exists
-        const project = projectObjects.find(p => p.access.contributors.length > 0)!;
+        const project = structuredClone(projectObjects.find(p => p.access.contributors.length > 0)!);
         const userID = project.access.contributors[0];
         const upsertProjectAsset = getRandomProjectAsset([project]);
 
