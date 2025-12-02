@@ -2,6 +2,7 @@ import type { Collection, Document, Filter } from "mongodb";
 import z from "zod/v4";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { DeletableDocument, DeleteAccessService } from "../access/delete.js";
+import { Debugging } from "../core.js";
 
 export type DeleteOnePayload <TSchema extends Document> = {
     filter: FilterSchema,
@@ -41,6 +42,10 @@ export default async function <TSchema extends Document> (collection: Collection
     } }, {
         $limit: 1
     });
+        
+    if (Debugging.isEnabled()) {
+        console.debug("Mongalayer - DeleteOne - pipeline:", JSON.stringify(pipeline));
+    }
     
     const documentsWithRole = await collection.aggregate(pipeline).toArray() as DeletableDocument[];
 

@@ -2,6 +2,7 @@ import type { Collection, Document, Filter } from "mongodb";
 import z from "zod/v4";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { DeletableDocument, DeleteAccessService } from "../access/delete.js";
+import { Debugging } from "../core.js";
 
 export type DeleteManyPayload <TSchema extends Document> = {
     filter: FilterSchema,
@@ -38,6 +39,10 @@ export default async function <TSchema extends Document> (collection: Collection
         _id: 1, // Explicitly set it so there's no confusion over it being included
         __mongalayer_role: 1
     } });
+    
+    if (Debugging.isEnabled()) {
+        console.debug("Mongalayer - DeleteMany - pipeline:", JSON.stringify(pipeline));
+    }
     
     const documentsWithRole = await collection.aggregate(pipeline).toArray() as DeletableDocument[];
 

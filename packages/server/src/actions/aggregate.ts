@@ -2,6 +2,7 @@ import type { Collection, Document } from "mongodb";
 import z from "zod/v4";
 import { pipelineSchema, PipelineSchema } from "../schema/aggregate.js";
 import { AggregationAccessService } from "../access/aggregation.js";
+import { Debugging } from "../core.js";
 
 export type AggregatePayload = {
     pipeline: PipelineSchema,
@@ -23,6 +24,10 @@ export default async function <TSchema extends Document> (collection: Collection
     payloadSchema.parse(payload);
     
     const stages = accessService.getStages(payload.pipeline);
+
+    if (Debugging.isEnabled()) {
+        console.debug("Mongalayer - Aggregate - pipeline:", JSON.stringify(stages.$pipeline));
+    }
 
     const result = await collection.aggregate(stages.$pipeline, payload.options).toArray() as Document[];
 

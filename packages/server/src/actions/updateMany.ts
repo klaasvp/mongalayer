@@ -3,6 +3,7 @@ import z from "zod/v4";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { updateSchema, UpdateSchema } from "../schema/update.js";
 import { UpdatableDocument, UpdateAccessService } from "../access/update.js";
+import { Debugging } from "../core.js";
 
 export type UpdateManyPayload <TSchema extends Document> = {
     filter: FilterSchema,
@@ -32,6 +33,10 @@ export default async function <TSchema extends Document> (collection: Collection
     }
 
     pipeline.push({ $project: stages.$project });
+
+    if (Debugging.isEnabled()) {
+        console.debug(`Mongalayer - UpdateMany - pipeline:`, JSON.stringify(pipeline));
+    }
     
     const documentsWithRole = await collection.aggregate(pipeline).toArray() as UpdatableDocument[];
     const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update);

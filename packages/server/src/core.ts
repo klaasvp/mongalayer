@@ -43,6 +43,12 @@ export type MongalayerOptions = {
     accessDefaults: AccessDefaults
 };
 
+export class Debugging {
+    static isEnabled(): boolean {
+        return process.env.MONGALAYER_DEBUG === "1";
+    }
+}
+
 export class Mongalayer {
     private options: MongalayerOptions;
 
@@ -61,6 +67,16 @@ export class Mongalayer {
                 ...providedOptions?.accessDefaults ?? { }
             }
         };
+
+        if (this.options.debugging) {
+            console.debug("Mongalayer - Debugging mode enabled");
+
+            try {
+                process.env.MONGALAYER_DEBUG = "1";
+            } catch (e) {
+                console.log("Mongalayer - Unable to set MONGALAYER_DEBUG environment variable");
+            }
+        }
     }
 
     /**
@@ -86,7 +102,9 @@ export class Mongalayer {
                 accessConfig = this.collections[action.collection].access;
                 schema = this.collections[action.collection].schema;
             } else {
-                console.debug("Mongalayer - Execute - No config found, using public access");
+                if (Debugging.isEnabled()) {
+                    console.debug("Mongalayer - Execute - No config found, using public access");
+                }
             }
 
             let accessService: QueryAccessService | AggregationAccessService | InsertAccessService | UpdateAccessService | DeleteAccessService;

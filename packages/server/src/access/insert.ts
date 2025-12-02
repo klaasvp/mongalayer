@@ -3,6 +3,7 @@ import { AccessDefinition, AccessPermissions, AccessService, AccessValidatorErro
 import z from "zod/v4";
 import { matches } from "./matcher.js";
 import { AuthorizationError, AuthorizationErrorCode, AuthorizationIssue, UnauthorizedDocument } from "@mongalayer/core";
+import { Debugging } from "../core.js";
 
 type InsertRoleResult = { __mongalayer_role_id: string }[];
 type InsertRoleResults = (InsertRoleResult | null)[];
@@ -112,8 +113,16 @@ export class InsertAccessService extends AccessService {
                 if (access.collection !== void 0) {
                     const lookupStage = this.getTargetRoleState(access.role, access.collection);
                     
+                    if (Debugging.isEnabled()) {
+                        console.debug(`Mongalayer - Insert - role with $lookup:`, access.role, JSON.stringify(lookupStage));
+                    }
+                    
                     roleQueries.push(this.client.db(this.database).collection(lookupStage.$lookup.from).aggregate(lookupStage.$lookup.pipeline).toArray() as Promise<InsertRoleResult>);
                 } else {
+                    if (Debugging.isEnabled()) {
+                        console.debug(`Mongalayer - Insert - role without $lookup:`, access.role);
+                    }
+
                     roleQueries.push(Promise.resolve(null));
                 }
             }
