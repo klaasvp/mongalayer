@@ -34,22 +34,27 @@ export async function setup () {
     await database.createCollection<Project>("projects"); 
     await database.createCollection<Project>("projectsCUD"); // Create, update, delete
     await database.createCollection<ProjectAsset>("projectAssets"); 
+    await database.createCollection<ProjectAsset>("projectAssetsCUD"); // Create, update, delete
     await database.createCollection<FilterTest>("filterTest");
     await database.createCollection<FilterTest>("filterTestSolo");
     await database.createCollection<SchemaTest>("schemaTest");
 
-    await database.collection<Project>("projects").createIndexes([
-        { key: { "access.owners": 1 } },
-        { key: { "access.contributors": 1 } },
-        { key: { "access.readers": 1 } },
-        { key: { "latestAssets": 1 } },
-        { key: { "unfinishedAssets.id": 1 } }
-    ]);
+    for (const collectionName of ["projects", "projectsCUD"]) {
+        await database.collection<Project>(collectionName).createIndexes([
+            { key: { "access.owners": 1 } },
+            { key: { "access.contributors": 1 } },
+            { key: { "access.readers": 1 } },
+            { key: { "latestAssets": 1 } },
+            { key: { "unfinishedAssets.id": 1 } }
+        ]);
+    }
 
-    await database.collection<ProjectAsset>("projectAssets").createIndexes([
-        { key: { "projectID": 1 } },
-        { key: { "uploaderID": 1 } }
-    ]);
+    for (const collectionName of ["projectAssets", "projectAssetsCUD"]) {
+        await database.collection<ProjectAsset>(collectionName).createIndexes([
+            { key: { "projectID": 1 } },
+            { key: { "uploaderID": 1 } }
+        ]);
+    }
 
     await database.collection<SchemaTest>("schemaTest").createIndexes([
         { key: { "property": "2dsphere" } },

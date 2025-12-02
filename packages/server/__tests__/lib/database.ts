@@ -22,6 +22,7 @@ const collections: Record<string, Document[]> = {
     "projects": projectObjects,
     "projectsCUD": structuredClone(projectObjects),
     "projectAssets": projectAssetObjects,
+    "projectAssetsCUD": structuredClone(projectAssetObjects),
     "filterTest": filterTestObjects,
     "filterTestSolo": [exampleObject1]
 }
@@ -93,7 +94,7 @@ export const getMongaLayerForCollections = async (collections: MongalayerCollect
 export const resetCUDCollections = async () => {
     const database = await getMongoDBDatabase();
 
-    const CUDCollections: string[] = ["projectsCUD"];
+    const CUDCollections: string[] = ["projectsCUD", "projectAssetsCUD"];
 
     // Clear the database as this 
     for (const collectionName of CUDCollections) {
