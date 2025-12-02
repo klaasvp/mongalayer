@@ -4,6 +4,9 @@ import z from "zod/v4";
 import { matches } from "./matcher.js";
 import { AuthorizationError, AuthorizationErrorCode, AuthorizationIssue, UnauthorizedDocument } from "@mongalayer/core";
 
+type InsertRoleResult = { __mongalayer_role_id: string }[];
+type InsertRoleResults = (InsertRoleResult | null)[];
+
 export type InsertableDocument<TSchema extends Document> = OptionalUnlessRequiredId<TSchema>;
 
 class InsertDocumentError extends Error {}
@@ -26,8 +29,10 @@ export class InsertAccessService extends AccessService {
     public async validateDocumentsAccess (docs: InsertableDocument<Document>[]) {
         const unauthorizedDocuments: UnauthorizedDocument[] = [];
 
+        const accessRoles = await this.getAccessRoles(docs);
+
         for (const [index, doc] of docs.entries()) {
-            const accessRole = this.getAccessRole(doc);
+            const accessRole = accessRoles[index];//this.getAccessRole(doc);
 
             try {
                 if (this.hydratedConfig.length > 0) {
@@ -75,14 +80,47 @@ export class InsertAccessService extends AccessService {
         }
     }
 
-    public getAccessRole (doc: InsertableDocument<Document>): AccessDefinition | null {
-        for (const accessDef of this.hydratedRawConfig) {
+    public getAccessRole (doc: InsertableDocument<Document>, roleResults: InsertRoleResults | null): AccessDefinition | null {
+        for (const [index, accessDef] of this.hydratedRawConfig.entries()) {
+            const matchers = [accessDef.filter ?? {}];
+            
+            if (accessDef.collection !== void 0 && roleResults !== null) {
+                const roleResult = roleResults[index];
+                
+                matchers.push({$$in: [
+                    doc[accessDef.collection.localField],
+                    roleResult?.map(r => r.__mongalayer_role_id) ?? []
+                ]});
+            }
+            
             // Get the first matching role
-            if (matches(doc, accessDef.filter ?? {})) {
+            if (matchers.every(matcher => matches(doc, matcher))) {
                 return accessDef;
             }
         }
 
         return null;
+    }
+
+    public async getAccessRoles (docs: InsertableDocument<Document>[]): Promise<(AccessDefinition | null)[]> {
+        let roleQueryResults: InsertRoleResults | null = null;
+
+        if (this.hasRolesWithAlternativeAccessCollection) {
+            const roleQueries = [];
+
+            for (const access of this.hydratedConfig) {
+                if (access.collection !== void 0) {
+                    const lookupStage = this.getTargetRoleState(access.role, access.collection);
+                    
+                    roleQueries.push(this.client.db(this.database).collection(lookupStage.$lookup.from).aggregate(lookupStage.$lookup.pipeline).toArray());
+                } else {
+                    roleQueries.push(Promise.resolve(null));
+                }
+            }
+
+            roleQueryResults = await Promise.all(roleQueries) as InsertRoleResults;
+        }
+
+        return docs.map(doc => this.getAccessRole(doc, roleQueryResults));
     }
 }

@@ -8,6 +8,7 @@ import { Document, InsertManyResult, InsertOneResult } from "mongodb";
 import { PartialDeep } from "type-fest";
 import { getRandomUser, User } from "#test/data/user.js";
 import { Operation } from "#src/client.js";
+import { getRandomProjectAsset, ProjectAsset, projectAssetSchema } from "#test/data/projectAsset.js";
 
 const projectZero: Project = projectObjects[0], userZero: User = userObjects[0];
 
@@ -35,6 +36,32 @@ const testSimpleInsert = async <
     return await mongalayer.executeRaw({
         database: dbName,
         collection: "projectsCUD" as MongalayerCollectionType<Project>,
+        operation
+    }, input, {user: {id: userID}}) as TResult;
+}
+
+const testSimpleInsertAssets = async <
+    TOperation extends InsertOperation,
+    TResult extends TOperation extends "insertOne" ? InsertOneResult : InsertManyResult
+> (
+    operation: TOperation, 
+    input: TOperation extends "insertOne" ? { document: Document } : { documents: Document[] }, 
+    access: AccessConfig<Document>, 
+    accessDefaults: PartialDeep<AccessDefaults>,
+    userID: string = userZero._id
+): Promise<TResult> => {
+    const collections: MongalayerCollections = {
+        projectAssetsCUD: {
+            schema: projectAssetSchema,
+            access
+        }
+    };
+
+    const mongalayer = await getMongaLayerForCollections(collections, { debugging: true, accessDefaults });
+
+    return await mongalayer.executeRaw({
+        database: dbName,
+        collection: "projectAssetsCUD" as MongalayerCollectionType<ProjectAsset>,
         operation
     }, input, {user: {id: userID}}) as TResult;
 }
@@ -203,6 +230,137 @@ describe('Access - Create permissions', () => {
             const newProject = getRandomProject(userObjects);
 
             await expect(testSimpleInsert("insertOne", { document: newProject }, accessConfig, {}, newUser._id)).rejects.toThrowError(expect.objectContaining({
+                message: `Unauthorized documents found`,
+                unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: `No access role found for document` }] }]
+            }));
+        });
+    });
+
+    describe('Alternative collection - Owner (create = true), contributor (create = false), reader (create = undefined)', async () => {
+        const accessConfig: AccessConfig<Document> = [{
+            role: "owner",
+            filter: {
+                uploaderID: "%%user.id"
+            },
+            collection: {
+                target: "projectsCUD",
+                targetFilter: {
+                    "access.owners": {"$in": ["%%user.id"]}
+                },
+                targetField: "_id",
+                localField: "projectID"
+            },
+            document: AccessPermissions.ReadWrite
+        }, {
+            role: "contributor",
+            filter: {},
+            collection: {
+                target: "projectsCUD",
+                targetFilter: {
+                    "access.contributors": {"$in": ["%%user.id"]}
+                },
+                targetField: "_id",
+                localField: "projectID"
+            },
+            document: AccessPermissions.ReadWrite ^ AccessPermissions.Create
+        }, {
+            role: "reader",
+            filter: {},
+            collection: {
+                target: "projectsCUD",
+                targetFilter: {
+                    "access.readers": {"$in": ["%%user.id"]}
+                },
+                targetField: "_id",
+                localField: "projectID"
+            },
+        }];
+
+        const newUser = getRandomUser();
+
+        const database = await getMongoDBDatabase();
+
+        beforeEach(async () => {
+            await resetCUDCollections();
+        });
+
+        test("Create document as owner, as uploader", async () => {
+            const newProject = getRandomProject(userObjects);
+            newProject.access.owners = [newUser._id];
+            const newProjectAsset = getRandomProjectAsset([newProject]);
+            
+            await database.collection<Project>("projectsCUD").insertOne(newProject);
+
+            const result = await testSimpleInsertAssets("insertOne", { document: newProjectAsset }, accessConfig, {}, newUser._id);
+
+            expect(result.acknowledged).toBe(true);
+            expect(result.insertedId).toBe(newProjectAsset._id);
+        });
+
+        test("Create document as owner, not uploader", async () => {
+            const newProject = getRandomProject(userObjects);
+            const newProjectAsset = getRandomProjectAsset([newProject]);
+
+            // Uploader is different user, so assignment needs to happen after the project asset is created
+            newProject.access.owners.push(newUser._id);
+            
+            await database.collection<Project>("projectsCUD").insertOne(newProject);
+
+            await expect(testSimpleInsertAssets("insertOne", { document: newProjectAsset }, accessConfig, {}, newUser._id)).rejects.toThrowError(expect.objectContaining({
+                message: `Unauthorized documents found`,
+                unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: `No access role found for document` }] }]
+            }));
+        });
+
+        test("Create document as contributor, as uploader", async () => {
+            const newProject = getRandomProject(userObjects);
+            newProject.access.owners = [newUser._id];
+            newProject.access.contributors.push(newUser._id);
+            const newProjectAsset = getRandomProjectAsset([newProject]);
+            
+            newProject.access.owners = []; // Remove owner access to be only contributor but as uploader
+
+            await database.collection<Project>("projectsCUD").insertOne(newProject);
+
+            await expect(testSimpleInsertAssets("insertOne", { document: newProjectAsset }, accessConfig, {}, newUser._id)).rejects.toThrowError(expect.objectContaining({
+                message: `Unauthorized documents found`,
+                unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: `No create access for document` }] }]
+            }));
+        });
+
+        test("Create document as contributor", async () => {
+            const newProject = getRandomProject(userObjects);
+            newProject.access.contributors.push(newUser._id);
+            const newProjectAsset = getRandomProjectAsset([newProject]);
+            
+            await database.collection<Project>("projectsCUD").insertOne(newProject);
+
+            await expect(testSimpleInsertAssets("insertOne", { document: newProjectAsset }, accessConfig, {}, newUser._id)).rejects.toThrowError(expect.objectContaining({
+                message: `Unauthorized documents found`,
+                unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: `No create access for document` }] }]
+            }));
+        });
+
+        test("Create document as reader", async () => {
+            const newProject = getRandomProject(userObjects);
+            newProject.access.readers.push(newUser._id);
+            const newProjectAsset = getRandomProjectAsset([newProject]);   
+            
+            await database.collection<Project>("projectsCUD").insertOne(newProject);
+
+            await expect(testSimpleInsertAssets("insertOne", { document: newProjectAsset }, accessConfig, {}, newUser._id)).rejects.toThrowError(expect.objectContaining({
+                message: `Unauthorized documents found`,
+                unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: `No create access for document` }] }]
+            }));
+        });
+
+        test("Create document as unknown", async () => {
+            const newProject = getRandomProject(userObjects);
+            const newProjectAsset = getRandomProjectAsset([newProject]);
+            
+            await database.collection<Project>("projectsCUD").insertOne(newProject);
+
+            await expect(testSimpleInsertAssets("insertOne", { document: newProjectAsset }, accessConfig, {}, newUser._id)).rejects.toThrowError(expect.objectContaining({
                 message: `Unauthorized documents found`,
                 unauthorizedDocuments: [{ index: 0, issues: [{ type: "document", issue: `No access role found for document` }] }]
             }));
