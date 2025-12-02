@@ -147,7 +147,7 @@ export class Mongalayer {
                 }
             } catch (e) {
                 if (e instanceof z.ZodError) {
-                    if (this.options.debugging) {
+                    if (Debugging.isEnabled()) {
                         throw e;
                     } else {
                         console.log(z.prettifyError(e));
@@ -155,7 +155,7 @@ export class Mongalayer {
                         throw new ValidationError("Failed to validate action payload");
                     }
                 } else if (e instanceof Error && /^Mongo/.test(e.name)) { // MongoServerError don't use this class as we only want to use types
-                    if (this.options.debugging) {
+                    if (Debugging.isEnabled()) {
                         throw e;
                     } else {
                         throw DatabaseError.buildFromMongoError(e);
