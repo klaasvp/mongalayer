@@ -258,8 +258,8 @@ export abstract class AccessService {
                 __mongalayer_role: {
                     $switch: {
                         branches: this.hydratedConfig.map(access => {
-                            const cases = [];
-                            
+                            const cases: Filter<Document>[] = [];
+
                             if (access.collection !== void 0) {
                                 cases.push({$in: [
                                     { __mongalayer_role_id: `$${access.collection.localField}` }, // Match the projected ID

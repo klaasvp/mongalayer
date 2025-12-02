@@ -106,13 +106,13 @@ export class InsertAccessService extends AccessService {
         let roleQueryResults: InsertRoleResults | null = null;
 
         if (this.hasRolesWithAlternativeAccessCollection) {
-            const roleQueries = [];
+            const roleQueries: Promise<InsertRoleResult | null>[] = [];
 
             for (const access of this.hydratedConfig) {
                 if (access.collection !== void 0) {
                     const lookupStage = this.getTargetRoleState(access.role, access.collection);
                     
-                    roleQueries.push(this.client.db(this.database).collection(lookupStage.$lookup.from).aggregate(lookupStage.$lookup.pipeline).toArray());
+                    roleQueries.push(this.client.db(this.database).collection(lookupStage.$lookup.from).aggregate(lookupStage.$lookup.pipeline).toArray() as Promise<InsertRoleResult>);
                 } else {
                     roleQueries.push(Promise.resolve(null));
                 }
