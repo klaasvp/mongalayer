@@ -2,10 +2,11 @@
     "name": "mongalayer",
     "private": true,
     "scripts": {
-        "build": "npm --prefix ./packages/core run build && npm --prefix ./packages/server run build && npm --prefix ./packages/client run build",
-        "test": "npm --prefix ./packages/core test && npm --prefix ./packages/server test"
+        "build": "npm --prefix ./packages/utils run build && npm --prefix ./packages/core run build && npm --prefix ./packages/server run build && npm --prefix ./packages/client run build",
+        "test": "npm --prefix ./packages/utils test && npm --prefix ./packages/core test && npm --prefix ./packages/server test"
     },
     "workspaces": [
+        "./packages/utils",
         "./packages/core",
         "./packages/server",
         "./packages/client"
@@ -22,6 +23,10 @@
         "vitest": "^4.0.14"
     },
     "exports": {
+        "./utils": {
+            "import": "./packages/utils/dist/index.js",
+            "types": "./packages/utils/dist/index.d.ts"
+        },
         "./server": {
             "import": "./packages/server/dist/index.js",
             "types": "./packages/server/dist/index.d.ts"

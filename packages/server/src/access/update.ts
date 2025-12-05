@@ -4,7 +4,7 @@ import { UpdateSchema } from "../schema/update.js";
 import { AccessDefinition, AccessPermissions, AccessValidatorError } from "../access.js";
 import { InsertAccessService } from "./insert.js";
 import { AuthorizationError, AuthorizationErrorCode, AuthorizationIssue, merge, UnauthorizedDocument, unflatten } from "@mongalayer/core";
-import { deepPartial, getSubschema } from "../schema/helper.js";
+import { deepPartial, getSubschema } from "@mongalayer/utils";
 import { FilterSchema } from "../schema/query.js";
 import {  } from "@mongalayer/core";
 

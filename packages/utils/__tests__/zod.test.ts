@@ -1,7 +1,25 @@
 import { describe, test, expect } from "vitest";
-import z, { ZodBoolean, ZodDate, ZodLiteral, ZodNever, ZodNumber, ZodString } from "zod/v4";
-import { deepPartial, getSubschema } from "#src/schema/helper.js";
-import { projectSchema } from "#test/data/project.js";
+import z, { ZodBoolean, ZodDate, ZodLiteral, ZodNumber, ZodString } from "zod/v4";
+import { getSubschema } from "#src/zod.js";
+
+export const projectSchema = z.strictObject({
+    _id: z.string(),
+    name: z.string(),
+    description: z.string().optional(),
+    createdAt: z.date(),
+    updatedAt: z.date().nullable(),
+    version: z.number(),
+    config: z.strictObject({
+        tags: z.array(z.string())
+    }),
+    data: z.object({
+        location: z.strictObject({
+            coordinates: z.tuple([z.number(), z.number()]),
+            city: z.preprocess((val) => val, z.string().default("Unknown City")),
+            street: z.string().optional()
+        }).optional()
+    })
+});
 
 describe("schema/helper - getSubschema", () => {
 	test("root-level fields", () => {
@@ -18,7 +36,7 @@ describe("schema/helper - getSubschema", () => {
 	});
 
 	test("nested object fields", () => {
-		const owners = getSubschema(projectSchema, "access.owners");
+		const owners = getSubschema(projectSchema, "config.tags");
 		expect(owners).toBeDefined();
 
 		const street = getSubschema(projectSchema, "data.location.street");
@@ -41,8 +59,8 @@ describe("schema/helper - getSubschema", () => {
 
 	test("non-existent paths return undefined", () => {
 		expect(getSubschema(projectSchema, "unknown")?.schema).toBeUndefined();
-		expect(getSubschema(projectSchema, "access.unknown")?.schema).toBeUndefined();
-		expect(getSubschema(projectSchema, "access.owners.name")?.schema).toBeUndefined();
+		expect(getSubschema(projectSchema, "config.unknown")?.schema).toBeUndefined();
+		expect(getSubschema(projectSchema, "config.tags.name")?.schema).toBeUndefined();
 		expect(getSubschema(projectSchema, "data.location.coordinates.x")?.schema).toBeUndefined();
 	});
 });

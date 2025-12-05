@@ -1,5 +1,5 @@
 {
-    "name": "@mongalayer/core",
+    "name": "@mongalayer/utils",
     "type": "module",
     "private": true,
     "main": "./dist/index.js",
@@ -8,10 +8,6 @@
         ".": {
             "import": "./dist/index.js",
             "types": "./dist/index.d.ts"
-        },
-        "./utils/*": {
-            "import": "./dist/utils/*.js",
-            "types": "./dist/utils/*.d.ts"
         }
     },
     "scripts": {
@@ -19,7 +15,10 @@
         "test": "npx vitest --run"
     },
     "dependencies": {
-        "@mongalayer/utils": "file:../utils"
+        "@mongalayer/core": "file:../core"
+    },
+    "devDependencies": {
+        
     },
     "imports": {
         "#src/*": [
