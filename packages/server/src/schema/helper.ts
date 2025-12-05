@@ -85,16 +85,18 @@ type ZodTypeUnknown = z.core.$ZodType<unknown>;
 type ZodSchemaMeta = {
     optional: boolean,
     nullable: boolean,
-    default?: any
+    default?: any,
+    pipe?: boolean
 };
 
 export type ZodUnwrappedSchema = { schema: ZodTypeUnknown, meta: ZodSchemaMeta };
 
-const isUnwrappable = (schema: ZodTypeUnknown): schema is ZodOptional | ZodNullable | ZodDefault => {
+const isUnwrappable = (schema: ZodTypeUnknown): schema is ZodOptional | ZodNullable | ZodDefault | ZodPipe => {
     return (
         schema instanceof ZodOptional ||
         schema instanceof ZodNullable ||
-        schema instanceof ZodDefault
+        schema instanceof ZodDefault ||
+        schema instanceof ZodPipe
     );
 }
 
@@ -108,12 +110,18 @@ function unwrap (schema: ZodTypeUnknown): ZodUnwrappedSchema {
     while (isUnwrappable(schema)) {
         // Handle different wrapper types
         if (isUnwrappable(schema)) {
-            if (schema instanceof ZodOptional) meta.optional = true;
-            if (schema instanceof ZodNullable) meta.nullable = true;
-            if (schema instanceof ZodDefault) meta.default = schema.def.defaultValue;
+            if (schema instanceof ZodPipe) {
+                schema = schema.out;
 
-            // Unwrap to inner schema
-            schema = schema.unwrap();
+                meta.pipe = true;
+            } else {
+                if (schema instanceof ZodOptional) meta.optional = true;
+                if (schema instanceof ZodNullable) meta.nullable = true;
+                if (schema instanceof ZodDefault) meta.default = schema.def.defaultValue;
+
+                // Unwrap to inner schema
+                schema = schema.unwrap();
+            }
         }
     }
 
@@ -140,8 +148,6 @@ export function getSubschema(sourceSchema: ZodTypeUnknown, path: string, unwrapS
     for (let i=0, il=segments.length; i < il; i++) {
         if (current instanceof ZodLazy) {
             current = current.def.getter();
-        } else if (current instanceof ZodPipe) {
-            current = current.out;
         } else if (isUnwrappable(current)) {
             const unwrapped = unwrap(current);
             
