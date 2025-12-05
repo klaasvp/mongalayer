@@ -62,7 +62,7 @@ export const projectSchema = z.strictObject({
     data: z.object({
         location: z.strictObject({
             coordinates: z.tuple([z.number(), z.number()]),
-            city: z.string(),
+            city: z.preprocess((val) => val, z.string().default("Unknown City")),
             street: z.string().optional()
         }).optional()
     }),

@@ -24,6 +24,11 @@ describe("schema/helper - getSubschema", () => {
 		const street = getSubschema(projectSchema, "data.location.street");
 		expect(street?.schema).toBeInstanceOf(ZodString);
 		expect(street?.meta.optional).toBe(true);
+
+		const city = getSubschema(projectSchema, "data.location.city");
+		expect(city?.schema).toBeInstanceOf(ZodString);
+		expect(city?.meta.pipe).toBe(true);
+		expect(city?.meta.default).toBe("Unknown City");
 	});
 
 	test("array element access by index (tuple and array)", () => {
