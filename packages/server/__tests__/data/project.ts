@@ -28,7 +28,7 @@ export type Project = {
         tags: string[]
     },
     data: {
-        location: {
+        location?: {
             coordinates: [number, number],
             city: string,
             street?: string
@@ -64,7 +64,7 @@ export const projectSchema = z.strictObject({
             coordinates: z.tuple([z.number(), z.number()]),
             city: z.string(),
             street: z.string().optional()
-        })   
+        }).optional()
     }),
     latestAssets: z.array(z.string()),
     unfinishedAssets: z.array(z.strictObject({
