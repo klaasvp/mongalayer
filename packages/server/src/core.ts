@@ -76,6 +76,14 @@ export class Mongalayer {
             } catch (e) {
                 console.log("Mongalayer - Unable to set MONGALAYER_DEBUG environment variable");
             }
+        } else if (Debugging.isEnabled()) {
+            console.debug("Mongalayer - Debugging mode disabled");
+
+            try {
+                delete process.env.MONGALAYER_DEBUG;
+            } catch (e) {
+                console.log("Mongalayer - Unable to set MONGALAYER_DEBUG environment variable");
+            }
         }
     }
 
