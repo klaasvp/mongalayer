@@ -29,7 +29,7 @@ const testSimpleOperation = async <
         },
     };
 
-    const mongalayer = await getMongaLayerForCollections(collections, { accessDefaults });
+    const mongalayer = await getMongaLayerForCollections(collections, { accessDefaults, debugging: false });
 
     return (await mongalayer.executeRaw({
         database: dbName,
