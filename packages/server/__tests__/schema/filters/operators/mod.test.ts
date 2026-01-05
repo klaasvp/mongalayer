@@ -46,7 +46,7 @@ const valuesTable: ValueTest[] = [
     } },
     { value: [1, 2, 3], success: false, message: 'should invalidate with array of more than 2 elements', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "malformed mod, too many elements" },
-        zod: { code: "too_big", message: 'Too big: expected array to have <2 items' }
+        zod: { code: "too_big", message: 'Too big: expected array to have <=2 items' }
     } },
 ];
 
