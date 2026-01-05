@@ -11,16 +11,15 @@
         "./packages/server",
         "./packages/client"
     ],
-    "dependencies": { },
     "peerDependencies": {
-        "mongodb": "^6.20.0",
-        "zod": "^4.1.11"
+        "mongodb": "^7.0.0",
+        "zod": "^4.3.4"
     },
     "devDependencies": {
         "@types/jsonwebtoken": "^9.0.10",
-        "type-fest": "^5.0.1",
-        "typescript": "^5.9.2",
-        "vitest": "^4.0.14"
+        "type-fest": "^5.3.1",
+        "typescript": "^5.9.3",
+        "vitest": "^4.0.16"
     },
     "exports": {
         "./utils": {

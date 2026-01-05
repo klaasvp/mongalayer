@@ -17,9 +17,6 @@
     "dependencies": {
         "@mongalayer/core": "file:../core"
     },
-    "devDependencies": {
-        
-    },
     "imports": {
         "#src/*": [
             "./src/*",

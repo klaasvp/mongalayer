@@ -16,8 +16,5 @@
     "dependencies": {
         "@mongalayer/core": "file:../core",
         "@mongalayer/server": "file:../server"
-    },
-    "devDependencies": {
-        
     }
 }
