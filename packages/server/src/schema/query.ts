@@ -88,16 +88,18 @@ export const filterOperatorsSchema = filterOperatorsSchemaBase.catchall(document
     { message: "Invalid filter operator" }
 )
 
-const filterOperatorsSchemaExcludingNot = filterOperatorsSchemaBase.omit({ $not: true }).catchall(documentValueSchema).refine(
+const filterOperatorsSchemaExcludingNotDef = filterOperatorsSchemaBase.omit({ $not: true }).catchall(documentValueSchema);
+const filterOperatorsSchemaExcludingNot = filterOperatorsSchemaExcludingNotDef.refine(
     (data) => Object.keys(data).every(key => !key.startsWith("$") || (key !== "$not" && operatorKeys.includes(key))),
     { message: "Invalid filter operator" }
-)
+) as typeof filterOperatorsSchemaExcludingNotDef // refine does not preserve type correctly, so we need to assert it again
 
-const filterOperatorsSchemaExcludingElemMatch = filterOperatorsSchemaBase.omit({ $elemMatch: true }).catchall(documentValueSchema).refine(
+const filterOperatorsSchemaExcludingElemMatchDef = filterOperatorsSchemaBase.omit({ $elemMatch: true }).catchall(documentValueSchema);
+const filterOperatorsSchemaExcludingElemMatch = filterOperatorsSchemaExcludingElemMatchDef.refine(
     (data) => Object.keys(data).every(key => !key.startsWith("$") || (key !== "$elemMatch" && operatorKeys.includes(key))),
     { message: "Invalid filter operator" }
-)
-
+) as typeof filterOperatorsSchemaExcludingElemMatchDef // refine does not preserve type correctly, so we need to assert it again
+ 
 // Simplified version of Filter<TSchema> from mongodb
 export type FilterSchemaBase = {
     $and?: FilterSchema[],
