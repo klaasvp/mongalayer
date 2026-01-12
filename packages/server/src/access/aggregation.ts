@@ -23,7 +23,7 @@ export class AggregationAccessService extends AccessService {
                         $match: accessFilters
                     });
                     
-                    return { accessFilterIndex: 1, firstFilterStage: pipeline[0] };
+                    return { accessFilterIndex: 1, firstFilterStage: {} };
                 // Merge the first $match with the access filters
                 case "$match":
                     const originalMatch = pipeline[0].$match as Document;
