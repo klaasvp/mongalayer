@@ -305,4 +305,16 @@ describe('pathValueToObject', () => {
         const result = pathValueToObject('', 123);
         expect(result).toEqual({ '': 123 });
     });
+
+    describe('numeric property names that are not meant to be arrays', () => {
+        test('should treat numeric-looking keys as normal object keys - suffix', () => {
+            const result = pathValueToObject('a.b0.c', 'value',);
+            expect(result).toEqual({ a: { b0: { c: 'value' } } });
+        });
+
+        test('should treat numeric-looking keys as normal object keys - prefix', () => {
+            const result = pathValueToObject('a.0b.c', 'value',);
+            expect(result).toEqual({ a: { '0b': { c: 'value' } } });
+        });
+    });
 });

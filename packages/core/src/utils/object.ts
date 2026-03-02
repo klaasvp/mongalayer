@@ -56,7 +56,7 @@ export function typedEntries <T extends object> (obj: T): { [K in keyof T]-?: [K
 
 export function pathValueToObject (key: string, value: unknown): Record<string, unknown> {
     return key.split(".").reduceRight((acc, part) => {
-        if (/\d+/.test(part)) {
+        if (/^\d+$/.test(part)) {
             const array = new Array(+part + 1);
             array[+part] = acc;
             return array;
