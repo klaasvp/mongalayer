@@ -1,6 +1,6 @@
 import type { MongoClient, Document, Db, ClientSession, MongoServerError } from "mongodb";
 import { ZodObject, ZodType } from "zod/v4";
-import { Action, find, findOne, findOneAndUpdate, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany, insertOne, insertMany, updateOne, updateMany } from "./actions/index.js";
+import { Action, find, findOne, findOneAndUpdate, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany, insertOne, insertMany, updateOne, updateMany, validateAction } from "./actions/index.js";
 import { AccessConfig, AccessDefaults, AccessPermissions, AccessPayload } from "./access.js";
 import z from "zod/v4";
 import { FindOnePayload, FindOneReturnType } from "./actions/findOne.js";
@@ -21,6 +21,8 @@ import { DeleteManyPayload } from "./actions/deleteMany.js";
 import { InsertAccessService } from "./access/insert.js";
 import { UpdateAccessService } from "./access/update.js";
 import {  } from "@mongalayer/core";
+
+export { validateAction } from "./actions/index.js";
 
 export type MongalayerCollection<TSchema extends Document> = {
     schema: ZodObject,
@@ -90,12 +92,14 @@ export class Mongalayer {
     /**
      * This function uses currying to be able to provide the correct return types using Generics.
      */
-    public async executeRaw <TAction extends Action>(action: TAction, actionPayload: InferActionPayload<TAction>, accessPayload: AccessPayload): Promise<InferActionReturnType<TAction>> {
+    public async executeRaw <TAction extends Action>(rawAction: TAction, actionPayload: InferActionPayload<TAction>, accessPayload: AccessPayload): Promise<InferActionReturnType<TAction>> {
         let result: FindOneReturnType<Document> | FindReturnType<Document> | AggregateReturnType<Document> | void,
             database: Db | null, 
             session: ClientSession | null = null;
 
         try {
+            const action = validateAction(rawAction);
+
             database = this.mongodbClient.db(action.database);
 
             if (this.options.useSessions) {
@@ -172,7 +176,19 @@ export class Mongalayer {
                     throw e;
                 }
             }
-        }  finally {
+        } catch (e) {
+            if (e instanceof z.ZodError) {
+                if (Debugging.isEnabled()) {
+                    throw e;
+                } else {
+                    console.log(z.prettifyError(e));
+                    
+                    throw new ValidationError("Failed to validate action parameters");
+                }
+            } else {
+                throw e;
+            }
+        } finally {
             database = null;
 
             if (this.options.useSessions && session) {

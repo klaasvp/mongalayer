@@ -9,25 +9,42 @@ import insertOne, { InsertOnePayload, InsertOneReturnType } from "./insertOne.js
 import insertMany, { InsertManyPayload, InsertManyReturnType } from "./insertMany.js";
 import updateOne, { UpdateOnePayload, UpdateOneReturnType } from "./updateOne.js";
 import updateMany, { UpdateManyPayload, UpdateManyReturnType } from "./updateMany.js";
+import z from "zod";
 
-export type Operation = 
-    | "findOne" 
-    | "find" 
-    | "findOneAndUpdate" 
+const operationSchema = z.enum([
+    "findOne", 
+    "find",
+    "findOneAndUpdate",
     /** When using AccessDefinition make sure to add a $sort stage as the results order will be by role  */
-    | "aggregate"
-    | "insertOne"
-    | "insertMany"
-    | "updateOne"
-    | "updateMany"
-    | "deleteOne"
-    | "deleteMany";
+    "aggregate",
+    "insertOne",
+    "insertMany",
+    "updateOne",
+    "updateMany",
+    "deleteOne",
+    "deleteMany"
+]);
+
+export type Operation = z.infer<typeof operationSchema>;
 
 export type Action<TCollection extends MongalayerCollectionType = MongalayerCollectionType, TOperation extends Operation = Operation> = {
     database: string,
     collection: TCollection,
     operation: TOperation
 }
+
+const actionSchema = z.strictObject({
+    database: z.stringFormat("mongalayerDatabaseName", /^[\w-]{1,63}$/), // Simplistic version of MongoDB database name validation
+    collection: z.stringFormat("mongalayerCollectionName", /^[\w-]+$/), // Simplistic version of MongoDB collection name validation
+    operation: operationSchema
+});
+
+/**
+ * Performs a basic validation of an action object. Throws an Zod validation error if the action is not valid. 
+ */
+export const validateAction = (action: unknown): Action => {
+    return actionSchema.parse(action);
+};
 
 export type InferActionPayload<TAction extends Action> = TAction extends { operation: infer TOperation, collection: infer TCollection }  ? 
     TOperation extends "findOne" ? FindOnePayload<GetCollectionSchema<TCollection>> : 
