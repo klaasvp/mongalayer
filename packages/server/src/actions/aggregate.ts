@@ -1,5 +1,5 @@
 import type { Collection, Document } from "mongodb";
-import z from "zod/v4";
+import z from "zod";
 import { pipelineSchema, PipelineSchema } from "../schema/aggregate.js";
 import { AggregationAccessService } from "../access/aggregation.js";
 import { Debugging } from "../core.js";

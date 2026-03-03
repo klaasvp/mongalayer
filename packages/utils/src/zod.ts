@@ -1,4 +1,4 @@
-import z, { ZodArray, ZodCustom, ZodDefault, ZodDiscriminatedUnion, ZodIntersection, ZodLazy, ZodMap, ZodNever, ZodNullable, ZodObject, ZodOptional, ZodPipe, ZodRecord, ZodSet, ZodTuple, ZodUnion } from "zod/v4";
+import z, { ZodArray, ZodCustom, ZodDefault, ZodDiscriminatedUnion, ZodIntersection, ZodLazy, ZodMap, ZodNever, ZodNullable, ZodObject, ZodOptional, ZodPipe, ZodRecord, ZodSet, ZodTuple, ZodUnion } from "zod";
 
 export function deepPartial(schema: any): any {
     // Unwrap wrappers while preserving optional/nullable at the wrapper level

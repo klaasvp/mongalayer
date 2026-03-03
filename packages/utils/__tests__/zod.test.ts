@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import z, { ZodBoolean, ZodDate, ZodLiteral, ZodNumber, ZodString } from "zod/v4";
+import z, { ZodBoolean, ZodDate, ZodLiteral, ZodNumber, ZodString } from "zod";
 import { getSubschema } from "#src/zod.js";
 
 export const projectSchema = z.strictObject({

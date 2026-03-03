@@ -1,6 +1,6 @@
 import type { Document, Filter, MongoClient, OptionalUnlessRequiredId } from "mongodb";
 import { iteratePrimitives } from "@mongalayer/core";
-import { ZodObject } from "zod/v4";
+import { ZodObject } from "zod";
 import { AccessFilter, customOperatorKeys } from "./schema/access/filter.js";
 import { deleteObjectProperty, getValueByPath, isArray, isObject } from "@mongalayer/core";
 import { SetRequired } from "type-fest";

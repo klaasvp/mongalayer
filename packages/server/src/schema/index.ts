@@ -1,4 +1,4 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 import { iteratePrimitives } from "@mongalayer/core";
 
 export type Projection = { [key: string]: 0 | 1 | boolean | Projection }

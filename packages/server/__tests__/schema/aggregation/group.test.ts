@@ -8,7 +8,7 @@ import { isMongoServerError } from '#test/lib/helper.js';
 import { MongalayerCollectionType } from '#src/index.js';
 import { exampleObject1, exampleObject2, FilterTest, getFilterTests } from '#test/data/filterTest.js';
 import { pipelineSchema } from '#src/schema/aggregate.js';
-import z from 'zod/v4';
+import z from 'zod';
 import { groupSchema } from '#src/schema/aggregation/group.js';
 
 const valuesTable: ValueTest[] = [

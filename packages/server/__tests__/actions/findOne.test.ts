@@ -1,11 +1,11 @@
 import { describe, expect, test, beforeAll } from "vitest";
 import { Project, projectSchema } from "#test/data/project";
 import { User } from "#test/data/user";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects } from "#test/lib/database";
 import { Db } from "mongodb";
 import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/core";
-import { $ZodIssueInvalidType, $ZodIssueUnrecognizedKeys } from "zod/v4/core";
+import type { $ZodIssueInvalidType, $ZodIssueUnrecognizedKeys } from "zod/v4/core";
 import { MongalayerCollectionType } from "#src/index.js";
 
 describe('Find One', () => {

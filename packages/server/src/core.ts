@@ -1,8 +1,8 @@
 import type { MongoClient, Document, Db, ClientSession, MongoServerError } from "mongodb";
-import { ZodObject, ZodType } from "zod/v4";
+import { ZodObject, ZodType } from "zod";
 import { Action, find, findOne, findOneAndUpdate, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany, insertOne, insertMany, updateOne, updateMany, validateAction } from "./actions/index.js";
 import { AccessConfig, AccessDefaults, AccessPermissions, AccessPayload } from "./access.js";
-import z from "zod/v4";
+import z from "zod";
 import { FindOnePayload, FindOneReturnType } from "./actions/findOne.js";
 import { FindPayload, FindReturnType } from "./actions/find.js";
 import { FindOneAndUpdatePayload } from "./actions/findOneAndUpdate.js";

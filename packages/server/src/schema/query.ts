@@ -1,4 +1,4 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 import { $geometryIntersectsSchema, $geometryNearSchema, $geometryWithinSchema, polygonSchema, positionSchema } from "../schema/geo.js";
 import { BSONTypeAliasSchema } from "../schema/bson.js";
 import { Expression, expressionSchema } from "./expression/index.js";
