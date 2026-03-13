@@ -278,6 +278,50 @@ describe('unflatten', () => {
         const nestedObj = unflatten(flatObj);
         expect(nestedObj).toEqual({ a: { b: { c: 1, d: [2, 3] } }, e: 4 });
     });
+
+    describe('with allowPositionalDollar', () => {
+        test('should treat $ as a regular key by default', () => {
+            const flat = { 'items.$.status': 'active' };
+            const result = unflatten(flat);
+            expect(result).toEqual({ items: { $: { status: 'active' } } });
+        });
+
+        test('should treat $$ as a regular key when enabled', () => {
+            const flat = { 'items.$$.status': 'active' };
+            const result = unflatten(flat, { allowPositionalDollar: true });
+            expect(result).toEqual({ items: { $$: { status: 'active' } } });
+        });
+
+        test('should treat $ as array positional operator when enabled', () => {
+            const flat = { 'items.$.status': 'active' };
+            const result = unflatten(flat, { allowPositionalDollar: true });
+            expect(result).toEqual({ items: [{ status: 'active' }] });
+        });
+
+        test('should handle multiple $ paths merged together', () => {
+            const flat = {
+                'items.$.status': 'active',
+                'items.$.quantity': 10,
+            };
+            const result = unflatten(flat, { allowPositionalDollar: true });
+            expect(result).toEqual({ items: [{ status: 'active', quantity: 10 }] });
+        });
+
+        test('should handle mix of $ paths and regular dot notation', () => {
+            const flat = {
+                'items.$.price': 25,
+                'meta.updated': true,
+            };
+            const result = unflatten(flat, { allowPositionalDollar: true });
+            expect(result).toEqual({ items: [{ price: 25 }], meta: { updated: true } });
+        });
+
+        test('should not convert $ when allowPositionalDollar is false', () => {
+            const flat = { 'items.$.status': 'done' };
+            const result = unflatten(flat, { allowPositionalDollar: false });
+            expect(result).toEqual({ items: { $: { status: 'done' } } });
+        });
+    });
 });
 
 describe('pathValueToObject', () => {
@@ -315,6 +359,51 @@ describe('pathValueToObject', () => {
         test('should treat numeric-looking keys as normal object keys - prefix', () => {
             const result = pathValueToObject('a.0b.c', 'value',);
             expect(result).toEqual({ a: { '0b': { c: 'value' } } });
+        });
+    });
+
+    describe('allowPositionalDollar', () => {
+        test('should treat $ as a regular object key by default', () => {
+            const result = pathValueToObject('items.$.status', 'active');
+            expect(result).toEqual({ items: { $: { status: 'active' } } });
+        });
+
+        test('should treat $$ as a regular object key when allowPositionalDollar is true', () => {
+            const result = pathValueToObject('items.$$.status', 'active', { allowPositionalDollar: true });
+            expect(result).toEqual({ items: { $$: { status: 'active' } } });
+        });
+
+        test('should treat $ as array positional operator when allowPositionalDollar is true', () => {
+            const result = pathValueToObject('items.$.status', 'active', { allowPositionalDollar: true });
+            expect(result).toEqual({ items: [{ status: 'active' }] });
+        });
+
+        test('should place $ element at index 0 of the array', () => {
+            const result = pathValueToObject('grades.$.score', 85, { allowPositionalDollar: true });
+            expect(result).toEqual({ grades: [{ score: 85 }] });
+            expect(Array.isArray(result.grades)).toBe(true);
+        });
+
+        test('should handle $ at the end of the path', () => {
+            const result = pathValueToObject('tags.$', 'updated', { allowPositionalDollar: true });
+            expect(result).toEqual({ tags: ['updated'] });
+        });
+
+        test('should handle $ with nested dot-notation after it', () => {
+            const result = pathValueToObject('orders.$.items.name', 'widget', { allowPositionalDollar: true });
+            expect(result).toEqual({ orders: [{ items: { name: 'widget' } }] });
+        });
+
+        test('should not treat $ as positional when allowPositionalDollar is false', () => {
+            const result = pathValueToObject('items.$.status', 'done', { allowPositionalDollar: false });
+            expect(result).toEqual({ items: { $: { status: 'done' } } });
+        });
+
+        test('should handle $ alongside numeric array indices', () => {
+            const result = pathValueToObject('matrix.0.$.value', 99, { allowPositionalDollar: true });
+            // 0 creates an array, $ creates a nested array inside it
+            expect(result).toEqual({ matrix: [[{ value: 99 }]] });
+            expect(Array.isArray(result.matrix)).toBe(true);
         });
     });
 });

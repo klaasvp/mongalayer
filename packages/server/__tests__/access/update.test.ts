@@ -2,7 +2,7 @@ import { describe, expect, test, beforeEach } from "vitest";
 import { MongalayerCollections } from "#src/core";
 import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectAssetObjects, projectObjects, resetCUDCollections, userObjects } from "#test/lib/database";
 import { AccessConfig, AccessDefaults, AccessPermissions, AccessValidatorError, defineUpdateAccessValidator } from "#src/access.js";
-import { getRandomProject, Project, projectSchema } from "#test/data/project.js";
+import { getRandomProject, Project, projectAssetUnfinishedStatus, projectSchema } from "#test/data/project.js";
 import { MongalayerCollectionType } from "#src/index.js";
 import { Document } from "mongodb";
 import { PartialDeep } from "type-fest";
@@ -367,6 +367,74 @@ describe("Access - Update - Defaults & One", () => {
             } } 
         }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
             message: `Field "config.secret" in $unset cannot be removed because it is not optional in the document schema`,
+        }));
+    });
+
+    test("Update - dot notation - positional $ operator - scalar", async () => {
+        const latestAssetID = projectZero.latestAssets[0], newLatestAssetID = projectAssetObjects.find(pa => !projectZero.latestAssets.includes(pa._id))!._id;
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id, "latestAssets": latestAssetID }, 
+            update: { $set: { "latestAssets.$": newLatestAssetID } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+    });
+
+    test("Update (many) - dot notation - positional $ operator - scalar", async () => {
+        const latestAssetID = projectZero.latestAssets[0], newLatestAssetID = projectAssetObjects.find(pa => !projectZero.latestAssets.includes(pa._id))!._id;
+
+        const projectRandomHasAsset = projectRandom.latestAssets.includes(latestAssetID);
+
+        const resultMany = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] }, "latestAssets": latestAssetID }, 
+            update: { $set: { "latestAssets.$": newLatestAssetID } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(resultMany.acknowledged).toBe(true);
+        expect(resultMany.matchedCount).toBe(projectRandomHasAsset ? 2 : 1);
+        expect(resultMany.modifiedCount).toBe(projectRandomHasAsset ? 2 : 1);
+    });
+
+    test("Update - dot notation - positional $ operator - nested", async () => {
+        const unfinishedAssetID = projectZero.unfinishedAssets[0].id, newStatus = projectAssetUnfinishedStatus.filter(status => status !== projectZero.unfinishedAssets[0].status)[0];
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id, "unfinishedAssets.id": unfinishedAssetID }, 
+            update: { $set: { "unfinishedAssets.$.status": newStatus } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+
+        const resultMany = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] }, "unfinishedAssets.updatedAt": null }, 
+            update: { $set: { "unfinishedAssets.$.updatedAt": new Date() } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(resultMany.acknowledged).toBe(true);
+        expect(resultMany.matchedCount).toBe(2);
+        expect(resultMany.modifiedCount).toBe(2);
+    });
+
+    test("Update - dot notation - positional $ operator - missing array field in query", async () => {
+        const newStatus = projectAssetUnfinishedStatus.filter(status => status !== projectZero.unfinishedAssets[0].status)[0];
+
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { "unfinishedAssets.$.status": newStatus } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
+            message: `The positional operator did not find the match needed from the query.`,
+        }));
+
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            update: { $set: { "unfinishedAssets.$.updatedAt": new Date() } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
+            message: `The positional operator did not find the match needed from the query.`,
         }));
     });
 });
@@ -1052,6 +1120,26 @@ describe("Access - Update field permissions", () => {
         expect(result.acknowledged).toBe(true);
         expect(result.matchedCount).toBe(1);
         expect(result.modifiedCount).toBe(1);
+    });
+
+    test("Update without field permission - positional $ operator - scalar", async () => {
+        const accessConfig: AccessConfig<Project> = [{
+            role: "test",
+            fields: {
+                latestAssets: AccessPermissions.Read
+            }, 
+            document: AccessPermissions.ReadWrite,
+        }];
+
+        const latestAssetID = projectZero.latestAssets[0], newLatestAssetID = projectAssetObjects.find(pa => !projectZero.latestAssets.includes(pa._id))!._id;
+
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id, "latestAssets": latestAssetID }, 
+            update: { $set: { "latestAssets.$": newLatestAssetID } } 
+        }, accessConfig as AccessConfig<Document>, { })).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "field", field: "latestAssets", issue: `Role "test" does not have update access for field "latestAssets".` }])}]
+        }));
     });
 });
 

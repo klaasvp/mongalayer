@@ -1,4 +1,4 @@
-import type { Collection, Document, Filter, UpdateResult } from "mongodb";
+import type { Collection, Document, Filter, ObjectId, UpdateResult } from "mongodb";
 import z from "zod/v4";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { Sort, sortSchema } from "../schema/index.js";
@@ -67,5 +67,7 @@ export default async function <TSchema extends Document> (collection: Collection
 
     accessService.validateUpdateFields(payload.update);
 
-    return await collection.updateOne({ _id: documentsToUpdate[0] } as Filter<Document>, payload.update as Document, {});
+    const updateFilter = accessService.getFinalUpdateFilter({ _id: documentsToUpdate[0] }, payload.filter, payload.update);
+
+    return await collection.updateOne(updateFilter as Filter<Document>, payload.update as Document, {});
 }

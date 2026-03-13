@@ -11,7 +11,8 @@ export type ProjectAccess = {
 
 export type UnfinishProjectAssets = {
     id: ProjectAsset["_id"],
-    status: "design" | "testing" | "production"
+    status: "design" | "testing" | "production",
+    updatedAt: Date | null
 }
 
 export type Project = {
@@ -69,7 +70,8 @@ export const projectSchema = z.strictObject({
     latestAssets: z.array(z.string()),
     unfinishedAssets: z.array(z.strictObject({
         id: z.string(),
-        status: z.enum(projectAssetUnfinishedStatus)
+        status: z.enum(projectAssetUnfinishedStatus),
+        updatedAt: z.date().nullable()
     }))
 }) satisfies ZodType<Project>;
 

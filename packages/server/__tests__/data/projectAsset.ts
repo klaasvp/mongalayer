@@ -38,7 +38,8 @@ export function getRandomProjectAsset (projects: Project[]): ProjectAsset {
     } else if (randomProject.unfinishedAssets.length === 0 || Math.random() < 0.4) {
         randomProject.unfinishedAssets.push({
             id: assetID,
-            status: faker.helpers.arrayElement(projectAssetUnfinishedStatus)
+            status: faker.helpers.arrayElement(projectAssetUnfinishedStatus),
+            updatedAt: null
         });
     }
 

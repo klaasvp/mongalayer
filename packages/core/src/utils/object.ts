@@ -54,11 +54,21 @@ export function typedEntries <T extends object> (obj: T): { [K in keyof T]-?: [K
     return Object.entries(obj) as any;
 }
 
-export function pathValueToObject (key: string, value: unknown): Record<string, unknown> {
+type PathValueToObjectOptions = {
+    allowPositionalDollar?: boolean
+};
+
+export function pathValueToObject (key: string, value: unknown, options: PathValueToObjectOptions = {}): Record<string, unknown> {
+    options = { allowPositionalDollar: false, ...options };
+
     return key.split(".").reduceRight((acc, part) => {
         if (/^\d+$/.test(part)) {
             const array = new Array(+part + 1);
             array[+part] = acc;
+            return array;
+        } else if (options.allowPositionalDollar === true && part === "$") {
+            const array = [];
+            array[0] = acc;
             return array;
         } else {
             return { [part]: acc }
@@ -66,13 +76,17 @@ export function pathValueToObject (key: string, value: unknown): Record<string, 
     }, value) as Record<string, unknown>;
 }
 
-export function unflatten(source: Record<string, unknown>): Record<string, unknown> {
+type UnflattenOptions = PathValueToObjectOptions;
+
+export function unflatten(source: Record<string, unknown>, options: UnflattenOptions = {}): Record<string, unknown> {
+    options = { allowPositionalDollar: false, ...options };
+
     const toUnflatten = structuredClone(source);
     const toMerge: any[] = [];
 
     for (const [key, value] of Object.entries(toUnflatten)) {
         if (/\./.test(key)) {
-            const mergable = pathValueToObject(key, value);
+            const mergable = pathValueToObject(key, value, options);
             toMerge.push(mergable);
             delete toUnflatten[key];
         }

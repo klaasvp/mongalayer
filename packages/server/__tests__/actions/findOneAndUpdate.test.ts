@@ -1,8 +1,8 @@
 import { describe, expect, test, beforeEach } from "vitest";
 import { MongalayerCollections } from "#src/core";
-import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects, resetCUDCollections, userObjects } from "#test/lib/database";
+import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectAssetObjects, projectObjects, resetCUDCollections, userObjects } from "#test/lib/database";
 import { AccessConfig, AccessDefaults, AccessPermissions, AccessValidatorError, defineUpdateAccessValidator } from "#src/access.js";
-import { getRandomProject, Project, projectSchema } from "#test/data/project.js";
+import { getRandomProject, Project, projectAssetUnfinishedStatus, projectSchema } from "#test/data/project.js";
 import { MongalayerCollectionType } from "#src/index.js";
 import { Document } from "mongodb";
 import { PartialDeep } from "type-fest";
@@ -276,8 +276,8 @@ describe("Access - FindOneAndUpdate - Defaults & One", () => {
         }, [], { document: AccessPermissions.ReadWrite });
 
         const newDocument = structuredClone(projectZero);
-        newDocument.data.location.street = "new street";
-        newDocument.data.location.city = "new city";
+        newDocument.data.location!.street = "new street";
+        newDocument.data.location!.city = "new city";
         newDocument.version = 2;
 
         expect(result).toStrictEqual(newDocument);
@@ -300,6 +300,39 @@ describe("Access - FindOneAndUpdate - Defaults & One", () => {
             name: projectZero.name,
             description: projectZero.description,
         });
+    });
+
+    test("FindOne & Update - dot notation - positional $ operator - scalar", async () => {
+        const latestAssetID = projectZero.latestAssets[0], newLatestAssetID = projectAssetObjects.find(pa => !projectZero.latestAssets.includes(pa._id))!._id;
+
+        const result = await testSimpleFindOneAndUpdate({ 
+            filter: { _id: projectZero._id, "latestAssets": latestAssetID }, 
+            update: { $set: { "latestAssets.$": newLatestAssetID } },
+            options: { returnDocument: "after" }
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result).toEqual(expect.objectContaining({
+            _id: projectZero._id,
+            latestAssets: expect.arrayContaining([ newLatestAssetID ])
+        }));
+    });
+
+    test("FindOne & Update - dot notation - positional $ operator - nested", async () => {
+        const unfinishedAssetID = projectZero.unfinishedAssets[0].id, newStatus = projectAssetUnfinishedStatus.filter(status => status !== projectZero.unfinishedAssets[0].status)[0];
+
+        const result = await testSimpleFindOneAndUpdate({ 
+            filter: { _id: projectZero._id, "unfinishedAssets.id": unfinishedAssetID }, 
+            update: { $set: { "unfinishedAssets.$.status": newStatus } },
+            options: { returnDocument: "after" }
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result).toEqual(expect.objectContaining({
+            _id: projectZero._id,
+            unfinishedAssets: expect.arrayContaining([expect.objectContaining({
+                id: unfinishedAssetID,
+                status: newStatus
+            })])
+        }));
     });
 });
 

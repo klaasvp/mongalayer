@@ -47,5 +47,7 @@ export default async function <TSchema extends Document> (collection: Collection
 
     accessService.validateUpdateFields(payload.update);
 
-    return await collection.updateMany({ _id: { $in: documentsToUpdate } } as Filter<Document>, payload.update as Document, {});
+    const updateFilter = accessService.getFinalUpdateFilter({ _id: { $in: documentsToUpdate } }, payload.filter, payload.update);
+
+    return await collection.updateMany(updateFilter, payload.update as Document, {});
 }

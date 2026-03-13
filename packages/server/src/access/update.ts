@@ -1,4 +1,4 @@
-import type { Filter, Document, WithId, ObjectId } from "mongodb";
+import type { Filter, Document, WithId, ObjectId, FilterOperators } from "mongodb";
 import { PreloadRoleAccessService, PreloadRoleStages } from "./preloadRole.js";
 import { UpdateSchema } from "../schema/update.js";
 import { AccessDefinition, AccessPermissions, AccessValidatorError } from "../access.js";
@@ -31,7 +31,8 @@ export class UpdateAccessService extends PreloadRoleAccessService {
             const op = toValidate[operator] as Record<string, any>;
 
             if (["$set", "$inc"].includes(operator)) {
-                partialObject = merge([partialObject, unflatten(op)]);
+                // Positional $ operator will be converted to array index 0 for validation purposes, as we don't know the actual index at this point and the schema should be the same for all items in the array.
+                partialObject = merge([partialObject, unflatten(op, { allowPositionalDollar: true })]);
             } else if (operator === "$unset") {
                 for (const key of Object.keys(op)) {
                     const keySchema = getSubschema(this.documentSchema, key);
@@ -46,6 +47,15 @@ export class UpdateAccessService extends PreloadRoleAccessService {
 
         const partialDocumentSchema = deepPartial(this.documentSchema);
         partialDocumentSchema.parse(partialObject);
+    }
+
+    public getFinalUpdateFilter (updateFilter: Filter<Document>, filter: Filter<Document>, update: UpdateSchema): Filter<Document> {
+        // If the update contains positional operators, we need to use the original filter with the _id of the document to update
+        if (update.$set && Object.keys(update.$set).some(key => key.split(".").slice(1).includes("$"))) {
+            return { ...filter, _id: updateFilter._id };
+        }
+
+        return updateFilter;
     }
 
     public async validateDocumentsAccess (docsWithRole: UpdatableDocument[], update: UpdateSchema, requireReadPermission: boolean = false): Promise<ObjectId[]> {

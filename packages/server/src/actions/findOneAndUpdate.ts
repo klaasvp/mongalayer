@@ -79,7 +79,7 @@ export default async function <TSchema extends Document> (collection: Collection
     } else {
         accessService.validateUpdateFields(payload.update);
 
-        filter = { _id: documentsToUpdate[0] } as Filter<Document>;
+        filter = accessService.getFinalUpdateFilter({ _id: documentsToUpdate[0] }, payload.filter, payload.update);
         update = payload.update as Document;
         options = { returnDocument, projection };
         role = documentsWithRole[0].__mongalayer_role;
