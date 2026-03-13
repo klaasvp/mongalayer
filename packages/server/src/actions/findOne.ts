@@ -1,5 +1,5 @@
 import type { Collection, Document } from "mongodb";
-import z from "zod/v4";
+import z from "zod";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { Projection, projectionSchema, Sort, sortSchema } from "../schema/index.js";
 import find, { FindPayload } from "./find.js";

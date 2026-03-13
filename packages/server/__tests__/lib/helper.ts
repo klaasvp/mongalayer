@@ -1,5 +1,5 @@
 import { MongoAPIError, MongoServerError } from "mongodb";
-import { z } from "zod/v4";
+import { z } from "zod";
 
 export type MongoDBException = {
     code: number,

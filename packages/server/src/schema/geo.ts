@@ -1,4 +1,4 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 
 type Crs = { crs?: { type: "name", properties: { name: string } } };
 

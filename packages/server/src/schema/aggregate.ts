@@ -1,4 +1,4 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 import { filterSchema } from "./query.js";
 import { unwindSchema } from "./aggregation/unwind.js";
 import { projectionSchema } from "./aggregation/project.js";

@@ -1,6 +1,6 @@
 import { Document, Filter, MongoAPIError, MongoServerError } from "mongodb";
 import { FilterTest } from "#test/data/filterTest";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { FilterSchema } from "#src/schema/query.js";
 import { MongoAPIException, MongoDBException, ZodException } from "#test/lib/helper.js";
 

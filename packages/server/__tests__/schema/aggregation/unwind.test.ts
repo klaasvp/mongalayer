@@ -9,7 +9,7 @@ import { MongalayerCollectionType } from '#src/index.js';
 import { exampleObject1, exampleObject2, FilterTest } from '#test/data/filterTest.js';
 import { pipelineSchema } from '#src/schema/aggregate.js';
 import { unwindSchema } from '#src/schema/aggregation/unwind.js';
-import z from 'zod/v4';
+import z from 'zod';
 
 const valuesTable: ValueTest[] = [
     { value: 1, message: 'should invalidate with number', exceptions: {

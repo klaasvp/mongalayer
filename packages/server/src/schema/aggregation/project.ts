@@ -1,5 +1,5 @@
 import { iteratePrimitives } from "@mongalayer/core";
-import z from "zod/v4";
+import z from "zod";
 import { keyWithoutDollar } from "../index.js";
 
 type ProjectionExpression = string | { [key: string]: ProjectionExpression } | ProjectionExpression[];

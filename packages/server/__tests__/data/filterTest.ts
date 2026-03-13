@@ -1,4 +1,4 @@
-import z, { ZodType } from "zod/v4";
+import z, { ZodType } from "zod";
 
 type BSONValue = string | number | boolean | null | Date | { [key: string]: BSONValue } | BSONValue[];
 

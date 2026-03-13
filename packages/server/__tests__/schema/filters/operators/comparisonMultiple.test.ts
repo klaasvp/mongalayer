@@ -1,4 +1,4 @@
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { filterOperatorsSchema, filterSchema } from '#src/schema/query';
 import { Mongalayer } from '#src/core';
 import { exampleObject1, FilterTest } from '#test/data/filterTest';

@@ -6,7 +6,7 @@ import { JwtPayload } from "jsonwebtoken";
 import { dbName, getMongaLayerForCollections, getMongoDBClient, getMongoDBDatabase, projectAssetObjects, projectObjects, userObjects } from "#test/lib/database";
 import { AccessAlternativeCollection, AccessConfig, AccessPermissions, WithAccessRole } from "#src/access";
 import { Db, Document, MongoClient } from "mongodb";
-import { ZodObject } from "zod/v4";
+import { ZodObject } from "zod";
 import { QueryAccessService } from "#src/access/query";
 import { ProjectAsset, projectAssetSchema } from "#test/data/projectAsset.js";
 
