@@ -42,7 +42,7 @@ const valuesTable: ValueTest[] = [
     } },
     { value: [1], success: false, message: 'should invalidate with single element array', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "malformed mod, not enough elements" },
-        zod: { code: "invalid_type", message: 'Invalid input: expected number, received undefined' }
+        zod: { code: "too_small", message: 'Too small: expected array to have >=2 items' }
     } },
     { value: [1, 2, 3], success: false, message: 'should invalidate with array of more than 2 elements', exceptions: {
         mongodb: { code: 2, codeName: "BadValue", message: "malformed mod, too many elements" },
