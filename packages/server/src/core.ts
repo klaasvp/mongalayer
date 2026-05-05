@@ -47,6 +47,7 @@ export type MongalayerOptions = {
 
 export class Debugging {
     static isEnabled(): boolean {
+        // @ts-ignore
         return process.env.MONGALAYER_DEBUG === "1";
     }
 }
@@ -74,6 +75,7 @@ export class Mongalayer {
             console.debug("Mongalayer - Debugging mode enabled");
 
             try {
+                // @ts-ignore
                 process.env.MONGALAYER_DEBUG = "1";
             } catch (e) {
                 console.log("Mongalayer - Unable to set MONGALAYER_DEBUG environment variable");
@@ -82,6 +84,7 @@ export class Mongalayer {
             console.debug("Mongalayer - Debugging mode disabled");
 
             try {
+                // @ts-ignore
                 delete process.env.MONGALAYER_DEBUG;
             } catch (e) {
                 console.log("Mongalayer - Unable to set MONGALAYER_DEBUG environment variable");
