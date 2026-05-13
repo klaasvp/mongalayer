@@ -5,6 +5,9 @@ export default defineConfig({
         globalSetup: `./__tests__/setup.ts`,
         // As we're using a shared mongoserver instance, we can't run tests in parallel
         isolate: false,
-        fileParallelism: false
+        fileParallelism: false,
+        typecheck: {
+            enabled: true
+        }
     },
 })
