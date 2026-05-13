@@ -39,7 +39,7 @@ type FieldsArray<TSchema extends Document = Document> = (keyof TSchema)[];
 
 export class AccessValidatorError extends Error {}
 
-type AccessValidatorContext<TAccessPayload extends AccessPayload> = {
+export type AccessValidatorContext<TAccessPayload extends AccessPayload> = {
     database: string,
     collection: string,
     action: "create" | "update",
@@ -50,26 +50,26 @@ type AccessValidatorContext<TAccessPayload extends AccessPayload> = {
 export type CreateAccessValidator<TSchema extends Document, TAccessPayload extends AccessPayload = AccessPayload> = (context: AccessValidatorContext<TAccessPayload>, document: TSchema) => Promise<boolean | void>
 export type UpdateAccessValidator<TSchema extends Document, TAccessPayload extends AccessPayload = AccessPayload> = (context: AccessValidatorContext<TAccessPayload>, document: TSchema, update: UpdateSchema) => Promise<boolean | void>
 
-export type UpdateAccessValidatorDef<TSchema extends Document, TSchemaFields extends FieldsArray<TSchema> = FieldsArray<TSchema>> = {
+export type UpdateAccessValidatorDef<TSchema extends Document, TSchemaFields extends FieldsArray<TSchema> = FieldsArray<TSchema>, TAccessPayload extends AccessPayload = AccessPayload> = {
     validatorFields?: TSchemaFields,
-    validator: UpdateAccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }>
+    validator: UpdateAccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }, TAccessPayload>
 }
 
 export const defineUpdateAccessValidator = <TSchema extends Document, TAccessPayload extends AccessPayload = AccessPayload> () => <TSchemaFields extends FieldsArray<TSchema>> (
     validatorFields: TSchemaFields,
     validator: UpdateAccessValidator<Pick<TSchema, TSchemaFields[number] | "_id"> & { __mongalayer_role?: string | null }, TAccessPayload>
-) => ({
+): Required<UpdateAccessValidatorDef<TSchema, TSchemaFields, TAccessPayload>> => ({
     validatorFields,
     validator
 });
 
-type AccessValidators<TSchema extends Document> = {
+type AccessValidators<TSchema extends Document, TAccessPayload extends AccessPayload = AccessPayload> = {
     /**
      * This function is called before the document is inserted and after the document & field permissions have been evaluated.
      * If the function returns false or throws an exception, the document(s) will not be inserted.
      * If the function returns true or does not return anything, the document(s) will be inserted.
      */
-    create?: CreateAccessValidator<TSchema>,
+    create?: CreateAccessValidator<TSchema, TAccessPayload>,
     /**
      * This function is called before the document is updated and after the documents have been fetched for validation + after the document & field permissions have been evaluated.
      * If the function returns false or throws an exception, the document(s) will not be updated.
@@ -77,7 +77,7 @@ type AccessValidators<TSchema extends Document> = {
      * 
      * Note: when specifying validatorFields over multiple roles a union of all fields over the roles is used.
      */
-    update?: UpdateAccessValidatorDef<TSchema>
+    update?: UpdateAccessValidatorDef<TSchema, FieldsArray<TSchema>, TAccessPayload>
 }
 
 export type AccessAlternativeCollection<TSchema extends Document = Document, TTargetSchema extends Document = Document, TFilter extends AccessDefinitionFilter<TTargetSchema> = AccessFilter> = {
@@ -97,20 +97,20 @@ export type AccessAlternativeCollection<TSchema extends Document = Document, TTa
 /**
  * Fields access only supports defining root level properties from the Document.
  */
-export type AccessDefinition<TSchema extends Document = Document, TFilter extends AccessDefinitionFilter<TSchema> = AccessFilter> = {
+export type AccessDefinition<TSchema extends Document = Document, TAccessPayload extends AccessPayload = AccessPayload, TFilter extends AccessDefinitionFilter<TSchema> = AccessFilter> = {
     role: string,
     filter?: TFilter,
     collection?: AccessAlternativeCollection<TSchema, any>,
     fields?: Fields<TSchema>,
     document?: AccessPermission,
     delete?: boolean,
-    validators?: AccessValidators<TSchema>
+    validators?: AccessValidators<TSchema, TAccessPayload>
 };
 
-export type AccessConfig<TSchema extends Document = Document> = AccessDefinition<TSchema, AccessFilter>[];
+export type AccessConfig<TSchema extends Document = Document, TAccessPayload extends AccessPayload = AccessPayload> = AccessDefinition<TSchema, TAccessPayload, AccessFilter>[];
 
 // In the access service the AccessFilter is translated to a MongoDB Document Filter
-type InternalAccessConfig<TSchema extends Document = Document> = SetRequired<AccessDefinition<TSchema, Filter<TSchema>>, "filter">[];
+type InternalAccessConfig<TSchema extends Document = Document> = SetRequired<AccessDefinition<TSchema, AccessPayload, Filter<TSchema>>, "filter">[];
 
 export type AccessPayload = Record<string, any>;
 

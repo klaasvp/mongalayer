@@ -24,12 +24,12 @@ import {  } from "@mongalayer/core";
 
 export { validateAction } from "./actions/index.js";
 
-export type MongalayerCollection<TSchema extends Document> = {
+export type MongalayerCollection<TSchema extends Document, TAccessPayload extends AccessPayload = AccessPayload> = {
     schema: ZodObject,
-    access: AccessConfig<TSchema>
+    access: AccessConfig<TSchema, TAccessPayload>
 }
 
-export type MongalayerCollections = Record<string, MongalayerCollection<any>>;
+export type MongalayerCollections<TAccessPayload extends AccessPayload = AccessPayload> = Record<string, MongalayerCollection<any, TAccessPayload>>;
 
 export type MongalayerOptions = {
     /**
@@ -52,12 +52,12 @@ export class Debugging {
     }
 }
 
-export class Mongalayer {
+export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
     private options: MongalayerOptions;
 
     constructor (
         private mongodbClient: MongoClient,
-        private collections: MongalayerCollections,
+        private collections: MongalayerCollections<TAccessPayload>,
         providedOptions?: PartialDeep<MongalayerOptions>
     ) { 
         this.options = {
@@ -111,10 +111,10 @@ export class Mongalayer {
 
             const collection = database.collection(action.collection);
 
-            let accessConfig: AccessConfig<Document> = [], schema: ZodObject = z.object({});
+            let accessConfig: AccessConfig<Document, AccessPayload> = [], schema: ZodObject = z.object({});
 
             if (this.collections[action.collection] !== void 0) {
-                accessConfig = this.collections[action.collection].access;
+                accessConfig = this.collections[action.collection].access as AccessConfig<Document, AccessPayload>;
                 schema = this.collections[action.collection].schema;
             } else {
                 if (Debugging.isEnabled()) {
