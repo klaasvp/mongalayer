@@ -61,6 +61,10 @@ export type {
 } from "./schema/aggregate.js"
 
 export type {
+    UpdateSchema as Update
+} from "./schema/update.js"
+
+export type {
     Projection,
     Sort
 } from "./schema/index.js"

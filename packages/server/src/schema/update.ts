@@ -1,7 +1,14 @@
 import { z } from "zod";
 import { documentSchema, JSONValue } from "./index.js";
+import { Get, Paths } from "type-fest";
 
-export type UpdateSchema = {
+type SchemaPaths<T> = T extends object ? `${Paths<T, { maxRecursionDepth: 10 }>}` : never;
+
+export type UpdateSchema<T extends any = unknown, TPaths extends SchemaPaths<T> = SchemaPaths<T>> = T extends object ? {
+    $inc?: { [K in TPaths]?: number | undefined },
+    $unset?: { [K in TPaths]?: "" | true | 1 },
+    $set?: { [K in TPaths]?: Get<T, K> }
+} : {
     $inc?: Record<string, number | undefined>,
     $unset?: Record<string, "" | true | 1>,
     $set?: Record<string, JSONValue>
