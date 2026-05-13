@@ -1,5 +1,5 @@
-import { Client } from "./client";
-import { Collection } from "./collection";
+import { Client } from "./client.js";
+import { Collection } from "./collection.js";
 
 export class Db {
     constructor (

@@ -2,19 +2,19 @@ export type * from "@mongalayer/server/client";
 
 export {
     Client as MongalayerClient
-} from "./client"
+} from "./client.js"
 
 export {
     Db
-} from "./db"
+} from "./db.js"
 
 export {
     Collection
-} from "./collection"
+} from "./collection.js"
 
 export {
     MongalayerAPIError
-} from "./error";
+} from "./error.js";
 
 export { 
     ServerError, 

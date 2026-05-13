@@ -1,4 +1,4 @@
-import { Db } from "./db";
+import { Db } from "./db.js";
 
 type RequestFormat = "routed" | "json";
 

@@ -1,8 +1,7 @@
 import type { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType, DeleteOnePayload, DeleteOneReturnType, DeleteManyPayload, DeleteManyReturnType, InsertOnePayload, InsertOneReturnType, InsertManyReturnType, InsertManyPayload, UpdateOnePayload, UpdateOneReturnType, UpdateManyPayload, UpdateManyReturnType, FindOneAndUpdatePayload, FindOneAndUpdateReturnType } from "@mongalayer/server/client";
-import { parseReviver, stringifyReplacer } from "@mongalayer/core/utils/json";
-import { Db } from "./db";
-import { MongalayerAPIError } from "./error";
-import { serverErrorName, ServerError } from "@mongalayer/core";
+import { Db } from "./db.js";
+import { MongalayerAPIError } from "./error.js";
+import { serverErrorName, ServerError,  parseReviver, stringifyReplacer } from "@mongalayer/core";
 
 export class Collection {
     constructor (
