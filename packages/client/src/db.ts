@@ -1,3 +1,4 @@
+import type { Document } from "mongodb";
 import { Client } from "./client.js";
 import { Collection } from "./collection.js";
 
@@ -9,7 +10,7 @@ export class Db {
 
     }
 
-    public collection (collectionName: string) {
-        return new Collection(collectionName, this);
+    public collection<TSchema extends Document> (collectionName: string) {
+        return new Collection<TSchema>(collectionName, this);
     }
 }
