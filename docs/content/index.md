@@ -74,7 +74,7 @@ export class Project {
         public createdAt: Date,
     ) { }
 
-    static schema = z.object({
+    static schema = z.strictObject({
         _id: z.string(),
         name: z.string(),
         description: z.string(),
