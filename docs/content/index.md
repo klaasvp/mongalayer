@@ -92,7 +92,7 @@ import type { Project } from "model/project";
 const projectAccess: AccessConfig<Project> = [{
     role: "owner",
     filter: {
-        ownerId: "%%user.sub"
+        ownerId: "%%user.id"
     },
     document: AccessPermissions.ReadWrite,
     fields: {
