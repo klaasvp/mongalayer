@@ -148,6 +148,67 @@ describe('Access - Filter', () => {
         });
     });
 
+    describe('Access user - through custom operator', () => {
+        let mongalayer: Mongalayer, userZero: User, userOne: User;
+
+        beforeAll(async () => {
+            userZero = userObjects[0];
+            userOne = userObjects[1];
+
+            const userCollection: MongalayerCollection<User> = {
+                schema: userSchema,
+                access: [{
+                    role: "userZero",
+                    filter: {
+                        "$$eq": ["%%user.sub", userZero._id]
+                    }
+                }]
+            };
+
+            const collections: MongalayerCollections = {
+                users: userCollection
+            }
+
+            mongalayer = await getMongaLayerForCollections(collections, { debugging: true });
+        });
+
+        test("findOne - self filter", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "users" as MongalayerCollectionType<User>,
+                operation: "findOne"
+            }, {
+                filter: {
+                    _id: userZero._id
+                }
+            }, {
+                user: {
+                    sub: userZero._id
+                }
+            });
+
+            expect(result).toStrictEqual(userZero);
+        });
+
+        test("findOne - other filter", async () => {
+            const result = await mongalayer.executeRaw({
+                database: dbName,
+                collection: "users" as MongalayerCollectionType<User>,
+                operation: "findOne"
+            }, {
+                filter: {
+                    _id: userOne._id
+                }
+            }, {
+                user: {
+                    sub: userOne._id
+                }
+            });
+
+            expect(result).toStrictEqual(null);
+        });
+    });
+
     describe('Access project - user owner', () => {
         let mongalayer: Mongalayer, userZero: User, userZeroAccessPayload: JwtPayload, projectWithoutUserAsOwner: Project, projectWithUserAsOwner: Project;
 
