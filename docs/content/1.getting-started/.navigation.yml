@@ -1,2 +1,3 @@
 title: Getting Started
-icon: false
+navigation:
+  icon: i-lucide-play
