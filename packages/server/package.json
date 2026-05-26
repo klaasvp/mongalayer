@@ -1,7 +1,7 @@
 {
     "name": "@mongalayer/server",
     "type": "module",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "license": "MIT",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -20,7 +20,7 @@
         "test-specific": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" MONGOMS_DOWNLOAD_URL=\"https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2204-8.0.11.tgz\" MONGOMS_VERSION=\"8.0.11\" npx vitest --run $npm_config_pattern"
     },
     "dependencies": {
-        "@mongalayer/core": "1.0.3"
+        "@mongalayer/core": "1.0.4"
     },
     "devDependencies": {
         "@types/node": "^24.12.2",
