@@ -1,4 +1,5 @@
 export { ServerErrorType, type ServerErrorCode, ServerError, serverErrorName, ValidationError, ValidationErrorCode, DatabaseError, DatabaseErrorCode, AuthorizationError, AuthorizationErrorCode } from "@mongalayer/core";
+export { deepPartial, getSubschema } from "@mongalayer/utils";
 
 export * from "./core.js";
 
