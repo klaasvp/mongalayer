@@ -1,0 +1,19 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bottom Layer (Database) -->
+  <g transform="translate(0, 15)">
+    <path d="M20 100 L100 60 L180 100 L100 140 Z" fill="#c4b4ff" fill-opacity="0.4" />
+    <path d="M20 100 L20 108 L100 148 L180 108 L180 100 L100 140 Z" fill="#a684ff" fill-opacity="0.4" />
+  </g>
+  
+  <!-- Middle Layer (Mongalayer Middleware - Bold M) -->
+  <g transform="translate(0, -6)">
+    <!-- Thick M shape body -->
+    <path d="M20 95 L60 75 L100 95 L140 75 L180 95 L180 115 L140 95 L100 115 L60 95 L20 115 Z" fill="#7008e7" />
+  </g>
+  
+  <!-- Top Layer (Client) -->
+  <g transform="translate(0, -15)">
+    <path d="M20 90 L100 50 L180 90 L100 130 Z" fill="#c4b4ff" fill-opacity="0.4" />
+    <path d="M20 90 L20 98 L100 138 L180 98 L180 90 L100 130 Z" fill="#a684ff" fill-opacity="0.4" />
+  </g>
+</svg>
