@@ -1,6 +1,8 @@
 {
     "name": "mongalayer",
     "private": true,
+    "version": "1.0.0",
+    "license": "MIT",
     "scripts": {
         "build": "npm --prefix ./packages/utils run build && npm --prefix ./packages/core run build && npm --prefix ./packages/server run build && npm --prefix ./packages/client run build",
         "test": "npm --prefix ./packages/utils test && npm --prefix ./packages/core test && npm --prefix ./packages/server test"
