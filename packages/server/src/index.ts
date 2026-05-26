@@ -1,5 +1,5 @@
 export { ServerErrorType, type ServerErrorCode, ServerError, serverErrorName, ValidationError, ValidationErrorCode, DatabaseError, DatabaseErrorCode, AuthorizationError, AuthorizationErrorCode } from "@mongalayer/core";
-export { deepPartial, getSubschema } from "./utils/zod.js";
+export { deepPartial, getSubschema, type ZodUnwrappedSchema } from "./utils/zod.js";
 
 export * from "./core.js";
 
