@@ -1,7 +1,7 @@
 import type { Document } from "mongodb";
 import { AccessPermissions } from "../access.js";
 import { AccessService } from "../access.js";
-import { PipelineSchema, StageSchema } from "#src/schema/aggregate.js";
+import { PipelineSchema, StageSchema } from "../schema/aggregate.js";
 import { KeysOfUnion } from "type-fest";
 
 type AggregationStages = {

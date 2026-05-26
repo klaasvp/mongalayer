@@ -1,4 +1,4 @@
-import { $geometryNearSchema, positionSchema } from "#src/schema/geo.js";
+import { $geometryNearSchema, positionSchema } from "../schema/geo.js";
 import { isArray, isObject } from "@mongalayer/core";
 import type { Document, Filter } from "mongodb";
 import z from "zod";
