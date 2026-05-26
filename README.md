@@ -4,6 +4,8 @@ A type-safe abstraction layer between your MongoDB database and TypeScript clien
 
 Created as a **self-hosted replacement after MongoDB Atlas App Services deprecation**, specifically its Data Model / Data Access Permissions and the ability to query MongoDB collections from a client as you would in a Node.js environment.
 
+### Please refer to [mongalayer.com](https://mongalayer.com) for the most up-to-date documentation, examples, and guides.
+
 ## Features
 
 - **Schema validation** using Zod to ensure data integrity
