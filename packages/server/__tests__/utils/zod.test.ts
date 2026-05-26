@@ -1,6 +1,6 @@
 import { describe, test, expect } from "vitest";
 import z, { ZodBoolean, ZodDate, ZodLiteral, ZodNumber, ZodString } from "zod";
-import { getSubschema } from "#src/zod.js";
+import { getSubschema } from "#src/utils/zod.js";
 
 export const projectSchema = z.strictObject({
     _id: z.string(),
