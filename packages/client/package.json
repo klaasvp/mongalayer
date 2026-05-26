@@ -1,7 +1,7 @@
 {
     "name": "@mongalayer/client",
     "type": "module",
-    "version": "1.0.4",
+    "version": "1.0.6",
     "license": "MIT",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -12,11 +12,12 @@
         }
     },
     "scripts": {
+        "prepublishOnly": "npm run build",
         "build": "rm -rf ./dist/* && tsc --project tsconfig.build.json"
     },
     "dependencies": {
-        "@mongalayer/core": "1.0.4",
-        "@mongalayer/server": "1.0.4"
+        "@mongalayer/core": "1.0.6",
+        "@mongalayer/server": "1.0.6"
     },
     "homepage": "https://mongalayer.com",
     "keywords": [
