@@ -1,7 +1,8 @@
 {
     "name": "@mongalayer/core",
     "type": "module",
-    "private": true,
+    "version": "1.0.0",
+    "license": "MIT",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {
@@ -18,13 +19,11 @@
         "build": "rm -rf ./dist/* && tsc --project tsconfig.build.json",
         "test": "npx vitest --run"
     },
-    "dependencies": {
-        "@mongalayer/utils": "file:../utils"
-    },
     "imports": {
         "#src/*": [
             "./src/*",
             "./src/*.ts"
         ]
-    }
+    },
+    "homepage": "https://mongalayer.com"
 }
