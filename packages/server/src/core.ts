@@ -122,7 +122,7 @@ export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
                 }
             }
 
-            let accessService: QueryAccessService | AggregationAccessService | InsertAccessService | UpdateAccessService | DeleteAccessService;
+            let accessService: QueryAccessService | AggregationAccessService<TAccessPayload> | InsertAccessService | UpdateAccessService | DeleteAccessService;
 
             switch (action.operation) {
                 case "findOne":
@@ -130,7 +130,7 @@ export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
                     accessService = new QueryAccessService(this.mongodbClient, action.database, action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
                     break;
                 case "aggregate":
-                    accessService = new AggregationAccessService(this.mongodbClient, action.database, action.collection, accessPayload, accessConfig, schema, this.options.accessDefaults);
+                    accessService = new AggregationAccessService<TAccessPayload>(this.mongodbClient, action.database, action.collection, accessPayload as TAccessPayload, accessConfig, schema, this.options.accessDefaults, this.collections);
                     break;
                 case "insertOne":
                 case "insertMany":

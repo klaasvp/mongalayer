@@ -11,7 +11,7 @@ export type AggregatePayload = {
     }
 }
 
-export type AggregateReturnType<TSchema extends Document> = TSchema[] | Partial<TSchema>[] | Document[];
+export type AggregateReturnType<TSchema extends Document> = (TSchema & Document)[] | (Partial<TSchema> & Document)[] | Document[];
 
 const payloadSchema: z.ZodType<AggregatePayload> = z.object({
     pipeline: pipelineSchema,
