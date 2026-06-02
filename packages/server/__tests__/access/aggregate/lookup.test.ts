@@ -184,18 +184,25 @@ describe('Access - Aggregate - Lookup', () => {
 
             const projects = projectObjects.filter(project => project.access.owners.includes(userZero._id) || project.access.contributors.includes(userZero._id) || project.access.readers.includes(userZero._id));
 
+            const projectAssetsCountPerProjectAsOwner = Object.fromEntries(projects.filter(project => project.access.owners.includes(userZero._id)).map(project => {
+                const projectAssets = projectAssetObjects.filter(asset => asset.projectID === project._id);
+                return [ project._id, projectAssets.length ];
+            }));
+
             expect(results).toHaveLength(projects.length);
 
             results.forEach(result => {
+                const calculatedCount = projectAssetsCountPerProjectAsOwner[result._id] ?? 0;
+
                 if (result.access.owners.includes(userZero._id)) {
                     const
                         projectAssets = projectAssetObjects.filter(asset => asset.projectID === result._id),
                         projectAssetIDs = projectAssets.map(asset => asset._id);
 
-                    expect(result.assets).toHaveLength(projectAssets.length);
+                    expect(result.assets).toHaveLength(calculatedCount);
                     expect(result.assets.map(asset => asset._id).sort()).toEqual(projectAssetIDs.sort());
                 } else {
-                    expect(result.assets).toHaveLength(0);
+                    expect(result.assets).toHaveLength(calculatedCount);
                 }
             });
         });
