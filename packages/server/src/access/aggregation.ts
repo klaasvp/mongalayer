@@ -1,14 +1,30 @@
-import type { Document } from "mongodb";
-import { AccessPermissions } from "../access.js";
+import type { Document, MongoClient } from "mongodb";
+import { AccessConfig, AccessDefaults, AccessPayload, AccessPermissions } from "../access.js";
 import { AccessService } from "../access.js";
-import { PipelineSchema, StageSchema } from "../schema/aggregate.js";
+import { isLookupStage, PipelineSchema, StageSchema } from "../schema/aggregate.js";
 import { KeysOfUnion } from "type-fest";
+import { Debugging, MongalayerCollections } from "../core.js";
+import z, { ZodObject } from "zod";
+import { LookupSchema } from "#src/schema/aggregation/lookup.js";
 
 type AggregationStages = {
     $pipeline: Document[]
 }
 
-export class AggregationAccessService extends AccessService {
+export class AggregationAccessService<TAccessPayload extends AccessPayload = AccessPayload> extends AccessService {
+    constructor (
+        protected client: MongoClient,
+        protected database: string,
+        protected collection: string,
+        protected accessData: TAccessPayload,
+        protected accessConfig: AccessConfig,
+        protected documentSchema: ZodObject,
+        public accessDefaults: AccessDefaults,
+        protected collections: MongalayerCollections<TAccessPayload>
+    ) {
+        super(client, database, collection, accessData, accessConfig, documentSchema, accessDefaults);
+    }
+
     private addFilterStage (pipeline: Document[] = []): { accessFilterIndex: number, firstFilterStage: Document | {} } {
         const accessFilters = this.getAccessFilters();
 
@@ -50,6 +66,17 @@ export class AggregationAccessService extends AccessService {
 
     public getStages (currentPipeline: PipelineSchema = []): AggregationStages {
         const pipeline = structuredClone(currentPipeline) as Document[];
+
+        currentPipeline.forEach((stage, index) => {
+            if (isLookupStage(stage)) {
+                const lookupStages = this.handleLookupStageAccess(stage.$lookup);
+
+                pipeline[index].$lookup = {
+                    ...stage.$lookup,
+                    pipeline: lookupStages.$pipeline
+                };
+            }
+        });
 
         const { accessFilterIndex, firstFilterStage } = this.addFilterStage(pipeline);
 
@@ -128,5 +155,33 @@ export class AggregationAccessService extends AccessService {
         const $removeRole = { $project: { __mongalayer_role: 0 } };
 
         pipeline.splice(startIndex, 0, { $facet }, $project, $unwind, $replaceRoot, $removeRole);
+    }
+
+    private handleLookupStageAccess (lookupStage: LookupSchema): Document {
+        let accessConfig: AccessConfig<Document, AccessPayload> = [], schema: ZodObject = z.object({});
+        
+        if (this.collections[lookupStage.from] !== void 0) {
+            accessConfig = this.collections[lookupStage.from].access as AccessConfig<Document, AccessPayload>;
+            schema = this.collections[lookupStage.from].schema;
+        } else {
+            if (Debugging.isEnabled()) {
+                console.debug("Mongalayer - Execute - No config found, using public access");
+            }
+        }
+
+        const lookupAccessService = new AggregationAccessService<TAccessPayload>(
+            this.client, 
+            this.database, 
+            lookupStage.from, 
+            this.accessData, 
+            accessConfig, 
+            schema, 
+            this.accessDefaults, 
+            this.collections
+        );
+
+        // TODO check localField & foreignField access permissions
+
+        return lookupAccessService.getStages();
     }
 }
