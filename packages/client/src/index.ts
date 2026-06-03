@@ -4,11 +4,11 @@ export {
     Client as MongalayerClient
 } from "./client.js"
 
-export {
+export type {
     Db
 } from "./db.js"
 
-export {
+export type {
     Collection
 } from "./collection.js"
 
