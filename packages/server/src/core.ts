@@ -36,7 +36,7 @@ export type MongalayerOptions = {
      * @description Enable MongoDB sessions for transactions.
      * @default true
      */
-    useSessions: boolean,
+    //useSessions: boolean,
     /**
      * @description Enable debugging mode. This will log all actions to the console.
      * @default false
@@ -61,7 +61,7 @@ export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
         providedOptions?: PartialDeep<MongalayerOptions>
     ) { 
         this.options = {
-            useSessions: true,
+            //useSessions: true,
             debugging: false,
             ...providedOptions,
             accessDefaults: {
@@ -105,9 +105,9 @@ export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
 
             database = this.mongodbClient.db(action.database);
 
-            if (this.options.useSessions) {
-                session = this.mongodbClient.startSession()
-            };
+            //if (this.options.useSessions) {
+            //    session = this.mongodbClient.startSession()
+            //};
 
             const collection = database.collection(action.collection);
 
@@ -194,9 +194,9 @@ export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
         } finally {
             database = null;
 
-            if (this.options.useSessions && session) {
-                await session.endSession();
-            }
+            //if (this.options.useSessions && session) {
+            //    await session.endSession();
+            //}
         }
 
         return result as InferActionReturnType<TAction>;

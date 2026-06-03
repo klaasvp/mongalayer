@@ -73,7 +73,7 @@ export type InferActionReturnType<TAction extends Action> = TAction extends { op
     never : never;
 
 export type MongalayerCollectionType <TSchema extends Document = Document> = string & {
-  __schema?: TSchema;
+    __schema?: TSchema;
 };
 
 type GetCollectionSchema<T> = T extends MongalayerCollectionType<infer U> ? U : never;
