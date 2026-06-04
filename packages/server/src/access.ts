@@ -1,5 +1,5 @@
 import type { Document, Filter, MongoClient, OptionalUnlessRequiredId } from "mongodb";
-import { iteratePrimitives } from "@mongalayer/core";
+import { iteratePrimitives, ValidationError } from "@mongalayer/core";
 import { ZodObject } from "zod";
 import { AccessFilter, customOperatorKeys } from "./schema/access/filter.js";
 import { deleteObjectProperty, getValueByPath, isArray, isObject } from "@mongalayer/core";
@@ -167,7 +167,13 @@ export abstract class AccessService {
 
         iteratePrimitives(hydratedFilter, (key, value, replace) => {
             if (typeof value === "string" && value.indexOf("%%") === 0) {
-                replace(getValueByPath(this.accessData, value.substring(2)));
+                const accessValue = getValueByPath(this.accessData, value.substring(2));
+
+                if (accessValue === void 0) {
+                    throw new ValidationError(`Access filter references missing access data property: ${value.substring(2)}`);
+                }
+
+                replace(accessValue);
             }
         });
 
