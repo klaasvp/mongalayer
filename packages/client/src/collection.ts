@@ -1,11 +1,16 @@
 import type { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType, DeleteOnePayload, DeleteOneReturnType, DeleteManyPayload, DeleteManyReturnType, InsertOnePayload, InsertOneReturnType, InsertManyReturnType, InsertManyPayload, UpdateOnePayload, UpdateOneReturnType, UpdateManyPayload, UpdateManyReturnType, FindOneAndUpdatePayload, FindOneAndUpdateReturnType } from "@mongalayer/server/client";
 import { Db } from "./db.js";
-import { MongalayerAPIError } from "./error.js";
-import { serverErrorName, ServerError,  parseReviver, stringifyReplacer } from "@mongalayer/core";
+import { request } from "./request.js";
+
+export type CollectionName<TSchema extends Document = Document> = string & {
+    __schema?: TSchema;
+};
+
+type GetCollectionSchema<T> = T extends CollectionName<infer U> ? U : never;
 
 export class Collection<TSchema extends Document> {
     constructor (
-        public name: string,
+        public name: CollectionName<TSchema>,
         public db: Db
     ) {
         
@@ -15,10 +20,6 @@ export class Collection<TSchema extends Document> {
         const url = new URL(this.db.client.options.format === "routed" 
             ? `${this.db.client.endpoint}/${this.db.name}/${this.name}/${action}` 
             : this.db.client.endpoint);
-        
-        if (context !== void 0) {
-            url.searchParams.append("context", btoa(JSON.stringify(context, stringifyReplacer)));
-        }
 
         const body = this.db.client.options.format === "routed" 
             ? payload 
@@ -29,39 +30,9 @@ export class Collection<TSchema extends Document> {
                     operation: action
                 },
                 payload
-            }
+            };
 
-        const requestInit: RequestInit = {
-            method: "POST",
-            body: JSON.stringify(body, stringifyReplacer)
-        }
-
-        if (this.db.client.options.headers !== void 0) requestInit.headers = this.db.client.options.headers instanceof Function ? await this.db.client.options.headers() : this.db.client.options.headers;
-        if (this.db.client.options.credentials !== void 0) requestInit.credentials = this.db.client.options.credentials;
-
-        const request = fetch(url, requestInit);
-
-        try {
-            const response = await request;
-            const responseText = await response.text();
-
-            if (response.ok) {
-                return JSON.parse(responseText, parseReviver);
-            } else {
-                const mongalayerErrorRegex = new RegExp(`"name":"${serverErrorName}"`);
-                if (mongalayerErrorRegex.test(responseText)) {
-                    throw ServerError.fromJSON(responseText);
-                } else {
-                    throw new MongalayerAPIError(response.status, responseText);
-                }
-            }
-        } catch (e) {
-            if (e instanceof MongalayerAPIError || e instanceof ServerError) {
-                throw e;
-            }
-
-            throw new Error("Failed to fetch", { cause: e });
-        }
+        return await request(url, body, this.db.client.options, context);
     }
 
     public async findOne (filter: FindOnePayload<TSchema>["filter"], options?: FindOnePayload<TSchema>["options"], context?: any): Promise<FindOneReturnType<TSchema>> {

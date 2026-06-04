@@ -13,6 +13,10 @@ export type {
 } from "./collection.js"
 
 export {
+    BatchOperation
+} from "./batch.js"
+
+export {
     MongalayerAPIError
 } from "./error.js";
 
