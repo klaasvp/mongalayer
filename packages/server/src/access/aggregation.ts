@@ -182,6 +182,6 @@ export class AggregationAccessService<TAccessPayload extends AccessPayload = Acc
 
         // TODO check localField & foreignField access permissions
 
-        return lookupAccessService.getStages();
+        return lookupAccessService.getStages(lookupStage.pipeline ?? []);
     }
 }
