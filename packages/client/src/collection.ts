@@ -1,6 +1,7 @@
 import type { FindOnePayload, Document, FindOneReturnType, Operation, FindPayload, FindReturnType, AggregatePayload, AggregateReturnType, DeleteOnePayload, DeleteOneReturnType, DeleteManyPayload, DeleteManyReturnType, InsertOnePayload, InsertOneReturnType, InsertManyReturnType, InsertManyPayload, UpdateOnePayload, UpdateOneReturnType, UpdateManyPayload, UpdateManyReturnType, FindOneAndUpdatePayload, FindOneAndUpdateReturnType } from "@mongalayer/server/client";
 import { Db } from "./db.js";
 import { request } from "./request.js";
+import { BatchOperation, isSupportedBatchOperations } from "./batch.js";
 
 export type CollectionName<TSchema extends Document = Document> = string & {
     __schema?: TSchema;
@@ -8,12 +9,19 @@ export type CollectionName<TSchema extends Document = Document> = string & {
 
 type GetCollectionSchema<T> = T extends CollectionName<infer U> ? U : never;
 
+export type CollectionOptions = {
+    autoBatch?: boolean
+};
+
 export class Collection<TSchema extends Document> {
+    private autoBatch: boolean;
+
     constructor (
         public name: CollectionName<TSchema>,
-        public db: Db
+        public db: Db,
+        options: CollectionOptions = {}
     ) {
-        
+        this.autoBatch = options.autoBatch ?? db.client.options.autoBatch ?? false;
     }
 
     private async request (action: Operation, payload: any, context?: any): Promise<any> {
@@ -32,7 +40,15 @@ export class Collection<TSchema extends Document> {
                 payload
             };
 
+        if (this.autoBatch && isSupportedBatchOperations(action)) {
+            return await this.db.autoBatch(new BatchOperation(this.name, action, payload), context);
+        }
+
         return await request(url, body, this.db.client.options, context);
+    }
+
+    public get withoutBatch () {
+        return new Collection<TSchema>(this.name, this.db, { autoBatch: false });
     }
 
     public async findOne (filter: FindOnePayload<TSchema>["filter"], options?: FindOnePayload<TSchema>["options"], context?: any): Promise<FindOneReturnType<TSchema>> {

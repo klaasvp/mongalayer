@@ -9,7 +9,8 @@ export type {
 } from "./db.js"
 
 export type {
-    Collection
+    Collection,
+    CollectionOptions
 } from "./collection.js"
 
 export {

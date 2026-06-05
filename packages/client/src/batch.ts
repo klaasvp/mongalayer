@@ -4,6 +4,10 @@ import { CollectionName } from "./collection";
 
 type SupportedBatchOperation = Extract<Operation, "findOne" | "find" | "aggregate">;
 
+export const isSupportedBatchOperations = (operation: Operation): operation is SupportedBatchOperation => {
+    return ["findOne", "find", "aggregate"].includes(operation);
+}
+
 type BatchOperationPayload<TOperation extends SupportedBatchOperation, TSchema extends Document> =
     TOperation extends "findOne" ? { filter: FindOnePayload<TSchema>["filter"], options?: FindOnePayload<TSchema>["options"] } :
     TOperation extends "find" ? { filter: FindPayload<TSchema>["filter"], options?: FindPayload<TSchema>["options"] } :
