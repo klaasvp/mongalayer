@@ -1,17 +1,12 @@
 import { z } from "zod";
-import { filterSchema } from "./query.js";
 import { unwindSchema } from "./aggregation/unwind.js";
 import { projectionSchema } from "./aggregation/project.js";
 import { sortSchema } from "./aggregation/sort.js";
 import { groupSchema } from "./aggregation/group.js";
 import { searchSchema } from "./aggregation/search.js";
 import { LookupSchema, lookupSchema } from "./aggregation/lookup.js";
+import { limitSchema, matchSchema, skipSchema } from "./aggregation/index.js";
 
-// TODO :: Remove $where / $near / $nearSphere / $text (or allow it only as the first stage)
-const matchSchema = filterSchema;
-
-export const skipSchema = z.int().nonnegative();
-export const limitSchema = z.int().positive();
 
 export const stageSchema = z.strictObject({ // Not strict as it's combined with documentSchema
     $match: matchSchema

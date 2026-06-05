@@ -1,4 +1,4 @@
-import type { Collection, Document } from "mongodb";
+import type { Collection, Db, Document } from "mongodb";
 import z from "zod";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { Projection, projectionSchema, Sort, sortSchema } from "../schema/index.js";
@@ -24,7 +24,7 @@ const payloadSchema: z.ZodType<FindOnePayload<Document>> = z.object({
     }).optional()
 });
 
-export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: QueryAccessService, payload: FindOnePayload<TSchema>): Promise<FindOneReturnType<TSchema>> {
+export default async function <TSchema extends Document> (database: Db, accessService: QueryAccessService, payload: FindOnePayload<TSchema>): Promise<FindOneReturnType<TSchema>> {
     payloadSchema.parse(payload);
 
     const findPayload: FindPayload<TSchema> = structuredClone(payload);
@@ -34,7 +34,7 @@ export default async function <TSchema extends Document> (collection: Collection
         limit: 1
     };
 
-    const result = await find(collection, accessService, findPayload);
+    const result = await find(database, accessService, findPayload);
 
     if (result.length === 0) return null;
 

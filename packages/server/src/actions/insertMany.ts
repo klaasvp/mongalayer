@@ -1,4 +1,4 @@
-import type { Collection, Document, InsertManyResult } from "mongodb";
+import type { Collection, Db, Document, InsertManyResult } from "mongodb";
 import z from "zod";
 import { InsertableDocument, InsertAccessService } from "../access/insert.js";
 import { Debugging } from "../core.js";
@@ -16,7 +16,7 @@ const payloadOptionsSchema: z.ZodType<InsertManyPayload<Document>["options"]> = 
     ordered: z.boolean().optional()
 }).optional();
 
-export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: InsertAccessService, payload: InsertManyPayload<TSchema>): Promise<InsertManyReturnType<TSchema>> {
+export default async function <TSchema extends Document> (database: Db, accessService: InsertAccessService, payload: InsertManyPayload<TSchema>): Promise<InsertManyReturnType<TSchema>> {
     // Validate the options payload
     payloadOptionsSchema.parse(payload.options);
 
@@ -25,5 +25,7 @@ export default async function <TSchema extends Document> (collection: Collection
     
     await accessService.validateDocumentsAccess(payload.documents);
 
+    const collection = database.collection<TSchema>(accessService.collection);
+    
     return await collection.insertMany(payload.documents, payload.options);
 }

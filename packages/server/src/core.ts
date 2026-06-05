@@ -1,6 +1,6 @@
 import type { MongoClient, Document, Db, ClientSession, MongoServerError } from "mongodb";
 import { ZodObject, ZodType } from "zod";
-import { Action, find, findOne, findOneAndUpdate, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany, insertOne, insertMany, updateOne, updateMany, validateAction } from "./actions/index.js";
+import { Action, find, findOne, findOneAndUpdate, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany, insertOne, insertMany, updateOne, updateMany, validateAction, actionSchema, operationSchema } from "./actions/index.js";
 import { AccessConfig, AccessDefaults, AccessPermissions, AccessPayload } from "./access.js";
 import z from "zod";
 import { FindOnePayload, FindOneReturnType } from "./actions/findOne.js";
@@ -36,7 +36,7 @@ export type MongalayerOptions = {
      * @description Enable MongoDB sessions for transactions.
      * @default true
      */
-    useSessions: boolean,
+    //useSessions: boolean,
     /**
      * @description Enable debugging mode. This will log all actions to the console.
      * @default false
@@ -52,6 +52,25 @@ export class Debugging {
     }
 }
 
+const bodySchema = z.strictObject({
+    action: actionSchema,
+    payload: z.record(z.string(), z.unknown())
+});
+
+const batchBodySchema = z.array(z.strictObject({
+    action: z.strictObject({
+        ...actionSchema.shape,
+        operation: operationSchema.extract(["findOne", "find", "aggregate"])
+    }),
+    payload: z.record(z.string(), z.unknown())
+}));
+
+const parsedBodySchema = z.union([bodySchema, batchBodySchema]);
+
+type ExecuteOptions = {
+    validateAction?: boolean
+}
+
 export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
     private options: MongalayerOptions;
 
@@ -61,7 +80,7 @@ export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
         providedOptions?: PartialDeep<MongalayerOptions>
     ) { 
         this.options = {
-            useSessions: true,
+            //useSessions: true,
             debugging: false,
             ...providedOptions,
             accessDefaults: {
@@ -95,19 +114,19 @@ export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
     /**
      * This function uses currying to be able to provide the correct return types using Generics.
      */
-    public async executeRaw <TAction extends Action>(rawAction: TAction, actionPayload: InferActionPayload<TAction>, accessPayload: AccessPayload): Promise<InferActionReturnType<TAction>> {
+    private async executeAction<TAction extends Action>(rawAction: TAction, actionPayload: InferActionPayload<TAction>, accessPayload: AccessPayload, options: ExecuteOptions = {}): Promise<InferActionReturnType<TAction>> {
         let result: FindOneReturnType<Document> | FindReturnType<Document> | AggregateReturnType<Document> | void,
             database: Db | null, 
             session: ClientSession | null = null;
 
         try {
-            const action = validateAction(rawAction);
+            const action = options.validateAction === false ? rawAction : validateAction(rawAction);
 
             database = this.mongodbClient.db(action.database);
 
-            if (this.options.useSessions) {
-                session = this.mongodbClient.startSession()
-            };
+            //if (this.options.useSessions) {
+            //    session = this.mongodbClient.startSession()
+            //};
 
             const collection = database.collection(action.collection);
 
@@ -149,16 +168,16 @@ export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
 
             try {
                 switch (action.operation) {
-                    case "findOne": result = await findOne(collection, accessService as QueryAccessService, actionPayload as FindOnePayload<Document>); break;
-                    case "find": result = await find(collection, accessService as QueryAccessService, actionPayload as FindPayload<Document>); break;
-                    case "findOneAndUpdate": result = await findOneAndUpdate(collection, accessService as UpdateAccessService, actionPayload as FindOneAndUpdatePayload<Document>); break;
-                    case "aggregate": result = await aggregate(collection, accessService as AggregationAccessService, actionPayload as AggregatePayload); break;
-                    case "insertOne": result = await insertOne(collection, accessService as InsertAccessService, actionPayload as InsertOnePayload<Document>); break;
-                    case "insertMany": result = await insertMany(collection, accessService as InsertAccessService, actionPayload as InsertManyPayload<Document>); break;
-                    case "updateOne": result = await updateOne(collection, accessService as UpdateAccessService, actionPayload as UpdateOnePayload<Document>); break;
-                    case "updateMany": result = await updateMany(collection, accessService as UpdateAccessService, actionPayload as UpdateManyPayload<Document>); break;
-                    case "deleteOne": result = await deleteOne(collection, accessService as DeleteAccessService, actionPayload as DeleteOnePayload<Document>); break;
-                    case "deleteMany": result = await deleteMany(collection, accessService as DeleteAccessService, actionPayload as DeleteManyPayload<Document>); break;
+                    case "findOne": result = await findOne(database, accessService as QueryAccessService, actionPayload as FindOnePayload<Document>); break;
+                    case "find": result = await find(database, accessService as QueryAccessService, actionPayload as FindPayload<Document>); break;
+                    case "findOneAndUpdate": result = await findOneAndUpdate(database, accessService as UpdateAccessService, actionPayload as FindOneAndUpdatePayload<Document>); break;
+                    case "aggregate": result = await aggregate(database, accessService as AggregationAccessService, actionPayload as AggregatePayload); break;
+                    case "insertOne": result = await insertOne(database, accessService as InsertAccessService, actionPayload as InsertOnePayload<Document>); break;
+                    case "insertMany": result = await insertMany(database, accessService as InsertAccessService, actionPayload as InsertManyPayload<Document>); break;
+                    case "updateOne": result = await updateOne(database, accessService as UpdateAccessService, actionPayload as UpdateOnePayload<Document>); break;
+                    case "updateMany": result = await updateMany(database, accessService as UpdateAccessService, actionPayload as UpdateManyPayload<Document>); break;
+                    case "deleteOne": result = await deleteOne(database, accessService as DeleteAccessService, actionPayload as DeleteOnePayload<Document>); break;
+                    case "deleteMany": result = await deleteMany(database, accessService as DeleteAccessService, actionPayload as DeleteManyPayload<Document>); break;
                 }
             } catch (e) {
                 if (e instanceof z.ZodError) {
@@ -194,12 +213,16 @@ export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
         } finally {
             database = null;
 
-            if (this.options.useSessions && session) {
-                await session.endSession();
-            }
+            //if (this.options.useSessions && session) {
+            //    await session.endSession();
+            //}
         }
 
         return result as InferActionReturnType<TAction>;
+    }
+
+    public async executeRaw <TAction extends Action>(rawAction: TAction, actionPayload: InferActionPayload<TAction>, accessPayload: AccessPayload) {
+        return this.executeAction(rawAction, actionPayload, accessPayload);
     }
 
     public async execute <TAction extends Action>(action: TAction, stringifiedActionPayload: string, accessPayload: AccessPayload): Promise<string> {
@@ -208,5 +231,32 @@ export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
         const result = await this.executeRaw(action, actionPayload, accessPayload);
         
         return JSON.stringify(result, stringifyReplacer);
+    }
+
+    public async executeJSON (stringifiedBody: string, accessPayload: AccessPayload): Promise<string> {
+        const parsedBody = JSON.parse(stringifiedBody, parseReviver);
+
+        try {
+            // This will validate the action part not the payload part, that's done by the access services when they execute the action
+            const body = parsedBodySchema.parse(parsedBody) as { action: Action, payload: any } | { action: Action, payload: any }[];
+
+            const result = Array.isArray(body) 
+                ? await Promise.all(body.map(({ action, payload }) => this.executeAction(action, payload, accessPayload, { validateAction: false })))
+                : await this.executeAction(body.action, body.payload, accessPayload, { validateAction: false });
+
+            return JSON.stringify(result, stringifyReplacer);
+        } catch (e) {
+            if (e instanceof z.ZodError) {
+                if (Debugging.isEnabled()) {
+                    throw e;
+                } else {
+                    console.log(z.prettifyError(e));
+                    
+                    throw new ValidationError("Failed to validate action parameters");
+                }
+            } else {
+                throw e;
+            }
+        }
     }
 }

@@ -3,9 +3,9 @@ import { hasNearQuery, transformNearToGeoNear } from "../query/near.js";
 import { AccessService } from "../access.js";
 
 type QueryStages = {
-    $query: Document,
-    $role: Document[] | null
-    $project: { $project: Document } | null
+    $pipeline: Document[],
+    $project: { $project: Document } | null,
+    usingRoles: boolean
 }
 
 export class QueryAccessService extends AccessService {
@@ -50,12 +50,16 @@ export class QueryAccessService extends AccessService {
     }
 
     public getStages (currentFilter: Filter<Document> = {}, projection?: Document): QueryStages {
-        const role = this.getRoleStages(currentFilter), project = this.getProjection(projection);
+        const filterStage = this.getFilterStage(currentFilter), roleStages = this.getRoleStages(currentFilter);
+
+        // After this stage, the documents are in the same state as if we would have run a find query with the filterStage as the filter
+
+        const project = this.getProjection(projection)
 
         const stages = {
-            $query: this.getFilterStage(currentFilter),
-            $role: role ? role : null,
-            $project: project ? { $project: project } : null
+            $pipeline: this.getBasePipeline([filterStage], roleStages),
+            $project: project ? { $project: project } : null,
+            usingRoles: roleStages !== null
         };
 
         return stages;

@@ -1,4 +1,4 @@
-import type { Collection, Document, Filter, FindOneAndUpdateOptions, ReturnDocument } from "mongodb";
+import type { Collection, Db, Document, Filter, FindOneAndUpdateOptions, ReturnDocument } from "mongodb";
 import z from "zod";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { Projection, projectionSchema, Sort, sortSchema } from "../schema/index.js";
@@ -32,16 +32,12 @@ const payloadSchema: z.ZodType<FindOneAndUpdatePayload<Document>> = z.object({
     }).optional()
 });
 
-export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: UpdateAccessService, payload: FindOneAndUpdatePayload<TSchema>): Promise<FindOneAndUpdateReturnType<TSchema>> {
+export default async function <TSchema extends Document> (database: Db, accessService: UpdateAccessService, payload: FindOneAndUpdatePayload<TSchema>): Promise<FindOneAndUpdateReturnType<TSchema>> {
     payloadSchema.parse(payload);
     
     const stages = accessService.getStages(payload.filter as Filter<Document>);
 
-    const pipeline: Document[] = [stages.$query];
-
-    if (stages.$role) {
-        pipeline.push(...stages.$role);
-    }
+    const pipeline: Document[] = stages.$pipeline;
 
     if (payload.options?.sort) {
         pipeline.push({ $sort: payload.options.sort });
@@ -55,7 +51,7 @@ export default async function <TSchema extends Document> (collection: Collection
         console.debug(`Mongalayer - FindOneAndUpdate - pipeline:`, JSON.stringify(pipeline));
     }
     
-    const documentsWithRole = await collection.aggregate(pipeline).toArray() as UpdatableDocument[];
+    const documentsWithRole = await database.aggregate(pipeline).toArray() as UpdatableDocument[];
     const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update, true);
 
     const { returnDocument, projection } = payload.options ?? {};
@@ -85,6 +81,8 @@ export default async function <TSchema extends Document> (collection: Collection
         role = documentsWithRole[0].__mongalayer_role;
     }
 
+    const collection = database.collection<TSchema>(accessService.collection);
+    
     const result = await collection.findOneAndUpdate(filter, update, options);
 
     if (result === null) return null;

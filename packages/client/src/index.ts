@@ -4,13 +4,18 @@ export {
     Client as MongalayerClient
 } from "./client.js"
 
-export {
+export type {
     Db
 } from "./db.js"
 
-export {
-    Collection
+export type {
+    Collection,
+    CollectionOptions
 } from "./collection.js"
+
+export {
+    BatchOperation
+} from "./batch.js"
 
 export {
     MongalayerAPIError

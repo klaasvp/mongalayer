@@ -13,7 +13,8 @@
     },
     "scripts": {
         "prepublishOnly": "npm run build",
-        "build": "rm -rf ./dist/* && tsc --project tsconfig.build.json"
+        "build": "rm -rf ./dist/* && tsc --project tsconfig.build.json",
+        "test": "npx vitest --run"
     },
     "dependencies": {
         "@mongalayer/core": "1.0.7",
@@ -31,5 +32,8 @@
         "typescript",
         "browser",
         "client"
-    ]
+    ],
+    "devDependencies": {
+        "happy-dom": "^20.9.0"
+    }
 }
