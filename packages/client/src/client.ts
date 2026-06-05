@@ -7,7 +7,12 @@ type RequestHeaders = RequestInit["headers"] | (() => RequestInit["headers"]) | 
 export type ClientOptions = {
     format: RequestFormat,
     headers?: RequestHeaders,
-    credentials?: RequestInit["credentials"]
+    credentials?: RequestInit["credentials"],
+    autoBatch?: boolean,
+    /**
+     * When autoBatch is enabled, this option specifies the delay (in milliseconds) after which a batch of operations will be automatically executed.
+     */
+    autoBatchDelay?: number,
 }
 
 export class Client {
@@ -16,6 +21,8 @@ export class Client {
     constructor (public readonly endpoint: string, options?: Partial<ClientOptions>) {
         this.options = {
             format: "json",
+            autoBatch: false,
+            autoBatchDelay: 10,
             ...options
         }
     }

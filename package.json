@@ -3,7 +3,9 @@
     "license": "MIT",
     "scripts": {
         "build": "npm --prefix ./packages/core run build && npm --prefix ./packages/server run build && npm --prefix ./packages/client run build",
-        "test": "npm --prefix ./packages/core test && npm --prefix ./packages/server test"
+        "test": "npm --prefix ./packages/core test && npm --prefix ./packages/server test",
+        "release": "npm publish --workspaces --access public",
+        "test-release": "npm publish --workspaces --dry-run --access public"
     },
     "workspaces": [
         "./packages/core",

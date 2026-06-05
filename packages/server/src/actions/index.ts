@@ -11,7 +11,7 @@ import updateOne, { UpdateOnePayload, UpdateOneReturnType } from "./updateOne.js
 import updateMany, { UpdateManyPayload, UpdateManyReturnType } from "./updateMany.js";
 import z from "zod";
 
-const operationSchema = z.enum([
+export const operationSchema = z.enum([
     "findOne", 
     "find",
     "findOneAndUpdate",
@@ -33,7 +33,7 @@ export type Action<TCollection extends MongalayerCollectionType = MongalayerColl
     operation: TOperation
 }
 
-const actionSchema = z.strictObject({
+export const actionSchema = z.strictObject({
     database: z.stringFormat("mongalayerDatabaseName", /^[\w-]{1,63}$/), // Simplistic version of MongoDB database name validation
     collection: z.stringFormat("mongalayerCollectionName", /^[\w-]+$/), // Simplistic version of MongoDB collection name validation
     operation: operationSchema
@@ -73,7 +73,7 @@ export type InferActionReturnType<TAction extends Action> = TAction extends { op
     never : never;
 
 export type MongalayerCollectionType <TSchema extends Document = Document> = string & {
-  __schema?: TSchema;
+    __schema?: TSchema;
 };
 
 type GetCollectionSchema<T> = T extends MongalayerCollectionType<infer U> ? U : never;

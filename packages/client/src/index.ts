@@ -9,8 +9,13 @@ export type {
 } from "./db.js"
 
 export type {
-    Collection
+    Collection,
+    CollectionOptions
 } from "./collection.js"
+
+export {
+    BatchOperation
+} from "./batch.js"
 
 export {
     MongalayerAPIError
