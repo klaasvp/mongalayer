@@ -1,4 +1,4 @@
-import type { Collection, Document, Filter, UpdateResult } from "mongodb";
+import type { Collection, Db, Document, Filter, UpdateResult } from "mongodb";
 import z from "zod";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { updateSchema, UpdateSchema } from "../schema/update.js";
@@ -21,16 +21,12 @@ const payloadSchema: z.ZodType<UpdateManyPayload<Document>> = z.object({
     }).optional()
 });
 
-export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: UpdateAccessService, payload: UpdateManyPayload<TSchema>): Promise<UpdateManyReturnType<TSchema>> {
+export default async function <TSchema extends Document> (database: Db, accessService: UpdateAccessService, payload: UpdateManyPayload<TSchema>): Promise<UpdateManyReturnType<TSchema>> {
     payloadSchema.parse(payload);
     
     const stages = accessService.getStages(payload.filter as Filter<Document>);
 
-    const pipeline: Document[] = [stages.$query];
-
-    if (stages.$role) {
-        pipeline.push(...stages.$role);
-    }
+    const pipeline: Document[] = stages.$pipeline;
 
     pipeline.push({ $project: stages.$project });
 
@@ -38,7 +34,7 @@ export default async function <TSchema extends Document> (collection: Collection
         console.debug(`Mongalayer - UpdateMany - pipeline:`, JSON.stringify(pipeline));
     }
     
-    const documentsWithRole = await collection.aggregate(pipeline).toArray() as UpdatableDocument[];
+    const documentsWithRole = await database.aggregate(pipeline).toArray() as UpdatableDocument[];
     const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update);
 
     if (documentsToUpdate.length === 0) {
@@ -49,5 +45,7 @@ export default async function <TSchema extends Document> (collection: Collection
 
     const updateFilter = accessService.getFinalUpdateFilter({ _id: { $in: documentsToUpdate } }, payload.filter, payload.update);
 
+    const collection = database.collection<TSchema>(accessService.collection);
+    
     return await collection.updateMany(updateFilter, payload.update as Document, {});
 }

@@ -1,4 +1,4 @@
-import type { Collection, Document, Filter, ObjectId, UpdateResult } from "mongodb";
+import type { Collection, Db, Document, Filter, ObjectId, UpdateResult } from "mongodb";
 import z from "zod/v4";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { Sort, sortSchema } from "../schema/index.js";
@@ -26,16 +26,12 @@ const payloadSchema: z.ZodType<UpdateOnePayload<Document>> = z.object({
     }).optional()
 });
 
-export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: UpdateAccessService, payload: UpdateOnePayload<TSchema>): Promise<UpdateOneReturnType<TSchema>> {
+export default async function <TSchema extends Document> (database: Db, accessService: UpdateAccessService, payload: UpdateOnePayload<TSchema>): Promise<UpdateOneReturnType<TSchema>> {
     payloadSchema.parse(payload);
     
     const stages = accessService.getStages(payload.filter as Filter<Document>);
 
-    const pipeline: Document[] = [stages.$query];
-
-    if (stages.$role) {
-        pipeline.push(...stages.$role);
-    }
+    const pipeline: Document[] = stages.$pipeline;
 
     if (payload.options?.sort) {
         pipeline.push({ $sort: payload.options.sort });
@@ -49,14 +45,16 @@ export default async function <TSchema extends Document> (collection: Collection
         console.debug(`Mongalayer - UpdateOne - pipeline:`, JSON.stringify(pipeline));
     }
     
-    const documentsWithRole = await collection.aggregate(pipeline).toArray() as UpdatableDocument[];
+    const documentsWithRole = await database.aggregate(pipeline).toArray() as UpdatableDocument[];
     const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update);
+    
+    const collection = database.collection<TSchema>(accessService.collection);
 
     if (documentsToUpdate.length === 0) {
         // If upsert is true and now matching documents were found, validate & upsert the document
         if (payload.options?.upsert === true) {
             const { doc: insertableDoc } = await accessService.getUpsertDocument(payload.filter, payload.update);
-
+            
             return await collection.updateOne({ _id: insertableDoc._id } as Filter<Document>, { $set: insertableDoc } as Document, { upsert: true });
         } 
         // If no matching documents were found directly return

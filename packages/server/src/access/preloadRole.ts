@@ -2,8 +2,8 @@ import type { Filter, Document } from "mongodb";
 import { AccessService } from "../access.js";
 
 export type PreloadRoleStages = {
-    $query: Document,
-    $role: Document[] | null
+    $pipeline: Document[],
+    usingRoles: boolean
 }
 
 export class PreloadRoleAccessService extends AccessService {
@@ -17,11 +17,13 @@ export class PreloadRoleAccessService extends AccessService {
     }
 
     public getStages (currentFilter: Filter<Document> = {}): PreloadRoleStages {
-        const role = this.getRoleStages(currentFilter);
+        const filterStage = this.getFilterStage(currentFilter), roleStages = this.getRoleStages(currentFilter);
+
+        // After this stage, the documents are in the same state as if we would have run a find query with the filterStage as the filter
 
         const stages = {
-            $query: this.getFilterStage(currentFilter),
-            $role: role ? role : null
+            $pipeline: this.getBasePipeline([filterStage], roleStages),
+            usingRoles: roleStages !== null
         };
 
         return stages;

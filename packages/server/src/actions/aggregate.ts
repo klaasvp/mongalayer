@@ -1,4 +1,4 @@
-import type { Collection, Document } from "mongodb";
+import type { Collection, Db, Document } from "mongodb";
 import z from "zod";
 import { pipelineSchema, PipelineSchema } from "../schema/aggregate.js";
 import { AggregationAccessService } from "../access/aggregation.js";
@@ -20,7 +20,7 @@ const payloadSchema: z.ZodType<AggregatePayload> = z.object({
     }).optional()
 });
 
-export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: AggregationAccessService, payload: AggregatePayload): Promise<AggregateReturnType<Document>> {
+export default async function <TSchema extends Document> (database: Db, accessService: AggregationAccessService, payload: AggregatePayload): Promise<AggregateReturnType<Document>> {
     payloadSchema.parse(payload);
     
     const stages = accessService.getStages(payload.pipeline);
@@ -29,7 +29,7 @@ export default async function <TSchema extends Document> (collection: Collection
         console.debug("Mongalayer - Aggregate - pipeline:", JSON.stringify(stages.$pipeline));
     }
 
-    const result = await collection.aggregate(stages.$pipeline, payload.options).toArray() as Document[];
+    const result = await database.aggregate(stages.$pipeline, payload.options).toArray() as Document[];
 
     return result;
 }

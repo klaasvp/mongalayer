@@ -15,7 +15,7 @@ export class AggregationAccessService<TAccessPayload extends AccessPayload = Acc
     constructor (
         protected client: MongoClient,
         protected database: string,
-        protected collection: string,
+        public readonly collection: string,
         protected accessData: TAccessPayload,
         protected accessConfig: AccessConfig,
         protected documentSchema: ZodObject,
@@ -25,46 +25,55 @@ export class AggregationAccessService<TAccessPayload extends AccessPayload = Acc
         super(client, database, collection, accessData, accessConfig, documentSchema, accessDefaults);
     }
 
-    private addFilterStage (pipeline: Document[] = []): { accessFilterIndex: number, firstFilterStage: Document | {} } {
+    private addFilterStage (pipeline: Document[] = []): { accessFilterIndex: number, existingFilterIndex: number, firstFilterStage: Document | {} } {
         const accessFilters = this.getAccessFilters();
 
-        // Only add the access filter $and condition when there are access filters defined.
-        if (accessFilters !== null && pipeline.length > 0) {
+        if (pipeline.length > 0) {
             const firstStage = Object.keys(pipeline[0])[0] as KeysOfUnion<StageSchema>;
 
             switch (firstStage) {
                 // Insert the $match after the $search ($search always needs to be the first stage)
                 case "$search": 
-                    pipeline.splice(1, 0, {
-                        $match: accessFilters
-                    });
-                    
-                    return { accessFilterIndex: 1, firstFilterStage: {} };
+                    if (accessFilters !== null) {
+                        pipeline.splice(1, 0, {
+                            $match: accessFilters
+                        });
+                        
+                        return { accessFilterIndex: 1, existingFilterIndex: 1, firstFilterStage: {} };
+                    } else {
+                        return { accessFilterIndex: -1, existingFilterIndex: 0, firstFilterStage: {} };
+                    }
                 // Merge the first $match with the access filters
                 case "$match":
                     const originalMatch = pipeline[0].$match as Document;
 
-                    const $match = Object.keys(originalMatch).length > 0
-                        ? { $and: [ accessFilters, originalMatch ] }
-                        : accessFilters
+                    if (accessFilters !== null) {
+                        const $match = Object.keys(originalMatch).length > 0
+                            ? { $and: [ accessFilters, originalMatch ] }
+                            : accessFilters
 
-                    pipeline[0] = { $match };
-                    
-                    return { accessFilterIndex: 0, firstFilterStage: originalMatch };
+                        pipeline[0] = { $match };
+                        
+                        return { accessFilterIndex: 0, existingFilterIndex: 0, firstFilterStage: originalMatch };
+                    } else {
+                        return { accessFilterIndex: -1, existingFilterIndex: 0, firstFilterStage: originalMatch };
+                    }
                 // If not filter is available as the first stage, insert it
                 default: 
-                    pipeline.unshift({
-                        $match: accessFilters
-                    });
+                    if (accessFilters !== null) {
+                        pipeline.unshift({
+                            $match: accessFilters
+                        });
 
-                    return { accessFilterIndex: 0, firstFilterStage: {} };
+                        return { accessFilterIndex: 0, existingFilterIndex: -1, firstFilterStage: {} };
+                    }
             }
         }
 
-        return { accessFilterIndex: -1, firstFilterStage: {} };
+        return { accessFilterIndex: -1, existingFilterIndex: -1, firstFilterStage: {} };
     }
 
-    public getStages (currentPipeline: PipelineSchema = []): AggregationStages {
+    public getStages (currentPipeline: PipelineSchema = [], isNested = false): AggregationStages {
         const pipeline = structuredClone(currentPipeline) as Document[];
 
         currentPipeline.forEach((stage, index) => {
@@ -78,28 +87,35 @@ export class AggregationAccessService<TAccessPayload extends AccessPayload = Acc
             }
         });
 
-        const { accessFilterIndex, firstFilterStage } = this.addFilterStage(pipeline);
+        const { accessFilterIndex, existingFilterIndex, firstFilterStage } = this.addFilterStage(pipeline);
+
+        const filterStages = pipeline.splice(0, existingFilterIndex + 1);
+
+        let roleStages: Document[] | null = null;
 
         if (accessFilterIndex >= 0 || this.hasRolesWithAlternativeAccessCollection) {
-            const roleStages = this.getRoleStages(firstFilterStage);
-
-            if (roleStages !== null) {
-                pipeline.splice(accessFilterIndex + 1, 0, ...roleStages);
-
-                const roleProjectionStartIndex = accessFilterIndex + 1 + roleStages.length;
-
-                this.addRoleProjection(pipeline, roleProjectionStartIndex);
-            }
+            roleStages = this.getRoleStages(firstFilterStage);
         }
+
+        const newPipelineBase = this.getBasePipeline(filterStages, roleStages, isNested);
+
+        if (roleStages !== null) {
+            const roleProjection = this.getRoleProjection();
+
+            newPipelineBase.push(...roleProjection); // Add the role projection stages after the role assignment stage
+        }
+
+        // Insert the new base pipeline at the beginning of the rest of the original pipeline
+        pipeline.splice(0, 0, ...newPipelineBase);
 
         const stages = {
             $pipeline: pipeline
         };
 
         return stages;
-    };
+    }
 
-    private addRoleProjection (pipeline: Document[], startIndex: number): void {
+    private getRoleProjection (): Document[] {
         const $facet: Record<string, Document[]> = {};
 
         for (const roleConfig of this.hydratedConfig) {
@@ -154,7 +170,7 @@ export class AggregationAccessService<TAccessPayload extends AccessPayload = Acc
         const $replaceRoot = { $replaceRoot: { newRoot: "$docs" } };
         const $removeRole = { $project: { __mongalayer_role: 0 } };
 
-        pipeline.splice(startIndex, 0, { $facet }, $project, $unwind, $replaceRoot, $removeRole);
+        return [{ $facet }, $project, $unwind, $replaceRoot, $removeRole];
     }
 
     private handleLookupStageAccess (lookupStage: LookupSchema): Document {
@@ -182,6 +198,6 @@ export class AggregationAccessService<TAccessPayload extends AccessPayload = Acc
 
         // TODO check localField & foreignField access permissions
 
-        return lookupAccessService.getStages(lookupStage.pipeline ?? []);
+        return lookupAccessService.getStages(lookupStage.pipeline ?? [], true);
     }
 }
