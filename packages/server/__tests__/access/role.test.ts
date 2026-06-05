@@ -1,12 +1,10 @@
 import { describe, expect, test, beforeAll } from "vitest";
-import { Mongalayer, MongalayerCollection } from "#src/core";
+import { MongalayerCollection } from "#src/core";
 import { User, userSchema } from "#test/data/user";
 import { Project, projectSchema } from "#test/data/project";
-import { JwtPayload } from "jsonwebtoken";
-import { dbName, getMongaLayerForCollections, getMongoDBClient, getMongoDBDatabase, projectAssetObjects, projectObjects, userObjects } from "#test/lib/database";
+import { dbName, getMongoDBClient, projectAssetObjects, projectObjects, userObjects } from "#test/lib/database";
 import { AccessAlternativeCollection, AccessConfig, AccessPermissions, WithAccessRole } from "#src/access";
 import { Db, Document, MongoClient } from "mongodb";
-import { ZodObject } from "zod";
 import { QueryAccessService } from "#src/access/query";
 import { ProjectAsset, projectAssetSchema } from "#test/data/projectAsset.js";
 
@@ -24,18 +22,19 @@ describe('Access - Roles', () => {
             access: []
         }
 
-        const accessService = new QueryAccessService(client, dbName, "user", {}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
+        const accessService = new QueryAccessService(client, dbName, "users", {}, collection.access as AccessConfig, collection.schema, { document: AccessPermissions.Read, delete: false });
 
         const stages = accessService.getStages({});
 
-        const pipeline: Document[] = [ { $match: {} } ];
+        const pipeline: Document[] = stages.$pipeline;
 
-        if (stages.$role) pipeline.push(stages.$role);
+        // Overwrite the access filter so all role assignments are exposed, even the null ones.
+        pipeline.find(stage => stage.$lookup && stage.$lookup.from === "users")?.$lookup.pipeline.splice(0, Infinity, { $match: {  } });
 
         pipeline.push({ $limit: 1 });
         
         const 
-            results = await database.collection("users").aggregate<WithAccessRole<User>>(pipeline).toArray(),
+            results = await database.aggregate<WithAccessRole<User>>(pipeline).toArray(),
             result = results[0];
 
         expect(result).not.toHaveProperty("__mongalayer_role");
@@ -56,14 +55,15 @@ describe('Access - Roles', () => {
 
         const stages = accessService.getStages({});
 
-        const pipeline: Document[] = [ { $match: { _id: userZero._id } } ];
+        const pipeline: Document[] = stages.$pipeline;
 
-        if (stages.$role) pipeline.push(...stages.$role);
+        // Overwrite the access filter so all role assignments are exposed, even the null ones.
+        pipeline.find(stage => stage.$lookup && stage.$lookup.from === "users")?.$lookup.pipeline.splice(0, Infinity, { $match: { _id: userZero._id } });
 
         pipeline.push({ $limit: 1 });
         
         const 
-            results = await database.collection("users").aggregate<WithAccessRole<User>>(pipeline).toArray(),
+            results = await database.aggregate<WithAccessRole<User>>(pipeline).toArray(),
             result = results[0];
 
         expect(result).toBeDefined();
@@ -108,11 +108,11 @@ describe('Access - Roles', () => {
 
         const stages = accessService.getStages({});
 
-        const pipeline: Document[] = [ { $match: {} } ];
+        const pipeline: Document[] = stages.$pipeline;
 
-        if (stages.$role) pipeline.push(...stages.$role);
+        pipeline.find(stage => stage.$lookup)?.$lookup.pipeline.splice(0, Infinity, { $match: {} });
         
-        const result = await database.collection("projects").aggregate<WithAccessRole<Project>>(pipeline).toArray();
+        const result = await database.aggregate<WithAccessRole<Project>>(pipeline).toArray();
 
         expect(result.length).toEqual(projectObjects.length);
 
@@ -176,11 +176,11 @@ describe('Access - Roles', () => {
 
         const stages = accessService.getStages({});
 
-        const pipeline: Document[] = [ { $match: {} } ];
+        const pipeline: Document[] = stages.$pipeline;
 
-        if (stages.$role) pipeline.push(...stages.$role);
+        pipeline.find(stage => stage.$lookup)?.$lookup.pipeline.splice(0, Infinity, { $match: {} });
 
-        const result = await database.collection("projectAssets").aggregate<WithAccessRole<ProjectAsset>>(pipeline).toArray();
+        const result = await database.aggregate<WithAccessRole<ProjectAsset>>(pipeline).toArray();
 
         expect(result.length).toEqual(Object.entries(projectRoleMapping).filter(([_, role]) => role !== null).length);
 
@@ -246,11 +246,11 @@ describe('Access - Roles', () => {
 
         const stages = accessService.getStages({});
 
-        const pipeline: Document[] = [ { $match: {} } ];
+        const pipeline: Document[] = stages.$pipeline;
 
-        if (stages.$role) pipeline.push(...stages.$role);
-        
-        const result = await database.collection("projectAssets").aggregate<WithAccessRole<ProjectAsset>>(pipeline).toArray();
+        pipeline.find(stage => stage.$lookup)?.$lookup.pipeline.splice(0, Infinity, { $match: {} });
+
+        const result = await database.aggregate<WithAccessRole<ProjectAsset>>(pipeline).toArray();
 
         expect(result.length).toEqual(Object.entries(projectRoleMapping).filter(([_, role]) => role !== null).length);
 
@@ -317,11 +317,11 @@ describe('Access - Roles', () => {
 
         const stages = accessService.getStages({});
 
-        const pipeline: Document[] = [ { $match: {} } ];
+        const pipeline: Document[] = stages.$pipeline;
 
-        if (stages.$role) pipeline.push(...stages.$role);
-        
-        const result = await database.collection("projectAssets").aggregate<WithAccessRole<ProjectAsset>>(pipeline).toArray();
+        pipeline.find(stage => stage.$lookup)?.$lookup.pipeline.splice(0, Infinity, { $match: {} });
+
+        const result = await database.aggregate<WithAccessRole<ProjectAsset>>(pipeline).toArray();
 
         expect(result.length).toEqual(Object.entries(projectRoleMapping).filter(([_, role]) => role !== null).length);
 

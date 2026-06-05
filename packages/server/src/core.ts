@@ -168,16 +168,16 @@ export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
 
             try {
                 switch (action.operation) {
-                    case "findOne": result = await findOne(collection, accessService as QueryAccessService, actionPayload as FindOnePayload<Document>); break;
-                    case "find": result = await find(collection, accessService as QueryAccessService, actionPayload as FindPayload<Document>); break;
-                    case "findOneAndUpdate": result = await findOneAndUpdate(collection, accessService as UpdateAccessService, actionPayload as FindOneAndUpdatePayload<Document>); break;
-                    case "aggregate": result = await aggregate(collection, accessService as AggregationAccessService, actionPayload as AggregatePayload); break;
-                    case "insertOne": result = await insertOne(collection, accessService as InsertAccessService, actionPayload as InsertOnePayload<Document>); break;
-                    case "insertMany": result = await insertMany(collection, accessService as InsertAccessService, actionPayload as InsertManyPayload<Document>); break;
-                    case "updateOne": result = await updateOne(collection, accessService as UpdateAccessService, actionPayload as UpdateOnePayload<Document>); break;
-                    case "updateMany": result = await updateMany(collection, accessService as UpdateAccessService, actionPayload as UpdateManyPayload<Document>); break;
-                    case "deleteOne": result = await deleteOne(collection, accessService as DeleteAccessService, actionPayload as DeleteOnePayload<Document>); break;
-                    case "deleteMany": result = await deleteMany(collection, accessService as DeleteAccessService, actionPayload as DeleteManyPayload<Document>); break;
+                    case "findOne": result = await findOne(database, accessService as QueryAccessService, actionPayload as FindOnePayload<Document>); break;
+                    case "find": result = await find(database, accessService as QueryAccessService, actionPayload as FindPayload<Document>); break;
+                    case "findOneAndUpdate": result = await findOneAndUpdate(database, accessService as UpdateAccessService, actionPayload as FindOneAndUpdatePayload<Document>); break;
+                    case "aggregate": result = await aggregate(database, accessService as AggregationAccessService, actionPayload as AggregatePayload); break;
+                    case "insertOne": result = await insertOne(database, accessService as InsertAccessService, actionPayload as InsertOnePayload<Document>); break;
+                    case "insertMany": result = await insertMany(database, accessService as InsertAccessService, actionPayload as InsertManyPayload<Document>); break;
+                    case "updateOne": result = await updateOne(database, accessService as UpdateAccessService, actionPayload as UpdateOnePayload<Document>); break;
+                    case "updateMany": result = await updateMany(database, accessService as UpdateAccessService, actionPayload as UpdateManyPayload<Document>); break;
+                    case "deleteOne": result = await deleteOne(database, accessService as DeleteAccessService, actionPayload as DeleteOnePayload<Document>); break;
+                    case "deleteMany": result = await deleteMany(database, accessService as DeleteAccessService, actionPayload as DeleteManyPayload<Document>); break;
                 }
             } catch (e) {
                 if (e instanceof z.ZodError) {

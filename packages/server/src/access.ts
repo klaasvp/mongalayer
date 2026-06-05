@@ -138,7 +138,7 @@ export abstract class AccessService {
     constructor (
         protected client: MongoClient,
         protected database: string,
-        protected collection: string,
+        public readonly collection: string,
         protected accessData: AccessPayload,
         protected accessConfig: AccessConfig,
         protected documentSchema: ZodObject,
@@ -228,6 +228,47 @@ export abstract class AccessService {
         };
     }
 
+    /**
+     * Instead of having all the document available in the root pipeline itself, as you would normally do, we put them in a single document as the "data" property.
+     * This allows us to add the role lookups to only 1 document.
+     * In <= v1.0.7 the role lookups were added to each document in the pipeline which caused a lot of unnecessary duplication of the role data and resulted big documents and higher execution times in larger queries with a complex access config.
+     * As of 1.0.8 the role assignment happens on the "data" property which is unwinded afterwards to get the original document structure back.
+     * In tested scenarios with access configs using alternative access collections this resulted in a decrease of up to 75% in execution time
+     */
+    protected getBasePipeline (filterStages: Document[], roleStages: Document[] | null, isNested = false): Document[] {
+        // This is a little hacky but allows us to run the aggregation pipeline on database-level & in-case of nested lookups we use a wrapping $group stage
+        const $pipeline: Document[] = isNested 
+            ? [{
+                $group: {
+                    _id: null,
+                    data: {
+                        $push: "$$ROOT"
+                    }
+                }
+            }]
+            : [{ 
+                $documents: [ { data: [] } ] 
+            }, {
+                // Fetch the actual documents into the data array
+                $lookup: {
+                    from: this.collection,
+                    as: "data",
+                    pipeline: filterStages
+                }
+            }];
+
+        if (roleStages) {
+            $pipeline.push(...roleStages);
+        }
+
+        $pipeline.push(
+            { $unwind: "$data" },
+            { $replaceRoot: { newRoot: "$data" } }
+        );
+
+        return $pipeline;
+    }
+
     protected getRoleStages (currentFilter: Filter<Document> = {}): Document[] | null {
         if (this.hydratedConfig.length > 0) {
             // The lookup workaround is to support query predicates in the role filter mechanism.
@@ -258,9 +299,13 @@ export abstract class AccessService {
                         }
                     });
                 }
-            }            
+            }
 
-            rolePipeline.push({ $addFields: { 
+            const roleAssignmentStagePipeline: Document[] = [{
+                $documents: "$$records"
+            }];
+
+            roleAssignmentStagePipeline.push({ $addFields: { 
                 __mongalayer_role: {
                     $switch: {
                         branches: this.hydratedConfig.map(access => {
@@ -269,7 +314,7 @@ export abstract class AccessService {
                             if (access.collection !== void 0) {
                                 cases.push({$in: [
                                     { __mongalayer_role_id: `$${access.collection.localField}` }, // Match the projected ID
-                                    `$__mongalayer_role.target.${access.role}`
+                                    `$$mongalayer_role.target.${access.role}`
                                 ]});
                             }
 
@@ -277,7 +322,7 @@ export abstract class AccessService {
                             if (access.collection === void 0 || Object.keys(access.filter).length > 0) {
                                 cases.push({$in: [
                                     { __mongalayer_role_id: `$_id` }, // Match the projected ID
-                                    `$__mongalayer_role.local.${access.role}`
+                                    `$$mongalayer_role.local.${access.role}`
                                 ]});
                             }
 
@@ -294,10 +339,23 @@ export abstract class AccessService {
             // Normally null roles are not present due to the access filter, but when using alternative collections this is possible.
             // So we need to filter them out here.
             if (this.hasRolesWithAlternativeAccessCollection) {
-                rolePipeline.push({ $match: {
+                roleAssignmentStagePipeline.push({ $match: {
                     __mongalayer_role: { $ne: null }
                 } });
             }
+
+            const roleAssignmentStage: Document = {
+                $lookup: {
+                    let: {
+                        records: "$data",
+                        mongalayer_role: "$__mongalayer_role"
+                    },
+                    pipeline: roleAssignmentStagePipeline,
+                    as: "data"
+                }
+            }
+
+            rolePipeline.push(roleAssignmentStage);
 
             return rolePipeline;
         }

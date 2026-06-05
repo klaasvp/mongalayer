@@ -8,7 +8,8 @@ import { Db } from 'mongodb';
 import z from 'zod';
 import { MongalayerCollectionType } from '#src/index.js';
 import { isMongoInvalidArgumentError, isMongoServerError } from '#test/lib/helper.js';
-import { pipelineSchema, skipSchema } from '#src/schema/aggregate.js';
+import { pipelineSchema } from '#src/schema/aggregate.js';
+import { skipSchema } from '#src/schema/aggregation/index.js';
 
 export type DbSkipTest = { 
     pipeline: z.infer<typeof pipelineSchema>,

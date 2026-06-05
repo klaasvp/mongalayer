@@ -1,4 +1,4 @@
-import type { Collection, Document, Filter } from "mongodb";
+import type { Collection, Db, Document, Filter } from "mongodb";
 import z from "zod";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { DeletableDocument, DeleteAccessService } from "../access/delete.js";
@@ -18,21 +18,16 @@ const payloadSchema: z.ZodType<DeleteOnePayload<Document>> = z.object({
     }).optional()
 });
 
-export default async function <TSchema extends Document> (collection: Collection<TSchema>, accessService: DeleteAccessService, payload: DeleteOnePayload<TSchema>): Promise<DeleteOneReturnType> {
+export default async function <TSchema extends Document> (database: Db, accessService: DeleteAccessService, payload: DeleteOnePayload<TSchema>): Promise<DeleteOneReturnType> {
     payloadSchema.parse(payload);
     
     const stages = accessService.getStages(payload.filter as Filter<Document>);
 
-    const pipeline: Document[] = [stages.$query];
+    const pipeline: Document[] = stages.$pipeline;
 
     let usingRoles = false;
 
-    if (stages.$role) {
-        pipeline.push(...stages.$role);
-
-        usingRoles = true;
-    }
-    else if (accessService.accessDefaults.delete === false) {
+    if (stages.usingRoles === false && accessService.accessDefaults.delete === false) {
         throw `Delete permission error: No roles exist for the collection and default delete permission is set to false.`
     }
 
@@ -47,14 +42,16 @@ export default async function <TSchema extends Document> (collection: Collection
         console.debug("Mongalayer - DeleteOne - pipeline:", JSON.stringify(pipeline));
     }
     
-    const documentsWithRole = await collection.aggregate(pipeline).toArray() as DeletableDocument[];
+    const documentsWithRole = await database.aggregate(pipeline).toArray() as DeletableDocument[];
 
-    const documentsToDelete = usingRoles
+    const documentsToDelete = stages.usingRoles
         ? accessService.documentsEligibleForDelete(documentsWithRole)
         : documentsWithRole.map(({ _id }) => _id);
 
     // If no matching documents were found directly return
     if (documentsToDelete.length === 0) return { acknowledged: true, deletedCount: 0 };
+
+    const collection = database.collection<TSchema>(accessService.collection);
 
     return await collection.deleteOne({ _id: documentsToDelete[0] } as Filter<Document>);
 }
