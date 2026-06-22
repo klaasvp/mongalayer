@@ -205,6 +205,7 @@ describe("Access - FindOneAndUpdate - Defaults & One", () => {
 
         await expect(testSimpleFindOneAndUpdate({ 
             filter: { _id: projectZero._id }, 
+            // @ts-expect-error - testing wrong types for dot notation updates
             update: { $set: update } 
         }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
             message: JSON.stringify([
