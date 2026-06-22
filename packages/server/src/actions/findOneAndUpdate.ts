@@ -9,12 +9,12 @@ import { Debugging } from "../core.js";
 const returnDocument: ReturnDocument[] = [ "before", "after" ]
 
 export type FindOneAndUpdatePayload <TSchema extends Document> = {
-    filter: FilterSchema,
-    update: UpdateSchema,
+    filter: FilterSchema<TSchema>,
+    update: UpdateSchema<TSchema>,
     options?: { 
-        projection?: Projection,
+        projection?: Projection<TSchema>,
         upsert?: boolean,
-        sort?: Sort,
+        sort?: Sort<TSchema>,
         returnDocument?: typeof ReturnDocument[keyof typeof ReturnDocument]
     }
 }
@@ -52,7 +52,7 @@ export default async function <TSchema extends Document> (database: Db, accessSe
     }
     
     const documentsWithRole = await database.aggregate(pipeline).toArray() as UpdatableDocument[];
-    const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update, true);
+    const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update as UpdateSchema, true);
 
     const { returnDocument, projection } = payload.options ?? {};
     
@@ -61,7 +61,7 @@ export default async function <TSchema extends Document> (database: Db, accessSe
     if (documentsToUpdate.length === 0) {
         // If upsert is true and now matching documents were found, validate & upsert the document
         if (payload.options?.upsert === true) {
-            const { doc: insertableDoc, role: insertableRole } = await accessService.getUpsertDocument(payload.filter, payload.update);
+            const { doc: insertableDoc, role: insertableRole } = await accessService.getUpsertDocument(payload.filter as FilterSchema, payload.update as UpdateSchema);
 
             filter = { _id: insertableDoc._id } as Filter<Document>;
             update = { $set: insertableDoc } as Document;
@@ -73,9 +73,9 @@ export default async function <TSchema extends Document> (database: Db, accessSe
             return null;
         }
     } else {
-        accessService.validateUpdateFields(payload.update);
+        accessService.validateUpdateFields(payload.update as UpdateSchema);
 
-        filter = accessService.getFinalUpdateFilter({ _id: documentsToUpdate[0] }, payload.filter, payload.update);
+        filter = accessService.getFinalUpdateFilter({ _id: documentsToUpdate[0] }, payload.filter as FilterSchema, payload.update as UpdateSchema);
         update = payload.update as Document;
         options = { returnDocument, projection };
         role = documentsWithRole[0].__mongalayer_role;

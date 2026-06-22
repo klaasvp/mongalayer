@@ -26,7 +26,11 @@ type Project = {
     version: number,
     dates: {
         createdAt: Date,
-    }
+    },
+    list: { 
+        name: string,
+        value: number
+    }[]
 }
 
 const projectCollectionName: CollectionName<Project> = "projects";
@@ -44,8 +48,8 @@ describe('Collection', () => {
 
         test('With options', async () => {
             const result = await projects.findOne(
-                { label: "Project A" },
-                { projection: { label: 1 }, sort: { label: 1 } }
+                { label: "Project A", "list.name": 1 },
+                { projection: { label: 1, "list.value": 1 }, sort: { label: 1, "list.value": 1 } }
             );
 
             expectTypeOf(result).toEqualTypeOf<FindOneReturnType<Project>>();
@@ -148,7 +152,11 @@ describe('Collection', () => {
                 version: 1,
                 dates: {
                     createdAt: new Date()
-                }
+                },
+                list: [
+                    { name: "Item 1", value: 10 },
+                    { name: "Item 2", value: 20 }
+                ]
             });
 
             expectTypeOf(result).toEqualTypeOf<InsertOneReturnType<Project>>();
@@ -156,7 +164,7 @@ describe('Collection', () => {
 
         test('With context', async () => {
             const result = await projects.insertOne(
-                { _id: "1", label: "Project A", numbers: [40, -70], version: 1, dates: { createdAt: new Date() } },
+                { _id: "1", label: "Project A", numbers: [40, -70], version: 1, dates: { createdAt: new Date() }, list: [ { name: "Item 1", value: 10 }, { name: "Item 2", value: 20 } ] },
                 {},
                 { reference: "dashboard" }
             );
@@ -168,8 +176,8 @@ describe('Collection', () => {
     describe('insertMany', () => {
         test('Basic', async () => {
             const result = await projects.insertMany([
-                { _id: "1", label: "Project A", numbers: [40, -70], version: 1, dates: { createdAt: new Date() } },
-                { _id: "2", label: "Project B", numbers: [41, -71], version: 2, dates: { createdAt: new Date() } }
+                { _id: "1", label: "Project A", numbers: [40, -70], version: 1, dates: { createdAt: new Date() }, list: [ { name: "Item 1", value: 10 }, { name: "Item 2", value: 20 } ] },
+                { _id: "2", label: "Project B", numbers: [41, -71], version: 2, dates: { createdAt: new Date() }, list: [ { name: "Item 1", value: 10 }, { name: "Item 2", value: 20 } ] }
             ]);
 
             expectTypeOf(result).toEqualTypeOf<InsertManyReturnType<Project>>();
@@ -177,7 +185,7 @@ describe('Collection', () => {
 
         test('With options', async () => {
             const result = await projects.insertMany(
-                [{ _id: "1", label: "Project A", numbers: [40, -70], version: 1, dates: { createdAt: new Date() } }],
+                [{ _id: "1", label: "Project A", numbers: [40, -70], version: 1, dates: { createdAt: new Date() }, list: [ { name: "Item 1", value: 10 }, { name: "Item 2", value: 20 } ] }],
                 { ordered: true }
             );
 

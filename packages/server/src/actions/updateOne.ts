@@ -7,11 +7,11 @@ import { UpdatableDocument, UpdateAccessService } from "../access/update.js";
 import { Debugging } from "../core.js";
 
 export type UpdateOnePayload <TSchema extends Document> = {
-    filter: FilterSchema,
+    filter: FilterSchema<TSchema>,
     update: UpdateSchema<TSchema>,
     options?: { 
         upsert?: boolean,
-        sort?: Sort
+        sort?: Sort<TSchema>
     }
 }
 
@@ -53,7 +53,7 @@ export default async function <TSchema extends Document> (database: Db, accessSe
     if (documentsToUpdate.length === 0) {
         // If upsert is true and now matching documents were found, validate & upsert the document
         if (payload.options?.upsert === true) {
-            const { doc: insertableDoc } = await accessService.getUpsertDocument(payload.filter, payload.update as UpdateSchema);
+            const { doc: insertableDoc } = await accessService.getUpsertDocument(payload.filter as FilterSchema, payload.update as UpdateSchema);
             
             return await collection.updateOne({ _id: insertableDoc._id } as Filter<Document>, { $set: insertableDoc } as Document, { upsert: true });
         } 

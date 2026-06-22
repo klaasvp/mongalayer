@@ -7,10 +7,10 @@ import { QueryAccessService } from "../access/query.js";
 import { Debugging } from "../core.js";
 
 export type FindOnePayload<TSchema extends Document> = {
-    filter: FilterSchema,
+    filter: FilterSchema<TSchema>,
     options?: {
-        projection?: Projection
-        sort?: Sort
+        projection?: Projection<TSchema>
+        sort?: Sort<TSchema>
     }
 }
 

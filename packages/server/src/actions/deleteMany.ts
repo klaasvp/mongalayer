@@ -5,7 +5,7 @@ import { DeletableDocument, DeleteAccessService } from "../access/delete.js";
 import { Debugging } from "../core.js";
 
 export type DeleteManyPayload <TSchema extends Document> = {
-    filter: FilterSchema,
+    filter: FilterSchema<TSchema>,
     options?: { }
 }
 

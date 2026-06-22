@@ -2,7 +2,9 @@ import { z } from "zod";
 import { $geometryIntersectsSchema, $geometryNearSchema, $geometryWithinSchema, polygonSchema, positionSchema } from "../schema/geo.js";
 import { BSONTypeAliasSchema } from "../schema/bson.js";
 import { Expression, expressionSchema } from "./expression/index.js";
-import { documentValueSchema, JSONValue, keyWithoutDollar } from "./index.js";
+import { documentValueSchema, FieldsWithValue, JSONValue, keyWithoutDollar, SchemaPaths } from "./index.js";
+import { Get } from "type-fest";
+import { Document } from "mongodb";
 
 const operatorKeys = [
     "$eq", "$gt", "$gte", "$in", "$lt", "$lte", "$ne", "$nin", "$not", 
@@ -99,17 +101,22 @@ const filterOperatorsSchemaExcludingElemMatch = filterOperatorsSchemaExcludingEl
     (data) => Object.keys(data).every(key => !key.startsWith("$") || (key !== "$elemMatch" && operatorKeys.includes(key))),
     { message: "Invalid filter operator" }
 ) as typeof filterOperatorsSchemaExcludingElemMatchDef // refine does not preserve type correctly, so we need to assert it again
- 
-// Simplified version of Filter<TSchema> from mongodb
-export type FilterSchemaBase = {
-    $and?: FilterSchema[],
-    $nor?: FilterSchema[],
-    $or?: FilterSchema[],
-} & {
-    [prop: string]: JSONValue | z.infer<typeof filterOperatorsSchema>
-}
 
-export type FilterSchema = FilterSchemaBase & {
+
+
+// Simplified version of Filter<TSchema> from mongodb
+export type FilterSchemaBase<T extends any = unknown> = {
+    $and?: FilterSchema<T>[],
+    $nor?: FilterSchema<T>[],
+    $or?: FilterSchema<T>[],
+} & (T extends Document 
+    ? FieldsWithValue<T, JSONValue | z.infer<typeof filterOperatorsSchema>> 
+    : {
+        [prop: string]: JSONValue | z.infer<typeof filterOperatorsSchema>
+    }
+)  
+
+export type FilterSchema<T extends any = unknown> = FilterSchemaBase<T> & {
     $expr?: Expression,
     $text?: {
         $search: string,

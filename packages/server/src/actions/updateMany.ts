@@ -6,7 +6,7 @@ import { UpdatableDocument, UpdateAccessService } from "../access/update.js";
 import { Debugging } from "../core.js";
 
 export type UpdateManyPayload <TSchema extends Document> = {
-    filter: FilterSchema,
+    filter: FilterSchema<TSchema>,
     update: UpdateSchema<TSchema>,
     options?: { 
     }
