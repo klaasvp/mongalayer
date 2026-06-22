@@ -7,7 +7,7 @@ type ArrayElement<T> = T extends readonly (infer E)[] ? E : never;
 
 // Modifiers for the $push operator. $each holds the elements to append, while
 // $slice, $sort & $position control how the array is trimmed, ordered and where the elements are inserted.
-type PushModifier<TValue, T> = {
+export type PushModifier<TValue, T> = {
     $each: readonly TValue[],
     $slice?: number,
     $position?: number,
