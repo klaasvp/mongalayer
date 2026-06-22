@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { iteratePrimitives } from "@mongalayer/core";
+import { Paths } from "type-fest";
+
+export type SchemaPaths<T> = T extends object ? `${Paths<T, { maxRecursionDepth: 10 }>}` : never;
 
 export type Projection = { [key: string]: 0 | 1 | boolean | Projection }
 
@@ -25,7 +28,7 @@ export const projectionSchema = z.lazy(() => z.record(z.string(), z.union([z.lit
     });
 }) as z.ZodType<Projection>
 
-export type Sort = { [key: string]: -1 | 1 }
+export type Sort<T extends any = unknown, TPaths extends SchemaPaths<T> = SchemaPaths<T>> = T extends object ? { [K in TPaths]?: -1 | 1 } : { [x: string]: -1 | 1 };
 
 export const sortSchema = z.record(z.string(), z.union([z.literal(-1), z.literal(1)])) as z.ZodType<Sort>
 

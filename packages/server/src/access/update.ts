@@ -15,6 +15,16 @@ type UpdateStages = PreloadRoleStages & {
     $project: Record<string, 1>
 }
 
+// Returns the array element(s) a $push value adds. For a modifier object ($each) the elements are unwrapped,
+// otherwise the single value is wrapped in an array so it can be validated against the array element schema.
+function getPushedElements (value: unknown): unknown[] {
+    if (value !== null && typeof value === "object" && !Array.isArray(value) && "$each" in value) {
+        return (value as { $each: unknown[] }).$each;
+    }
+
+    return [value];
+}
+
 class UpdateDocumentError extends Error {}
 
 class UpdateFieldsError extends Error {
@@ -35,8 +45,9 @@ export class UpdateAccessService extends PreloadRoleAccessService {
                 // Positional $ operator will be converted to array index 0 for validation purposes, as we don't know the actual index at this point and the schema should be the same for all items in the array.
                 partialObject = merge([partialObject, unflatten(op, { allowPositionalDollar: true })]);
             } else if (operator === "$push") {
-                // The pushed value is a single array element, so wrap it in an array to validate it against the array element schema.
-                const pushObject = Object.fromEntries(Object.entries(op).map(([key, value]) => [key, [value]]));
+                // The pushed value is either a single array element or a modifier object ($each with optional $position/$sort/$slice).
+                // Wrap the element(s) in an array to validate them against the array element schema.
+                const pushObject = Object.fromEntries(Object.entries(op).map(([key, value]) => [key, getPushedElements(value)]));
                 partialObject = merge([partialObject, unflatten(pushObject)]);
             } else if (operator === "$unset") {
                 for (const key of Object.keys(op)) {
@@ -170,7 +181,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
             ...update.$set,
             ...update.$unset ? Object.fromEntries(Object.keys(update.$unset).map(key => [key, null])) : {},
             ...update.$inc ? Object.fromEntries(Object.keys(update.$inc).map(key => [key, update.$inc?.[key] ?? 0])) : {},
-            ...update.$push ? Object.fromEntries(Object.entries(update.$push).map(([key, value]) => [key, [value]])) : {}
+            ...update.$push ? Object.fromEntries(Object.entries(update.$push).map(([key, value]) => [key, getPushedElements(value)])) : {}
         };
         
         // Validate the document against the schema

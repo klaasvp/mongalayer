@@ -1469,6 +1469,97 @@ describe("Access - Update - $push & $pull operators", async () => {
         }));
     });
 
+    test("$push - $each modifier with multiple values", async () => {
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $push: { "config.tags": { $each: ["tagA", "tagB"] } } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+
+        const doc = await database.collection<Project>("projectsCUD").findOne({ _id: projectZero._id });
+        expect(doc?.config.tags).toEqual(expect.arrayContaining(["tagA", "tagB"]));
+    });
+
+    test("$push - $each modifier with $slice, $sort & $position", async () => {
+        const prepare = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { "config.tags": ["tagA", "tagD"] } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $push: { "config.tags": { $each: ["tagC", "tagB"], $position: 0, $sort: 1, $slice: 3 } } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+
+        const doc = await database.collection<Project>("projectsCUD").findOne({ _id: projectZero._id });
+        expect(doc?.config.tags.length).toBe(3);
+        expect(doc?.config.tags[0]).toBe("tagA");
+        expect(doc?.config.tags[1]).toBe("tagB");
+        expect(doc?.config.tags[2]).toBe("tagC");
+    });
+
+    test("$push - $each modifier with $slice & $position", async () => {
+        const prepare = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $set: { "config.tags": ["tagA", "tagD"] } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $push: { "config.tags": { $each: ["tagC", "tagB"], $position: 1, $slice: 2 } } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+
+        const doc = await database.collection<Project>("projectsCUD").findOne({ _id: projectZero._id });
+        expect(doc?.config.tags.length).toBe(2);
+        expect(doc?.config.tags[0]).toBe("tagA");
+        expect(doc?.config.tags[1]).toBe("tagC");
+    });
+
+    test("$push - $each modifier with $slice, $sort & $position (objects)", async () => {
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $push: { "unfinishedAssets": { $each: [
+                { id: "oldest", status: "design", updatedAt: new Date(0) },
+                { id: "old", status: "testing", updatedAt: new Date(1) },
+                { id: "newest", status: "production", updatedAt: new Date(2) }
+            ], $position: 0, $sort: { "updatedAt": -1 }, $slice: 3 } } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+
+        const doc = await database.collection<Project>("projectsCUD").findOne({ _id: projectZero._id });
+        expect(doc?.unfinishedAssets.length).toBe(3);
+        expect(doc?.unfinishedAssets[0].id).toBe("newest");
+        expect(doc?.unfinishedAssets[1].id).toBe("old");
+        expect(doc?.unfinishedAssets[2].id).toBe("oldest");
+    });
+
+    test("$push - $each modifier with wrong element type", async () => {
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            // @ts-expect-error - intentionally passing a wrong element type inside $each
+            update: { $push: { "config.tags": { $each: ["ok", 42] } } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrow(expect.objectContaining({
+            message: JSON.stringify([
+                { expected: "string", code: "invalid_type", path: ["config", "tags", 1], message: "Invalid input: expected string, received number" },
+            ], null, 2),
+            name: "ZodError"
+        }));
+    });
+
     test("$push - without field permission", async () => {
         const accessConfig: AccessConfig<Project> = [{
             role: "test",

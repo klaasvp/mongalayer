@@ -135,7 +135,24 @@ const valuesTable: ValueTest[] = [
     { value: { $push: { items: { id: 1, nested: { deep: true } } } }, message: 'should validate with $push nested object', exceptions: {} },
     { value: { $push: { "details.history": "entry" } }, message: 'should validate with $push dot notation', exceptions: {} },
     { value: { $push: { tags: "a", scores: 1 } }, message: 'should validate with $push multiple fields', exceptions: {} },
-    { value: { $push: { tags: { $each: ["a", "b"] } } }, message: 'should invalidate with $push $each modifier', exceptions: {
+    { value: { $push: { tags: { $each: ["a", "b"] } } }, message: 'should validate with $push $each modifier', exceptions: {} },
+    { value: { $push: { tags: { $each: [] } } }, message: 'should validate with $push $each empty array', exceptions: {} },
+    { value: { $push: { tags: { $each: ["a", "b"], $slice: 5 } } }, message: 'should validate with $push $each and $slice', exceptions: {} },
+    { value: { $push: { tags: { $each: ["a", "b"], $slice: -3 } } }, message: 'should validate with $push $each and negative $slice', exceptions: {} },
+    { value: { $push: { tags: { $each: ["a", "b"], $position: 0 } } }, message: 'should validate with $push $each and $position', exceptions: {} },
+    { value: { $push: { tags: { $each: ["c", "a", "b"], $sort: 1 } } }, message: 'should validate with $push $each and $sort ascending', exceptions: {} },
+    { value: { $push: { tags: { $each: ["c", "a", "b"], $sort: -1 } } }, message: 'should validate with $push $each and $sort descending', exceptions: {} },
+    { value: { $push: { items: { $each: [{ id: 1 }, { id: 2 }], $sort: { id: 1 } } } }, message: 'should validate with $push $each and $sort by field', exceptions: {} },
+    { value: { $push: { items: { $each: [{ id: 1 }], $position: 1, $slice: 10, $sort: { id: -1 } } } }, message: 'should validate with $push all modifiers', exceptions: {} },
+    { value: { $push: { tags: { $slice: 5 } } }, message: 'should invalidate with $push $slice without $each', exceptions: {
+        zod: { code: 'invalid_union', message: 'Invalid input' }
+    } },
+    { value: { $push: { tags: { $each: "a" } } }, message: 'should invalidate with $push $each non-array', exceptions: {
+        mongodb: { code: 2, codeName: undefined, message: "$each" },
+        zod: { code: 'invalid_union', message: 'Invalid input' }
+    } },
+    { value: { $push: { tags: { $each: ["a"], $unknown: 1 } } }, message: 'should invalidate with $push unknown modifier', exceptions: {
+        mongodb: { code: 2, codeName: undefined, message: "Unrecognized clause in $push" },
         zod: { code: 'invalid_union', message: 'Invalid input' }
     } },
     { value: { $push: { metadata: { $ne: null } } }, message: 'should invalidate with $push dollar property in value', exceptions: {
