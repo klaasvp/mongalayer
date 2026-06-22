@@ -1,4 +1,5 @@
 import type { Filter, Document, WithId, ObjectId, FilterOperators } from "mongodb";
+import { ZodArray } from "zod";
 import { PreloadRoleAccessService, PreloadRoleStages } from "./preloadRole.js";
 import { UpdateSchema } from "../schema/update.js";
 import { AccessDefinition, AccessPermissions, AccessValidatorError } from "../access.js";
@@ -33,6 +34,10 @@ export class UpdateAccessService extends PreloadRoleAccessService {
             if (["$set", "$inc"].includes(operator)) {
                 // Positional $ operator will be converted to array index 0 for validation purposes, as we don't know the actual index at this point and the schema should be the same for all items in the array.
                 partialObject = merge([partialObject, unflatten(op, { allowPositionalDollar: true })]);
+            } else if (operator === "$push") {
+                // The pushed value is a single array element, so wrap it in an array to validate it against the array element schema.
+                const pushObject = Object.fromEntries(Object.entries(op).map(([key, value]) => [key, [value]]));
+                partialObject = merge([partialObject, unflatten(pushObject)]);
             } else if (operator === "$unset") {
                 for (const key of Object.keys(op)) {
                     const keySchema = getSubschema(this.documentSchema, key);
@@ -40,6 +45,16 @@ export class UpdateAccessService extends PreloadRoleAccessService {
                         throw new Error(`Field "${key}" in $unset does not exist in the document schema`);
                     } else if (keySchema?.meta?.optional !== true) {
                         throw new Error(`Field "${key}" in $unset cannot be removed because it is not optional in the document schema`);
+                    }
+                }
+            } else if (operator === "$pull") {
+                // $pull doesn't add data and also due to the complexity of validating the $pull values we don't check them against the schema
+                for (const key of Object.keys(op)) {
+                    const keySchema = getSubschema(this.documentSchema, key);
+                    if (keySchema?.schema === void 0) {
+                        throw new Error(`Field "${key}" in $pull does not exist in the document schema`);
+                    } else if (!(keySchema.schema instanceof ZodArray)) {
+                        throw new Error(`Field "${key}" in $pull is not an array in the document schema`);
                     }
                 }
             }
@@ -154,7 +169,8 @@ export class UpdateAccessService extends PreloadRoleAccessService {
             ...filter,
             ...update.$set,
             ...update.$unset ? Object.fromEntries(Object.keys(update.$unset).map(key => [key, null])) : {},
-            ...update.$inc ? Object.fromEntries(Object.keys(update.$inc).map(key => [key, update.$inc?.[key] ?? 0])) : {}
+            ...update.$inc ? Object.fromEntries(Object.keys(update.$inc).map(key => [key, update.$inc?.[key] ?? 0])) : {},
+            ...update.$push ? Object.fromEntries(Object.entries(update.$push).map(([key, value]) => [key, [value]])) : {}
         };
         
         // Validate the document against the schema

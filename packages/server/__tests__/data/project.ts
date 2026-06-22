@@ -97,7 +97,7 @@ export function getRandomProject (users: User[]): Project {
         version: faker.number.int({ min: 0, max: 1_000 }),
         config: {
             secret: faker.string.alphanumeric(10),
-            tags: faker.helpers.arrayElements(["tag1", "tag2", "tag3"], 2)
+            tags: faker.helpers.arrayElements(["tag1", "tag2", "tag3", "tag4"], 3)
         },
         data: {
             location: {

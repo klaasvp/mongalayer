@@ -22,8 +22,11 @@ const db = client.db("test");
 type Project = {
     _id: string,
     label: string,
-    location: [number, number];
-    createdAt: Date;
+    numbers: number[],
+    version: number,
+    dates: {
+        createdAt: Date,
+    }
 }
 
 const projectCollectionName: CollectionName<Project> = "projects";
@@ -116,7 +119,7 @@ describe('Collection', () => {
         test('Basic', async () => {
             const result = await projects.aggregate([
                 { $match: { label: "Project A" } },
-                { $group: { _id: null, averageLocation: { $avg: "$location" } } }
+                { $group: { _id: null, averageNumbers: { $avg: "$numbers" } } }
             ]);
 
             expectTypeOf(result).toEqualTypeOf<AggregateReturnType<Project>>();
@@ -141,8 +144,11 @@ describe('Collection', () => {
             const result = await projects.insertOne({
                 _id: "1",
                 label: "Project A",
-                location: [40, -70],
-                createdAt: new Date()
+                numbers: [40, -70],
+                version: 1,
+                dates: {
+                    createdAt: new Date()
+                }
             });
 
             expectTypeOf(result).toEqualTypeOf<InsertOneReturnType<Project>>();
@@ -150,7 +156,7 @@ describe('Collection', () => {
 
         test('With context', async () => {
             const result = await projects.insertOne(
-                { _id: "1", label: "Project A", location: [40, -70], createdAt: new Date() },
+                { _id: "1", label: "Project A", numbers: [40, -70], version: 1, dates: { createdAt: new Date() } },
                 {},
                 { reference: "dashboard" }
             );
@@ -162,8 +168,8 @@ describe('Collection', () => {
     describe('insertMany', () => {
         test('Basic', async () => {
             const result = await projects.insertMany([
-                { _id: "1", label: "Project A", location: [40, -70], createdAt: new Date() },
-                { _id: "2", label: "Project B", location: [41, -71], createdAt: new Date() }
+                { _id: "1", label: "Project A", numbers: [40, -70], version: 1, dates: { createdAt: new Date() } },
+                { _id: "2", label: "Project B", numbers: [41, -71], version: 2, dates: { createdAt: new Date() } }
             ]);
 
             expectTypeOf(result).toEqualTypeOf<InsertManyReturnType<Project>>();
@@ -171,7 +177,7 @@ describe('Collection', () => {
 
         test('With options', async () => {
             const result = await projects.insertMany(
-                [{ _id: "1", label: "Project A", location: [40, -70], createdAt: new Date() }],
+                [{ _id: "1", label: "Project A", numbers: [40, -70], version: 1, dates: { createdAt: new Date() } }],
                 { ordered: true }
             );
 
@@ -189,11 +195,56 @@ describe('Collection', () => {
             expectTypeOf(result).toEqualTypeOf<UpdateOneReturnType<Project>>();
         });
 
+        test('Basic - nested', async () => {
+            const result = await projects.updateOne(
+                { label: "Project A" },
+                { $set: { "dates.createdAt": new Date() } }
+            );
+
+            expectTypeOf(result).toEqualTypeOf<UpdateOneReturnType<Project>>();
+        });
+
         test('With options', async () => {
             const result = await projects.updateOne(
                 { label: "Project A" },
                 { $set: { label: "Project B" } },
                 { upsert: true, sort: { label: 1 } }
+            );
+
+            expectTypeOf(result).toEqualTypeOf<UpdateOneReturnType<Project>>();
+        });
+
+        test('$unset', async () => {
+            const result = await projects.updateOne(
+                { label: "Project A" },
+                { $unset: { numbers: "" } }
+            );
+
+            expectTypeOf(result).toEqualTypeOf<UpdateOneReturnType<Project>>();
+        });
+
+        test('$inc', async () => {
+            const result = await projects.updateOne(
+                { label: "Project A" },
+                { $inc: { version: 1 } }
+            );
+
+            expectTypeOf(result).toEqualTypeOf<UpdateOneReturnType<Project>>();
+        });
+
+        test('$push', async () => {
+            const result = await projects.updateOne(
+                { label: "Project A" },
+                { $push: { numbers: 42 } }
+            );
+
+            expectTypeOf(result).toEqualTypeOf<UpdateOneReturnType<Project>>();
+        });
+
+        test('$pull', async () => {
+            const result = await projects.updateOne(
+                { label: "Project A" },
+                { $pull: { numbers: 42 } }
             );
 
             expectTypeOf(result).toEqualTypeOf<UpdateOneReturnType<Project>>();

@@ -8,7 +8,7 @@ import { Debugging } from "../core.js";
 
 export type UpdateOnePayload <TSchema extends Document> = {
     filter: FilterSchema,
-    update: UpdateSchema,
+    update: UpdateSchema<TSchema>,
     options?: { 
         upsert?: boolean,
         sort?: Sort
@@ -46,14 +46,14 @@ export default async function <TSchema extends Document> (database: Db, accessSe
     }
     
     const documentsWithRole = await database.aggregate(pipeline).toArray() as UpdatableDocument[];
-    const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update);
+    const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update as UpdateSchema);
     
     const collection = database.collection<TSchema>(accessService.collection);
 
     if (documentsToUpdate.length === 0) {
         // If upsert is true and now matching documents were found, validate & upsert the document
         if (payload.options?.upsert === true) {
-            const { doc: insertableDoc } = await accessService.getUpsertDocument(payload.filter, payload.update);
+            const { doc: insertableDoc } = await accessService.getUpsertDocument(payload.filter, payload.update as UpdateSchema);
             
             return await collection.updateOne({ _id: insertableDoc._id } as Filter<Document>, { $set: insertableDoc } as Document, { upsert: true });
         } 
@@ -63,9 +63,9 @@ export default async function <TSchema extends Document> (database: Db, accessSe
         }
     }
 
-    accessService.validateUpdateFields(payload.update);
+    accessService.validateUpdateFields(payload.update as UpdateSchema);
 
-    const updateFilter = accessService.getFinalUpdateFilter({ _id: documentsToUpdate[0] }, payload.filter, payload.update);
+    const updateFilter = accessService.getFinalUpdateFilter({ _id: documentsToUpdate[0] }, payload.filter, payload.update as UpdateSchema);
 
     return await collection.updateOne(updateFilter as Filter<Document>, payload.update as Document, {});
 }

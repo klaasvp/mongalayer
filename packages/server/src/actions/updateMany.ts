@@ -7,7 +7,7 @@ import { Debugging } from "../core.js";
 
 export type UpdateManyPayload <TSchema extends Document> = {
     filter: FilterSchema,
-    update: UpdateSchema,
+    update: UpdateSchema<TSchema>,
     options?: { 
     }
 }
@@ -35,15 +35,15 @@ export default async function <TSchema extends Document> (database: Db, accessSe
     }
     
     const documentsWithRole = await database.aggregate(pipeline).toArray() as UpdatableDocument[];
-    const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update);
+    const documentsToUpdate = await accessService.validateDocumentsAccess(documentsWithRole, payload.update as UpdateSchema);
 
     if (documentsToUpdate.length === 0) {
         return { acknowledged: true, modifiedCount: 0, matchedCount: 0, upsertedId: null, upsertedCount: 0 };
     }
 
-    accessService.validateUpdateFields(payload.update);
+    accessService.validateUpdateFields(payload.update as UpdateSchema);
 
-    const updateFilter = accessService.getFinalUpdateFilter({ _id: { $in: documentsToUpdate } }, payload.filter, payload.update);
+    const updateFilter = accessService.getFinalUpdateFilter({ _id: { $in: documentsToUpdate } }, payload.filter, payload.update as UpdateSchema);
 
     const collection = database.collection<TSchema>(accessService.collection);
     

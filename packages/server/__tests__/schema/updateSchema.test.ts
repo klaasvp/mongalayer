@@ -125,15 +125,41 @@ const valuesTable: ValueTest[] = [
     { value: { $inc: { flags: 1 }, $unset: { active: "" } }, message: 'should validate with $inc and $unset', exceptions: {} },
     { value: { $set: { name: "new name" }, $inc: { flags: 1 }, $unset: { active: 1 } }, message: 'should validate with all operations', exceptions: {} },
     
-    // Invalid operation names
-    { value: { $push: { tags: "new tag" } }, message: 'should invalidate with unknown $push operation', exceptions: {
-        mongoapi: { message: "Unknown update operator: " },
-        zod: { code: 'unrecognized_keys', message: 'Unrecognized key: "$push"' }
+    // $push tests
+    { value: { $push: { tags: "new tag" } }, message: 'should validate with $push string', exceptions: {} },
+    { value: { $push: { tags: 42 } }, message: 'should validate with $push number', exceptions: {} },
+    { value: { $push: { active: true } }, message: 'should validate with $push boolean', exceptions: {} },
+    { value: { $push: { tags: null } }, message: 'should validate with $push null', exceptions: {} },
+    { value: { $push: { tags: ["a", "b"] } }, message: 'should validate with $push array', exceptions: {} },
+    { value: { $push: { items: { id: 1, name: "item" } } }, message: 'should validate with $push object', exceptions: {} },
+    { value: { $push: { items: { id: 1, nested: { deep: true } } } }, message: 'should validate with $push nested object', exceptions: {} },
+    { value: { $push: { "details.history": "entry" } }, message: 'should validate with $push dot notation', exceptions: {} },
+    { value: { $push: { tags: "a", scores: 1 } }, message: 'should validate with $push multiple fields', exceptions: {} },
+    { value: { $push: { tags: { $each: ["a", "b"] } } }, message: 'should invalidate with $push $each modifier', exceptions: {
+        zod: { code: 'invalid_union', message: 'Invalid input' }
     } },
-    { value: { $pull: { tags: "old tag" } }, message: 'should invalidate with unknown $pull operation', exceptions: {
-        mongoapi: { message: "Unknown update operator: " },
-        zod: { code: 'unrecognized_keys', message: 'Unrecognized key: "$pull"' }
+    { value: { $push: { metadata: { $ne: null } } }, message: 'should invalidate with $push dollar property in value', exceptions: {
+        zod: { code: 'invalid_union', message: 'Invalid input' }
     } },
+
+    // $pull tests
+    { value: { $pull: { tags: "old tag" } }, message: 'should validate with $pull value', exceptions: {} },
+    { value: { $pull: { scores: 80 } }, message: 'should validate with $pull number', exceptions: {} },
+    { value: { $pull: { active: true } }, message: 'should validate with $pull boolean', exceptions: {} },
+    { value: { $pull: { tags: null } }, message: 'should validate with $pull null', exceptions: {} },
+    { value: { $pull: { items: { id: 1 } } }, message: 'should validate with $pull object value', exceptions: {} },
+    { value: { $pull: { scores: { $gte: 80 } } }, message: 'should validate with $pull condition', exceptions: {} },
+    { value: { $pull: { scores: { $gte: 80, $lte: 100 } } }, message: 'should validate with $pull multiple conditions', exceptions: {} },
+    { value: { $pull: { scores: { $ne: 0 } } }, message: 'should validate with $pull $ne condition', exceptions: {} },
+    { value: { $pull: { tags: { $in: ["a", "b"] } } }, message: 'should validate with $pull $in condition', exceptions: {} },
+    { value: { $pull: { "details.tags": "old" } }, message: 'should validate with $pull dot notation', exceptions: {} },
+    { value: { $pull: { tags: "a", scores: { $gt: 5 } } }, message: 'should validate with $pull multiple fields', exceptions: {} },
+    { value: { $pull: { scores: { $foo: 1 } } }, message: 'should invalidate with $pull unknown operator', exceptions: {
+        mongodb: { code: 2, codeName: undefined, message: "unknown top level operator: $foo" },
+        zod: { code: 'custom', message: 'Invalid filter operator' }
+    } },
+
+    // Unknown operators
     { value: { $addToSet: { tags: "unique tag" } }, message: 'should invalidate with unknown $addToSet operation', exceptions: {
         mongoapi: { message: "Unknown update operator: " },
         zod: { code: 'unrecognized_keys', message: 'Unrecognized key: "$addToSet"' }

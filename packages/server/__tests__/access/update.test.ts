@@ -284,6 +284,7 @@ describe("Access - Update - Defaults & One", () => {
 
         await expect(testSimpleUpdate("updateOne", { 
             filter: { _id: projectZero._id }, 
+            // @ts-expect-error - testing wrong types
             update: { $set: update } 
         }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
             message: JSON.stringify([
@@ -294,7 +295,8 @@ describe("Access - Update - Defaults & One", () => {
         }));
 
         await expect(testSimpleUpdate("updateMany", { 
-            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } },
+            // @ts-expect-error - testing wrong types 
             update: { $set: update } 
         }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
             message: JSON.stringify([
@@ -1382,5 +1384,194 @@ describe('Access - Update validator', () => {
             filter: { _id: projectZero._id }, 
             update: { $set: { description: "x" } } 
         }, accessConfig, {})).rejects.toThrowError(`validator exception test`);
+    });
+});
+
+describe("Access - Update - $push & $pull operators", async () => {
+    const database = await getMongoDBDatabase();
+
+    beforeEach(async () => {
+        await resetCUDCollections();
+    });
+
+    // $push
+    test("$push - scalar value to array field (one)", async () => {
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $push: { "config.tags": "newTag" } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+
+        const doc = await database.collection<Project>("projectsCUD").findOne({ _id: projectZero._id });
+        expect(doc?.config.tags).toContain("newTag");
+    });
+
+    test("$push - scalar value to array field (many)", async () => {
+        const result = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            update: { $push: { "config.tags": "newTag" } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(2);
+        expect(result.modifiedCount).toBe(2);
+
+        const docs = await database.collection<Project>("projectsCUD").find({ _id: { $in: [ projectZero._id, projectRandom._id ] } }).toArray();
+
+        docs.forEach(doc => {
+            expect(doc.config.tags).toContain("newTag");
+        });
+    });
+
+    test("$push - object to object array field", async () => {
+        const newAsset = { id: "new-asset-id", status: "design", updatedAt: null };
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            // @ts-expect-error - intentionally pushing an object to an array of objects
+            update: { $push: { unfinishedAssets: newAsset } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+
+        const doc = await database.collection<Project>("projectsCUD").findOne({ _id: projectZero._id });
+        expect(doc?.unfinishedAssets).toEqual(expect.arrayContaining([newAsset]));
+    });
+
+    test("$push - wrong element type", async () => {
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            // @ts-expect-error - intentionally passing a wrong type to $push
+            update: { $push: { "config.tags": 42 } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrow(expect.objectContaining({
+            message: JSON.stringify([
+                { expected: "string", code: "invalid_type", path: ["config", "tags", 0], message: "Invalid input: expected string, received number" },
+            ], null, 2),
+            name: "ZodError"
+        }));
+    });
+
+    test("$push - to non-array field", async () => {
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            // @ts-expect-error - intentionally passing a non-array field to $push
+            update: { $push: { name: "x" } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrow(expect.objectContaining({
+            message: JSON.stringify([
+                { expected: "string", code: "invalid_type", path: ["name"], message: "Invalid input: expected string, received array" },
+            ], null, 2),
+            name: "ZodError"
+        }));
+    });
+
+    test("$push - without field permission", async () => {
+        const accessConfig: AccessConfig<Project> = [{
+            role: "test",
+            fields: {
+                config: AccessPermissions.Read,
+            },
+            document: AccessPermissions.ReadWrite,
+        }];
+
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $push: { "config.tags": "newTag" } } 
+        }, accessConfig as AccessConfig<Document>, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "field", field: "config", issue: `Role "test" does not have update access for field "config".` }]) }]
+        }));
+    });
+
+    // $pull
+    test("$pull - scalar value from array field (one)", async () => {
+        const tagToRemove = projectZero.config.tags[0];
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $pull: { "config.tags": tagToRemove } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+
+        const doc = await database.collection<Project>("projectsCUD").findOne({ _id: projectZero._id });
+        expect(doc?.config.tags).not.toContain(tagToRemove);
+    });
+
+    test("$pull - condition from array field", async () => {
+        const tags = projectZero.config.tags.slice();
+        const tagToRemove = tags.splice(0, 2);
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $pull: { "config.tags": { $in: tagToRemove } } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+
+        const doc = await database.collection<Project>("projectsCUD").findOne({ _id: projectZero._id });
+        expect(doc?.config.tags).toEqual(tags);
+    });
+
+    test("$pull - condition from array field (many)", async () => {
+        const tags = projectZero.config.tags.slice();
+        const tagToRemove = tags.splice(0, 2);
+
+        const result = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            update: { $pull: { "config.tags": { $in: tagToRemove } } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(2);
+        expect(result.modifiedCount).toBe(2);
+
+        const docs = await database.collection<Project>("projectsCUD").find({ _id: { $in: [ projectZero._id, projectRandom._id ] } }).toArray();
+
+        docs.forEach(doc => {
+            expect(doc.config.tags).toEqual(expect.not.arrayContaining(tagToRemove));
+        });
+    });
+
+    test("$pull - from non-array field", async () => {
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            // @ts-expect-error - intentionally passing a non-array field to $pull
+            update: { $pull: { name: "x" } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(`Field "name" in $pull is not an array in the document schema`);
+    });
+
+    test("$pull - from non-existing field", async () => {
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            // @ts-expect-error - intentionally passing a non-existing field to $pull
+            update: { $pull: { unknownField: "x" } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(`Field "unknownField" in $pull does not exist in the document schema`);
+    });
+
+    test("$pull - without field permission", async () => {
+        const accessConfig: AccessConfig<Project> = [{
+            role: "test",
+            fields: {
+                config: AccessPermissions.Read,
+            },
+            document: AccessPermissions.ReadWrite,
+        }];
+
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $pull: { "config.tags": "tag1" } } 
+        }, accessConfig as AccessConfig<Document>, {})).rejects.toThrowError(expect.objectContaining({
+            message: `Unauthorized documents found`,
+            unauthorizedDocuments: [{ index: 0, id: projectZero._id, issues: expect.arrayContaining([{ type: "field", field: "config", issue: `Role "test" does not have update access for field "config".` }]) }]
+        }));
     });
 });
