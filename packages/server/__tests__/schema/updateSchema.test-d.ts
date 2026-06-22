@@ -1,4 +1,4 @@
-import { UpdateSchema } from '#src/schema/update.js';
+import { PushModifier, UpdateSchema } from '#src/schema/update.js';
 import { describe, expectTypeOf, test } from 'vitest';
 import { Project } from '#test/data/project.js';
 import { JSONValue } from '#src/schema/index.js';
@@ -35,9 +35,9 @@ describe('update', () => {
             unfinishedAssets: { id: "asset-id", status: "design", updatedAt: null }
         } };
 
-        expectTypeOf(update.$push!["config.tags"]!).toEqualTypeOf<Project["config"]["tags"][number]>();
-        expectTypeOf(update.$push!.latestAssets!).toEqualTypeOf<Project["latestAssets"][number]>();
-        expectTypeOf(update.$push!.unfinishedAssets!).toEqualTypeOf<Project["unfinishedAssets"][number]>();
+        expectTypeOf(update.$push!["config.tags"]!).toEqualTypeOf<Project["config"]["tags"][number] | PushModifier<Project["config"]["tags"][number], Project>>();
+        expectTypeOf(update.$push!.latestAssets!).toEqualTypeOf<Project["latestAssets"][number] | PushModifier<Project["latestAssets"][number], Project>>();
+        expectTypeOf(update.$push!.unfinishedAssets!).toEqualTypeOf<Project["unfinishedAssets"][number] | PushModifier<Project["unfinishedAssets"][number], Project>>();
     });
 
     test('UpdateSchema $pull type', () => {
