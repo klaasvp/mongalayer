@@ -1,7 +1,7 @@
 {
     "name": "@mongalayer/client",
     "type": "module",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "license": "MIT",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -17,8 +17,8 @@
         "test": "npx vitest --run"
     },
     "dependencies": {
-        "@mongalayer/core": "1.0.8",
-        "@mongalayer/server": "1.0.8"
+        "@mongalayer/core": "1.0.9",
+        "@mongalayer/server": "1.0.9"
     },
     "homepage": "https://mongalayer.com",
     "keywords": [
