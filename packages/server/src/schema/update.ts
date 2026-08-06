@@ -56,17 +56,24 @@ export const updateSchema: z.ZodType<UpdateSchema> =
 ////////////////////////////////////////////////////////////////////
 
 // A utility to replace all occurrences of ${number} (or actual numbers) with '$'
-type ReplaceNumbersWithDollar<T extends string> = 
-  // Matches a number in the middle of the path (e.g., "users.${number}.name" -> "users.$.name")
-  T extends `${infer Left}.${number}.${infer Right}`
-    ? ReplaceNumbersWithDollar<`${Left}.$.${Right}`>
-  
-  // Matches a number at the end of the path (e.g., "users.${number}" -> "users.$")
-  : T extends `${infer Left}.${number}`
-    ? `${Left}.$`
-  
-  // If no numbers are found, return the string as-is
-  : T;
+type ReplaceNumbersWithDollar<T extends string> =
+    T extends `${infer Head}.${infer Rest}`
+        ? `${Head}.${ReplaceNumbersWithDollarRest<Rest>}`
+        : T;
+
+// Applied only after the first segment: numbers here are replaced with "$".
+type ReplaceNumbersWithDollarRest<T extends string> =
+    T extends `${infer Head}.${infer Rest}`
+        // Matches a number in the middle of the path (e.g., "users.${number}.name" -> "users.$.name")
+        ? Head extends `${number}`
+            ? `$.${Rest}` // MongoDB doesn't support nested positional operators so only the first number is replaced with '$'
+            : `${Head}.${ReplaceNumbersWithDollarRest<Rest>}`
+
+        // Matches a number at the end of the path (e.g., "users.${number}" -> "users.$")
+        : T extends `${number}`
+            ? "$"
+            // If no numbers are found, return the string as-is
+            : T;
 
 // A distributive wrapper that returns BOTH the original string and the transformed string
 type ExtendedPaths<T> = T extends string ? T | ReplaceNumbersWithDollar<T> : T;
