@@ -2,7 +2,7 @@ import { PushModifier, UpdateSchema } from '#src/schema/update.js';
 import { describe, expectTypeOf, test } from 'vitest';
 import { Project } from '#test/data/project.js';
 import { JSONValue } from '#src/schema/index.js';
-import z from 'zod';
+import { z } from "zod";
 import { filterOperatorsSchema } from '#src/schema/query.js';
 
 

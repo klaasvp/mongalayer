@@ -63,7 +63,7 @@ export default defineNuxtPlugin(async nuxtApp => {
 ```
 
 ```ts [model/project.ts] 
-import z from "zod";
+import { z } from "zod";
 
 export class Project {
     constructor(

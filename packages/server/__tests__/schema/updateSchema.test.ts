@@ -5,7 +5,7 @@ import { SchemaTest } from '#test/data/schemaTest';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/lib/database';
 import { Db } from 'mongodb';
-import z from 'zod';
+import { z } from "zod";
 
 const valuesTable: ValueTest[] = [
     { value: 1, message: 'should invalidate with number', exceptions: {

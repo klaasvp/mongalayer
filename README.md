@@ -60,7 +60,7 @@ my-app/
 
 ```ts
 // model/project.ts
-import z from "zod";
+import { z } from "zod";
 
 export const projectSchema = z.strictObject({
     _id: z.string(),

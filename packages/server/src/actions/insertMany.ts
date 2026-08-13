@@ -1,5 +1,5 @@
 import type { Collection, Db, Document, InsertManyResult } from "mongodb";
-import z from "zod";
+import { z } from "zod";
 import { InsertableDocument, InsertAccessService } from "../access/insert.js";
 import { Debugging } from "../core.js";
 

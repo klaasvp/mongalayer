@@ -1,4 +1,4 @@
-import z from "zod";
+import { z } from "zod";
 import { accumulatorsSchema, Expression, expressionSchema, expressionSchemaWithEmptyObject } from "../expression/index.js";
 
 export type Group = {

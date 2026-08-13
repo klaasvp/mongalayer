@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import z, { ZodType } from "zod"
+import { z, ZodType } from "zod"
 import { User } from "./user.js";
 import { ProjectAsset } from "./projectAsset.js";
 

@@ -1,4 +1,4 @@
-import z from "zod";
+import { z } from "zod";
 import { projectionSchema } from "./project.js";
 import { limitSchema, matchSchema, skipSchema } from "./index.js";
 

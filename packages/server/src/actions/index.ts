@@ -9,7 +9,7 @@ import insertOne, { InsertOnePayload, InsertOneReturnType } from "./insertOne.js
 import insertMany, { InsertManyPayload, InsertManyReturnType } from "./insertMany.js";
 import updateOne, { UpdateOnePayload, UpdateOneReturnType } from "./updateOne.js";
 import updateMany, { UpdateManyPayload, UpdateManyReturnType } from "./updateMany.js";
-import z from "zod";
+import { z } from "zod";
 
 export const operationSchema = z.enum([
     "findOne", 

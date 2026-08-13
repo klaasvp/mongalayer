@@ -1,5 +1,5 @@
 import type { Collection, Db, Document, Filter } from "mongodb";
-import z from "zod";
+import { z } from "zod";
 import { FilterSchema, filterSchema } from "../schema/query.js";
 import { DeletableDocument, DeleteAccessService } from "../access/delete.js";
 import { Debugging } from "../core.js";

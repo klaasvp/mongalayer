@@ -1,4 +1,4 @@
-import z from "zod";
+import { z } from "zod";
 import { filterSchema } from "../query.js";
 
 // TODO :: Remove $where / $near / $nearSphere / $text (or allow it only as the first stage)

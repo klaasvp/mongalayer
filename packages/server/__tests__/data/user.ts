@@ -1,5 +1,5 @@
 import { faker } from "@faker-js/faker";
-import z, { ZodType } from "zod"
+import { z, ZodType } from "zod"
 
 export enum UserRoles {
     ADMIN = "admin",

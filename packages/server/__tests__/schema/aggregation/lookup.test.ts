@@ -9,7 +9,7 @@ import { MongalayerCollectionType } from '#src/index.js';
 import { FilterTest } from '#test/data/filterTest.js';
 import { pipelineSchema } from '#src/schema/aggregate.js';
 import { lookupSchema } from '#src/schema/aggregation/lookup.js';
-import z from 'zod';
+import { z } from "zod";
 
 const validLookup = { from: "filterTest", localField: "groupable", foreignField: "groupable", as: "joined" };
 

@@ -6,7 +6,7 @@ import { SchemaTest } from '#test/data/schemaTest';
 import { beforeAll, describe, expect, test } from 'vitest';
 import { dbName, getMongaLayerForFilterTest, getMongoDBDatabase } from '#test/lib/database';
 import { Db } from 'mongodb';
-import z from 'zod';
+import { z } from "zod";
 import { MongalayerCollectionType } from '#src/index.js';
 import { isMongoInvalidArgumentError, isMongoServerError } from '#test/lib/helper.js';
 import { pipelineSchema } from '#src/schema/aggregate.js';

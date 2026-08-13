@@ -4,7 +4,7 @@ import { AccessService } from "../access.js";
 import { isLookupStage, PipelineSchema, StageSchema } from "../schema/aggregate.js";
 import { KeysOfUnion } from "type-fest";
 import { Debugging, MongalayerCollections } from "../core.js";
-import z, { ZodObject } from "zod";
+import { z, ZodObject } from "zod";
 import { LookupSchema } from "#src/schema/aggregation/lookup.js";
 
 type AggregationStages = {
