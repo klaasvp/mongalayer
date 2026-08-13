@@ -16,7 +16,7 @@ export type PushModifier<TValue, T> = {
 
 export type UpdateSchema<T extends any = unknown, TPaths extends SchemaPaths<T> = SchemaPaths<T>> = T extends object ? {
     $inc?: { [K in TPaths]?: number | undefined },
-    $unset?: { [K in TPaths]?: "" | true | 1 },
+    $unset?: { [K in ExtendedPaths<TPaths>]?: "" | true | 1 },
     $set?: { [K in ExtendedPaths<TPaths>]?: Get<T, ReplaceArraySyntax<K>> }, 
     $push?: { [K in TPaths as Get<T, K> extends readonly any[] ? K : never]?: ArrayElement<Get<T, K>> | PushModifier<ArrayElement<Get<T, K>>, T> },
     $pull?: { [K in TPaths as Get<T, K> extends readonly any[] ? K : never]?: ArrayElement<Get<T, K>> | Record<string, JSONValue> | z.infer<typeof filterOperatorsSchema> }

@@ -39,7 +39,10 @@ export function getRandomProjectAsset (projects: Project[]): ProjectAsset {
         randomProject.unfinishedAssets.push({
             id: assetID,
             status: faker.helpers.arrayElement(projectAssetUnfinishedStatus),
-            updatedAt: null
+            updatedAt: null,
+            metadata: {
+                label: faker.commerce.productName(),
+            }
         });
     }
 

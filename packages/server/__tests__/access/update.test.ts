@@ -385,6 +385,19 @@ describe("Access - Update - Defaults & One", () => {
         expect(result.modifiedCount).toBe(1);
     });
 
+    test("Update - $unset - dot notation - positional $ operator - scalar", async () => {
+        const latestAssetID = projectZero.latestAssets[0];
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id, "latestAssets": { $eq: latestAssetID } }, 
+            update: { $unset: { "latestAssets.$": "" } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+    });
+
     test("Update (many) - dot notation - positional $ operator - scalar", async () => {
         const latestAssetID = projectZero.latestAssets[0], newLatestAssetID = projectAssetObjects.find(pa => !projectZero.latestAssets.includes(pa._id))!._id;
 
@@ -393,6 +406,21 @@ describe("Access - Update - Defaults & One", () => {
         const resultMany = await testSimpleUpdate("updateMany", { 
             filter: { _id: { $in: [ projectZero._id, projectRandom._id ] }, "latestAssets": latestAssetID }, 
             update: { $set: { "latestAssets.$": newLatestAssetID } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(resultMany.acknowledged).toBe(true);
+        expect(resultMany.matchedCount).toBe(projectRandomHasAsset ? 2 : 1);
+        expect(resultMany.modifiedCount).toBe(projectRandomHasAsset ? 2 : 1);
+    });
+
+    test("Update (many) - $unset - dot notation - positional $ operator - scalar", async () => {
+        const latestAssetID = projectZero.latestAssets[0];
+
+        const projectRandomHasAsset = projectRandom.latestAssets.includes(latestAssetID);
+
+        const resultMany = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] }, "latestAssets": latestAssetID }, 
+            update: { $unset: { "latestAssets.$": "" } } 
         }, [], { document: AccessPermissions.ReadWrite });
 
         expect(resultMany.acknowledged).toBe(true);
@@ -422,6 +450,28 @@ describe("Access - Update - Defaults & One", () => {
         expect(resultMany.modifiedCount).toBe(2);
     });
 
+    test("Update - $unset - dot notation - positional $ operator - nested", async () => {
+        const unfinishedAssetID = projectZero.unfinishedAssets[0].id;
+
+        const result = await testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id, "unfinishedAssets.id": unfinishedAssetID }, 
+            update: { $unset: { "unfinishedAssets.$.metadata.label": "" } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(result.acknowledged).toBe(true);
+        expect(result.matchedCount).toBe(1);
+        expect(result.modifiedCount).toBe(1);
+
+        const resultMany = await testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] }, "unfinishedAssets.updatedAt": null }, 
+            update: { $unset: { "unfinishedAssets.$.metadata": "" } } 
+        }, [], { document: AccessPermissions.ReadWrite });
+
+        expect(resultMany.acknowledged).toBe(true);
+        expect(resultMany.matchedCount).toBe(2);
+        expect(resultMany.modifiedCount).toBe(2);
+    });
+
     test("Update - dot notation - positional $ operator - missing array field in query", async () => {
         const newStatus = projectAssetUnfinishedStatus.filter(status => status !== projectZero.unfinishedAssets[0].status)[0];
 
@@ -435,6 +485,22 @@ describe("Access - Update - Defaults & One", () => {
         await expect(testSimpleUpdate("updateMany", { 
             filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
             update: { $set: { "unfinishedAssets.$.updatedAt": new Date() } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
+            message: `The positional operator did not find the match needed from the query.`,
+        }));
+    });
+
+    test("Update - $unset - dot notation - positional $ operator - missing array field in query", async () => {
+        await expect(testSimpleUpdate("updateOne", { 
+            filter: { _id: projectZero._id }, 
+            update: { $unset: { "unfinishedAssets.$.metadata": "" } } 
+        }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
+            message: `The positional operator did not find the match needed from the query.`,
+        }));
+
+        await expect(testSimpleUpdate("updateMany", { 
+            filter: { _id: { $in: [ projectZero._id, projectRandom._id ] } }, 
+            update: { $unset: { "unfinishedAssets.$.metadata": "" } } 
         }, [], { document: AccessPermissions.ReadWrite })).rejects.toThrowError(expect.objectContaining({
             message: `The positional operator did not find the match needed from the query.`,
         }));

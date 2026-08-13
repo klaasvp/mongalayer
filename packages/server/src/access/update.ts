@@ -51,7 +51,8 @@ export class UpdateAccessService extends PreloadRoleAccessService {
                 partialObject = merge([partialObject, unflatten(pushObject)]);
             } else if (operator === "$unset") {
                 for (const key of Object.keys(op)) {
-                    const keySchema = getSubschema(this.documentSchema, key);
+                    const normalizedKey = key.replace(/\.\$/g, ".0"); // Replace positional $ operator with 0 for validation purposes
+                    const keySchema = getSubschema(this.documentSchema, normalizedKey); 
                     if (keySchema?.schema === void 0 ) {
                         throw new Error(`Field "${key}" in $unset does not exist in the document schema`);
                     } else if (keySchema?.meta?.optional !== true) {
@@ -77,8 +78,10 @@ export class UpdateAccessService extends PreloadRoleAccessService {
 
     public getFinalUpdateFilter (updateFilter: Filter<Document>, filter: Filter<Document>, update: UpdateSchema): Filter<Document> {
         // If the update contains positional operators, we need to use the original filter with the _id of the document to update
-        if (update.$set && Object.keys(update.$set).some(key => key.split(".").slice(1).includes("$"))) {
-            return { ...filter, _id: updateFilter._id };
+        for (const operator of ["$set", "$unset"] as const) {
+            if (update[operator] && Object.keys(update[operator]).some(key => key.split(".").slice(1).includes("$"))) {
+                return { ...filter, _id: updateFilter._id };
+            }
         }
 
         return updateFilter;
