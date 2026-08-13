@@ -1,4 +1,4 @@
-import z, { ZodArray, ZodCustom, ZodDefault, ZodDiscriminatedUnion, ZodIntersection, ZodLazy, ZodMap, ZodNever, ZodNullable, ZodObject, ZodOptional, ZodPipe, ZodRecord, ZodSet, ZodTuple, ZodUnion } from "zod";
+import { z, ZodArray, ZodCustom, ZodDefault, ZodDiscriminatedUnion, ZodIntersection, ZodLazy, ZodMap, ZodNever, ZodNullable, ZodObject, ZodOptional, ZodPipe, ZodRecord, ZodSet, ZodTuple, ZodType, ZodUnion } from "zod";
 
 export function deepPartial(schema: any): any {
     // Unwrap wrappers while preserving optional/nullable at the wrapper level
@@ -81,7 +81,8 @@ export function deepPartial(schema: any): any {
     return schema;
 }
 
-type ZodTypeUnknown = z.core.$ZodType<unknown>;
+type ZodTypeUnknownCore = z.core.$ZodType<unknown>;
+type ZodTypeUnknown = z.ZodType<unknown>;
 type ZodSchemaMeta = {
     optional: boolean,
     nullable: boolean,
@@ -91,7 +92,7 @@ type ZodSchemaMeta = {
 
 export type ZodUnwrappedSchema = { schema: ZodTypeUnknown, meta: ZodSchemaMeta };
 
-const isUnwrappable = (schema: ZodTypeUnknown): schema is ZodOptional | ZodNullable | ZodDefault | ZodPipe => {
+const isUnwrappable = (schema: ZodTypeUnknownCore): schema is ZodOptional | ZodNullable | ZodDefault | ZodPipe => {
     return (
         schema instanceof ZodOptional ||
         schema instanceof ZodNullable ||
@@ -100,11 +101,12 @@ const isUnwrappable = (schema: ZodTypeUnknown): schema is ZodOptional | ZodNulla
     );
 }
 
-function unwrap (schema: ZodTypeUnknown): ZodUnwrappedSchema {
+function unwrap (schema: ZodTypeUnknownCore, metaOptions: Partial<ZodSchemaMeta> = {}): ZodUnwrappedSchema {
     const meta: ZodSchemaMeta = {
         optional: false,
-        nullable: false
-    }
+        nullable: false,
+        ...metaOptions
+    };
 
     // Unwrap optional/nullable/default/effects wrappers
     while (isUnwrappable(schema)) {
@@ -125,7 +127,7 @@ function unwrap (schema: ZodTypeUnknown): ZodUnwrappedSchema {
         }
     }
 
-    return { schema, meta };
+    return { schema: schema as ZodTypeUnknown, meta };
 }
 
 /**
@@ -135,23 +137,26 @@ function unwrap (schema: ZodTypeUnknown): ZodUnwrappedSchema {
  * @param path MongoDB dot notation path (e.g., "user.address.city")
  * @returns The subschema at the specified path or undefined if not found
  */
-export function getSubschema(sourceSchema: ZodTypeUnknown, path: string ): ZodUnwrappedSchema | undefined;
-export function getSubschema(sourceSchema: ZodTypeUnknown, path: string, unwrapSchema: false ): Pick<ZodUnwrappedSchema, "schema"> | undefined;
-export function getSubschema(sourceSchema: ZodTypeUnknown, path: string, unwrapSchema: true ): ZodUnwrappedSchema | undefined;
-export function getSubschema(sourceSchema: ZodTypeUnknown, path: string, unwrapSchema: boolean = true ) {
+export function getSubschema(sourceSchema: ZodTypeUnknownCore, path: string ): ZodUnwrappedSchema | undefined;
+export function getSubschema(sourceSchema: ZodTypeUnknownCore, path: string, unwrapSchema: false ): ZodUnwrappedSchema | undefined;
+export function getSubschema(sourceSchema: ZodTypeUnknownCore, path: string, unwrapSchema: true ): ZodUnwrappedSchema | undefined;
+export function getSubschema(sourceSchema: ZodTypeUnknownCore, path: string, unwrapSchema: boolean = true ) {
     const segments = path.split(".");
 
-    const { schema } = unwrapSchema ? unwrap(sourceSchema) : { schema: sourceSchema };
+    const { schema, meta } = unwrapSchema ? unwrap(sourceSchema) : { schema: sourceSchema, meta: { optional: false, nullable: false } };
 
-    let current: ZodTypeUnknown = schema;
+    let current: ZodTypeUnknownCore = schema, currentMeta: ZodSchemaMeta = meta;
 
     for (let i=0, il=segments.length; i < il; i++) {
+        currentMeta = { optional: false, nullable: false };
+
         if (current instanceof ZodLazy) {
             current = current.def.getter();
         } else if (isUnwrappable(current)) {
             const unwrapped = unwrap(current);
             
             current = unwrapped.schema;
+            currentMeta = unwrapped.meta;
         }
 
         const segment = segments[i];
@@ -181,6 +186,7 @@ export function getSubschema(sourceSchema: ZodTypeUnknown, path: string, unwrapS
             // Array element access (ignores specific index)
             if (isArrayIndex) {
                 current = current.element;
+                currentMeta.optional = true; // A element in an open list is optional
             } else {
                 return undefined;
             }
@@ -202,12 +208,15 @@ export function getSubschema(sourceSchema: ZodTypeUnknown, path: string, unwrapS
         } else if (current instanceof ZodRecord) {
             // Record value type (key doesn't matter)
             current = current.valueType;
+            currentMeta.optional = true; // A element in an open list is optional
         } else if (current instanceof ZodMap) {
             // Map value type
             current = current.def.valueType;
+            currentMeta.optional = true; // A element in an open list is optional
         } else if (current instanceof ZodSet) {
             // Set value type
             current = current.def.valueType;
+            currentMeta.optional = true; // A element in an open list is optional
         } else if (current instanceof ZodUnion || current instanceof ZodDiscriminatedUnion) {
             // For unions, we need to check all options
             // Return the first option that has the path
@@ -250,5 +259,5 @@ export function getSubschema(sourceSchema: ZodTypeUnknown, path: string, unwrapS
         }
     }
 
-    return unwrapSchema ? unwrap(current) : { schema: current };
+    return unwrapSchema ? unwrap(current, currentMeta) : { schema: current, meta: currentMeta };
 }
