@@ -1,4 +1,4 @@
-import { z } from "zod"
+import * as z from "zod"
 import { keyWithoutDollar } from "../index.js"
 
 const inputWithNSchema = z.lazy(() => z.strictObject({ input: expressionSchema, n: expressionSchema }))

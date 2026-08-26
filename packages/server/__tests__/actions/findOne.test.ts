@@ -1,7 +1,6 @@
 import { describe, expect, test, beforeAll } from "vitest";
 import { Project, projectSchema } from "#test/data/project";
-import { User } from "#test/data/user";
-import { z } from "zod";
+import * as z from "zod";
 import { dbName, getMongaLayerForCollections, getMongoDBDatabase, projectObjects } from "#test/lib/database";
 import { Db } from "mongodb";
 import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/core";

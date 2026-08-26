@@ -1,5 +1,6 @@
 import { faker } from "@faker-js/faker";
-import { z, ZodType } from "zod"
+import * as z from "zod";
+import type { ZodType } from "zod";
 import { Project, projectAssetUnfinishedStatus } from "./project.js";
 
 export type ProjectAsset = {

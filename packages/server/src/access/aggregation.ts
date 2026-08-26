@@ -4,7 +4,7 @@ import { AccessService } from "../access.js";
 import { isLookupStage, PipelineSchema, StageSchema } from "../schema/aggregate.js";
 import { KeysOfUnion } from "type-fest";
 import { Debugging, MongalayerCollections } from "../core.js";
-import { z, ZodObject } from "zod";
+import * as z from "zod";
 import { LookupSchema } from "#src/schema/aggregation/lookup.js";
 
 type AggregationStages = {
@@ -18,7 +18,7 @@ export class AggregationAccessService<TAccessPayload extends AccessPayload = Acc
         public readonly collection: string,
         protected accessData: TAccessPayload,
         protected accessConfig: AccessConfig,
-        protected documentSchema: ZodObject,
+        protected documentSchema: z.ZodObject,
         public accessDefaults: AccessDefaults,
         protected collections: MongalayerCollections<TAccessPayload>
     ) {
@@ -174,7 +174,7 @@ export class AggregationAccessService<TAccessPayload extends AccessPayload = Acc
     }
 
     private handleLookupStageAccess (lookupStage: LookupSchema): Document {
-        let accessConfig: AccessConfig<Document, AccessPayload> = [], schema: ZodObject = z.object({});
+        let accessConfig: AccessConfig<Document, AccessPayload> = [], schema: z.ZodObject = z.object({});
         
         if (this.collections[lookupStage.from] !== void 0) {
             accessConfig = this.collections[lookupStage.from].access as AccessConfig<Document, AccessPayload>;

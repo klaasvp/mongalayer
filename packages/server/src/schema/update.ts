@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { documentSchema, documentValueSchema, JSONValue, SchemaPaths, Sort, sortSchema } from "./index.js";
 import { filterOperatorsSchema } from "./query.js";
 import { Get, Paths } from "type-fest";

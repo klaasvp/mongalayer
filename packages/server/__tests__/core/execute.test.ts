@@ -6,7 +6,7 @@ import { Mongalayer, MongalayerCollection, MongalayerCollections } from "#src/co
 import { MongalayerCollectionType } from "#src/index.js";
 import { Action } from "#src/actions/index.js";
 import { parseReviver, stringifyReplacer } from "@mongalayer/core";
-import { ZodError } from "zod";
+import * as z from "zod";
 import { FindOnePayload } from "#src/actions/findOne.js";
 import { AggregatePayload, DeleteOnePayload, FindPayload } from "#src/client.js";
 
@@ -205,7 +205,7 @@ describe('Execute', () => {
                 payload: { filter: { _id: projectZero._id } } satisfies DeleteOnePayload<Project>
             }], stringifyReplacer);
 
-            await expect(mongalayer.executeJSON(body, {})).rejects.toBeInstanceOf(ZodError);
+            await expect(mongalayer.executeJSON(body, {})).rejects.toBeInstanceOf(z.ZodError);
         });
 
         test("rejects a body with an unknown action shape", async () => {
@@ -214,7 +214,7 @@ describe('Execute', () => {
                 payload: { filter: {} } satisfies FindPayload<Project>
             }, stringifyReplacer);
 
-            await expect(mongalayer.executeJSON(body, {})).rejects.toBeInstanceOf(ZodError);
+            await expect(mongalayer.executeJSON(body, {})).rejects.toBeInstanceOf(z.ZodError);
         });
     });
 });

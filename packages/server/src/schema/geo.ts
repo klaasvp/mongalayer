@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 
 type Crs = { crs?: { type: "name", properties: { name: string } } };
 

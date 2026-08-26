@@ -1,5 +1,5 @@
 import type { Filter, Document, WithId, ObjectId, FilterOperators } from "mongodb";
-import { ZodArray } from "zod";
+import * as z from "zod";
 import { PreloadRoleAccessService, PreloadRoleStages } from "./preloadRole.js";
 import { UpdateSchema } from "../schema/update.js";
 import { AccessDefinition, AccessPermissions, AccessValidatorError } from "../access.js";
@@ -65,7 +65,7 @@ export class UpdateAccessService extends PreloadRoleAccessService {
                     const keySchema = getSubschema(this.documentSchema, key);
                     if (keySchema?.schema === void 0) {
                         throw new Error(`Field "${key}" in $pull does not exist in the document schema`);
-                    } else if (!(keySchema.schema instanceof ZodArray)) {
+                    } else if (!(keySchema.schema instanceof z.ZodArray)) {
                         throw new Error(`Field "${key}" in $pull is not an array in the document schema`);
                     }
                 }

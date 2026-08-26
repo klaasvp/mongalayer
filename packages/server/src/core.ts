@@ -1,8 +1,7 @@
 import type { MongoClient, Document, Db, ClientSession, MongoServerError } from "mongodb";
-import { ZodObject, ZodType } from "zod";
+import * as z from "zod";
 import { Action, find, findOne, findOneAndUpdate, aggregate, deleteOne, InferActionPayload, InferActionReturnType, deleteMany, insertOne, insertMany, updateOne, updateMany, validateAction, actionSchema, operationSchema } from "./actions/index.js";
 import { AccessConfig, AccessDefaults, AccessPermissions, AccessPayload } from "./access.js";
-import { z } from "zod";
 import { FindOnePayload, FindOneReturnType } from "./actions/findOne.js";
 import { FindPayload, FindReturnType } from "./actions/find.js";
 import { FindOneAndUpdatePayload } from "./actions/findOneAndUpdate.js";
@@ -25,7 +24,7 @@ import {  } from "@mongalayer/core";
 export { validateAction } from "./actions/index.js";
 
 export type MongalayerCollection<TSchema extends Document, TAccessPayload extends AccessPayload = AccessPayload> = {
-    schema: ZodObject,
+    schema: z.ZodObject,
     access: AccessConfig<TSchema, TAccessPayload>
 }
 
@@ -130,7 +129,7 @@ export class Mongalayer<TAccessPayload extends AccessPayload = AccessPayload> {
 
             const collection = database.collection(action.collection);
 
-            let accessConfig: AccessConfig<Document, AccessPayload> = [], schema: ZodObject = z.object({});
+            let accessConfig: AccessConfig<Document, AccessPayload> = [], schema: z.ZodObject = z.object({});
 
             if (this.collections[action.collection] !== void 0) {
                 accessConfig = this.collections[action.collection].access as AccessConfig<Document, AccessPayload>;

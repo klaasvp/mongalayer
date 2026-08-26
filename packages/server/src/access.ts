@@ -1,6 +1,6 @@
 import type { Document, Filter, MongoClient, OptionalUnlessRequiredId } from "mongodb";
 import { iteratePrimitives, ValidationError } from "@mongalayer/core";
-import { ZodObject } from "zod";
+import * as z from "zod";
 import { AccessFilter, customOperatorKeys } from "./schema/access/filter.js";
 import { deleteObjectProperty, getValueByPath, isArray, isObject } from "@mongalayer/core";
 import { SetRequired } from "type-fest";
@@ -141,7 +141,7 @@ export abstract class AccessService {
         public readonly collection: string,
         protected accessData: AccessPayload,
         protected accessConfig: AccessConfig,
-        protected documentSchema: ZodObject,
+        protected documentSchema: z.ZodObject,
         public accessDefaults: AccessDefaults
     ) {
         this.hydratedRawConfig = Array.isArray(accessConfig) ? accessConfig.map(access => ({

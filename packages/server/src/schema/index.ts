@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { iteratePrimitives } from "@mongalayer/core";
 import { Paths } from "type-fest";
 

@@ -1,4 +1,4 @@
-import { z } from "zod"
+import * as z from "zod"
 
 export type Sort = { [key: string]: -1 | 1 | { $meta: "textScore" } }
 

@@ -1,5 +1,3 @@
-import { ZodError } from "zod";
-
 export class MongaLayerPayloadError extends Error {
     constructor(message: string) {
         super(message);

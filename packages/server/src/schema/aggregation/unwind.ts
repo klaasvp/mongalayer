@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 
 export const unwindSchema = z.string().regex(/^\$/).or(z.strictObject({
     path: z.string().regex(/^\$/),

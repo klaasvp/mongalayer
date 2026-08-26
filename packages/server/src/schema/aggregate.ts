@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { unwindSchema } from "./aggregation/unwind.js";
 import { projectionSchema } from "./aggregation/project.js";
 import { sortSchema } from "./aggregation/sort.js";

@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { z, ZodBoolean, ZodDate, ZodLiteral, ZodNumber, ZodString } from "zod";
+import * as z from "zod";
 import { getSubschema } from "#src/utils/zod.js";
 
 export const projectSchema = z.strictObject({
@@ -24,14 +24,14 @@ export const projectSchema = z.strictObject({
 describe("schema/helper - getSubschema", () => {
 	test("root-level fields", () => {
 		const name = getSubschema(projectSchema, "name");
-		expect(name?.schema).toBeInstanceOf(ZodString);
+		expect(name?.schema).toBeInstanceOf(z.ZodString);
 
 		const description = getSubschema(projectSchema, "description");
-		expect(description?.schema).toBeInstanceOf(ZodString);
+		expect(description?.schema).toBeInstanceOf(z.ZodString);
 		expect(description?.meta.optional).toBe(true);
 
 		const updatedAt = getSubschema(projectSchema, "updatedAt");
-		expect(updatedAt?.schema).toBeInstanceOf(ZodDate);
+		expect(updatedAt?.schema).toBeInstanceOf(z.ZodDate);
         expect(updatedAt?.meta.nullable).toBe(true);
 	});
 
@@ -40,11 +40,11 @@ describe("schema/helper - getSubschema", () => {
 		expect(owners).toBeDefined();
 
 		const street = getSubschema(projectSchema, "data.location.street");
-		expect(street?.schema).toBeInstanceOf(ZodString);
+		expect(street?.schema).toBeInstanceOf(z.ZodString);
 		expect(street?.meta.optional).toBe(true);
 
 		const city = getSubschema(projectSchema, "data.location.city");
-		expect(city?.schema).toBeInstanceOf(ZodString);
+		expect(city?.schema).toBeInstanceOf(z.ZodString);
 		expect(city?.meta.pipe).toBe(true);
 		expect(city?.meta.default).toBe("Unknown City");
 	});
@@ -92,73 +92,73 @@ describe("schema/helper - getSubschema (custom schema)", () => {
 
 	test("optional and nullable metadata", () => {
 		const opt = getSubschema(custom, "opt");
-		expect(opt?.schema).toBeInstanceOf(ZodString);
+		expect(opt?.schema).toBeInstanceOf(z.ZodString);
 		expect(opt?.meta.optional).toBe(true);
 
 		const nul = getSubschema(custom, "nul");
-		expect(nul?.schema).toBeInstanceOf(ZodString);
+		expect(nul?.schema).toBeInstanceOf(z.ZodString);
 		expect(nul?.meta.nullable).toBe(true);
         expect(nul?.meta.default).toBe(null);
 	});
 
 	test("array, tuple and set access", () => {
 		const arr0 = getSubschema(custom, "arr.0");
-		expect(arr0?.schema).toBeInstanceOf(ZodNumber);
+		expect(arr0?.schema).toBeInstanceOf(z.ZodNumber);
 
 		const tpl0 = getSubschema(custom, "tpl.0");
-		expect(tpl0?.schema).toBeInstanceOf(ZodString);
+		expect(tpl0?.schema).toBeInstanceOf(z.ZodString);
 
 		const tpl1 = getSubschema(custom, "tpl.1");
-		expect(tpl1?.schema).toBeInstanceOf(ZodNumber);
+		expect(tpl1?.schema).toBeInstanceOf(z.ZodNumber);
 
 		const tpl2 = getSubschema(custom, "tpl.2"); // rest boolean
-		expect(tpl2?.schema).toBeInstanceOf(ZodBoolean);
+		expect(tpl2?.schema).toBeInstanceOf(z.ZodBoolean);
 
         const setValue = getSubschema(custom, "set.0");
-        expect(setValue?.schema).toBeInstanceOf(ZodNumber);
+        expect(setValue?.schema).toBeInstanceOf(z.ZodNumber);
 	});
 
 	test("record and map value types", () => {
 		const recAny = getSubschema(custom, "rec.someKey");
-		expect(recAny?.schema).toBeInstanceOf(ZodNumber);
+		expect(recAny?.schema).toBeInstanceOf(z.ZodNumber);
 
 		const mapAny = getSubschema(custom, "map.key");
-		expect(mapAny?.schema).toBeInstanceOf(ZodNumber);
+		expect(mapAny?.schema).toBeInstanceOf(z.ZodNumber);
 	});
 
 	test("union common and branch-specific fields", () => {
 		const common = getSubschema(custom, "union.common");
-		expect(common?.schema).toBeInstanceOf(ZodString);
+		expect(common?.schema).toBeInstanceOf(z.ZodString);
 
 		const onlyA = getSubschema(custom, "union.onlyA");
-		expect(onlyA?.schema).toBeInstanceOf(ZodNumber);
+		expect(onlyA?.schema).toBeInstanceOf(z.ZodNumber);
 
         const onlyB = getSubschema(custom, "union.onlyB");
-		expect(onlyB?.schema).toBeInstanceOf(ZodBoolean);
+		expect(onlyB?.schema).toBeInstanceOf(z.ZodBoolean);
 	});
 
 	test("discriminated union fields", () => {
 		const kind = getSubschema(custom, "dunion.kind");
-		expect(kind?.schema).toBeInstanceOf(ZodLiteral);
+		expect(kind?.schema).toBeInstanceOf(z.ZodLiteral);
 
 		const aField = getSubschema(custom, "dunion.a");
-		expect(aField?.schema).toBeInstanceOf(ZodString);
+		expect(aField?.schema).toBeInstanceOf(z.ZodString);
 
         const bField = getSubschema(custom, "dunion.b");
-        expect(bField?.schema).toBeInstanceOf(ZodNumber);
+        expect(bField?.schema).toBeInstanceOf(z.ZodNumber);
 	});
 
 	test("intersection fields from both sides", () => {
 		const a = getSubschema(custom, "ix.a");
-		expect(a?.schema).toBeInstanceOf(ZodString);
+		expect(a?.schema).toBeInstanceOf(z.ZodString);
 
 		const b = getSubschema(custom, "ix.b");
-		expect(b?.schema).toBeInstanceOf(ZodNumber);
+		expect(b?.schema).toBeInstanceOf(z.ZodNumber);
 	});
 
 	test("lazy resolution", () => {
 		const child = getSubschema(custom, "lazy.child");
-		expect(child?.schema).toBeInstanceOf(ZodString);
+		expect(child?.schema).toBeInstanceOf(z.ZodString);
 	});
 
 	test("invalid paths return undefined", () => {

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 
 // For now we only support boost & constant
 type ScoreOptions = {

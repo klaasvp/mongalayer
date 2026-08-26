@@ -1,26 +1,26 @@
-import { z, ZodArray, ZodCustom, ZodDefault, ZodDiscriminatedUnion, ZodIntersection, ZodLazy, ZodMap, ZodNever, ZodNullable, ZodObject, ZodOptional, ZodPipe, ZodRecord, ZodSet, ZodTuple, ZodType, ZodUnion } from "zod";
+import * as z from "zod";
 
 export function deepPartial(schema: any): any {
     // Unwrap wrappers while preserving optional/nullable at the wrapper level
-    if (schema instanceof ZodOptional) {
+    if (schema instanceof z.ZodOptional) {
         return z.optional(deepPartial(schema.unwrap()));
     }
     
-    if (schema instanceof ZodNullable) {
+    if (schema instanceof z.ZodNullable) {
         return z.nullable(deepPartial(schema.unwrap()));
     }
 
-    if (schema instanceof ZodDefault) {
+    if (schema instanceof z.ZodDefault) {
         // Remove default to avoid injecting values during partial validation
         return deepPartial(schema.unwrap());
     }
 
-    if (schema instanceof ZodLazy) {
+    if (schema instanceof z.ZodLazy) {
         return z.lazy(() => deepPartial(schema.def.getter()));
     }
 
     // Structured types
-    if (schema instanceof ZodObject) {
+    if (schema instanceof z.ZodObject) {
         const newShape: Record<string, any> = {};
         for (const [key, value] of Object.entries(schema.shape)) {
             newShape[key] = deepPartial(value).optional();
@@ -31,17 +31,17 @@ export function deepPartial(schema: any): any {
         return catchall ? (partial.catchall(deepPartial(catchall))) : partial;
     }
 
-    if (schema instanceof ZodArray) {
+    if (schema instanceof z.ZodArray) {
         return z.array(deepPartial(schema.element));
     }
 
-    if (schema instanceof ZodRecord) {
+    if (schema instanceof z.ZodRecord) {
         const keySchema = schema.keyType ?? z.string();
         const valueType = schema.valueType;
         return z.record(keySchema, deepPartial(valueType));
     }
 
-    if (schema instanceof ZodTuple) {
+    if (schema instanceof z.ZodTuple) {
         const items = schema.def.items;
         const itemsPartial = items.map((i: any) => deepPartial(i));
         const base: any = z.tuple(itemsPartial as any);
@@ -49,30 +49,30 @@ export function deepPartial(schema: any): any {
         return rest ? base.rest(deepPartial(rest)) : base;
     }
 
-    if (schema instanceof ZodUnion) {
+    if (schema instanceof z.ZodUnion) {
         const options = schema.options;
         return z.union(options.map((o: any) => deepPartial(o)) as any);
     }
 
-    if (schema instanceof ZodDiscriminatedUnion) {
+    if (schema instanceof z.ZodDiscriminatedUnion) {
         const disc = schema._zod.def.discriminator;
         const options = Array.from(schema.options.values()).map((o) => deepPartial(o) as z.ZodTypeAny);
         return z.discriminatedUnion(disc, options as any);
     }
 
-    if (schema instanceof ZodIntersection) {
+    if (schema instanceof z.ZodIntersection) {
         const left = schema.def.left;
         const right = schema.def.right;
         return z.intersection(deepPartial(left), deepPartial(right));
     }
 
-    if (schema instanceof ZodMap) {
+    if (schema instanceof z.ZodMap) {
         const key = schema.keyType ?? schema.def.keyType;
         const value = schema.valueType ?? schema.def.valueType;
         return z.map(key, deepPartial(value));
     }
 
-    if (schema instanceof ZodSet) {
+    if (schema instanceof z.ZodSet) {
         const value = schema.def.valueType;
         return z.set(deepPartial(value));
     }
@@ -92,12 +92,12 @@ type ZodSchemaMeta = {
 
 export type ZodUnwrappedSchema = { schema: ZodTypeUnknown, meta: ZodSchemaMeta };
 
-const isUnwrappable = (schema: ZodTypeUnknownCore): schema is ZodOptional | ZodNullable | ZodDefault | ZodPipe => {
+const isUnwrappable = (schema: ZodTypeUnknownCore): schema is z.ZodOptional | z.ZodNullable | z.ZodDefault | z.ZodPipe => {
     return (
-        schema instanceof ZodOptional ||
-        schema instanceof ZodNullable ||
-        schema instanceof ZodDefault ||
-        schema instanceof ZodPipe
+        schema instanceof z.ZodOptional ||
+        schema instanceof z.ZodNullable ||
+        schema instanceof z.ZodDefault ||
+        schema instanceof z.ZodPipe
     );
 }
 
@@ -112,14 +112,14 @@ function unwrap (schema: ZodTypeUnknownCore, metaOptions: Partial<ZodSchemaMeta>
     while (isUnwrappable(schema)) {
         // Handle different wrapper types
         if (isUnwrappable(schema)) {
-            if (schema instanceof ZodPipe) {
+            if (schema instanceof z.ZodPipe) {
                 schema = schema.out;
 
                 meta.pipe = true;
             } else {
-                if (schema instanceof ZodOptional) meta.optional = true;
-                if (schema instanceof ZodNullable) meta.nullable = true;
-                if (schema instanceof ZodDefault) meta.default = schema.def.defaultValue;
+                if (schema instanceof z.ZodOptional) meta.optional = true;
+                if (schema instanceof z.ZodNullable) meta.nullable = true;
+                if (schema instanceof z.ZodDefault) meta.default = schema.def.defaultValue;
 
                 // Unwrap to inner schema
                 schema = schema.unwrap();
@@ -150,7 +150,7 @@ export function getSubschema(sourceSchema: ZodTypeUnknownCore, path: string, unw
     for (let i=0, il=segments.length; i < il; i++) {
         currentMeta = { optional: false, nullable: false };
 
-        if (current instanceof ZodLazy) {
+        if (current instanceof z.ZodLazy) {
             current = current.def.getter();
         } else if (isUnwrappable(current)) {
             const unwrapped = unwrap(current);
@@ -165,7 +165,7 @@ export function getSubschema(sourceSchema: ZodTypeUnknownCore, path: string, unw
         const isArrayIndex = !isNaN(Number(segment));
         
         // Navigate based on schema type
-       if (current instanceof ZodObject) {
+       if (current instanceof z.ZodObject) {
             // Object property access
             if (!(segment in current.shape)) {
                 // Check for catchall if property doesn't exist
@@ -173,7 +173,7 @@ export function getSubschema(sourceSchema: ZodTypeUnknownCore, path: string, unw
                     current = current.def.catchall;
                     
                     // Probably means the object is Strict and the property doesn't exist
-                    if (current instanceof ZodNever) {
+                    if (current instanceof z.ZodNever) {
                         return undefined;
                     }
                 } else {
@@ -182,7 +182,7 @@ export function getSubschema(sourceSchema: ZodTypeUnknownCore, path: string, unw
             } else {
                 current = current.shape[segment];
             }
-        } else if (current instanceof ZodArray) {
+        } else if (current instanceof z.ZodArray) {
             // Array element access (ignores specific index)
             if (isArrayIndex) {
                 current = current.element;
@@ -190,7 +190,7 @@ export function getSubschema(sourceSchema: ZodTypeUnknownCore, path: string, unw
             } else {
                 return undefined;
             }
-        } else if (current instanceof ZodTuple) {
+        } else if (current instanceof z.ZodTuple) {
             // Tuple element access by index
             if (isArrayIndex) {
                 const index = Number(segment);
@@ -205,19 +205,19 @@ export function getSubschema(sourceSchema: ZodTypeUnknownCore, path: string, unw
             } else {
                 return undefined;
             }
-        } else if (current instanceof ZodRecord) {
+        } else if (current instanceof z.ZodRecord) {
             // Record value type (key doesn't matter)
             current = current.valueType;
             currentMeta.optional = true; // A element in an open list is optional
-        } else if (current instanceof ZodMap) {
+        } else if (current instanceof z.ZodMap) {
             // Map value type
             current = current.def.valueType;
             currentMeta.optional = true; // A element in an open list is optional
-        } else if (current instanceof ZodSet) {
+        } else if (current instanceof z.ZodSet) {
             // Set value type
             current = current.def.valueType;
             currentMeta.optional = true; // A element in an open list is optional
-        } else if (current instanceof ZodUnion || current instanceof ZodDiscriminatedUnion) {
+        } else if (current instanceof z.ZodUnion || current instanceof z.ZodDiscriminatedUnion) {
             // For unions, we need to check all options
             // Return the first option that has the path
             // This is a simplification - in practice, you might want more complex logic
@@ -234,7 +234,7 @@ export function getSubschema(sourceSchema: ZodTypeUnknownCore, path: string, unw
             }
             
             if (found === false) return undefined;
-        } else if (current instanceof ZodIntersection) {
+        } else if (current instanceof z.ZodIntersection) {
             // Try left side first, then right
             const leftResult = getSubschema(current.def.left, segments.slice(i).join("."), false);
 
@@ -249,7 +249,7 @@ export function getSubschema(sourceSchema: ZodTypeUnknownCore, path: string, unw
                     return undefined;
                 }
             }
-        } else if (current instanceof ZodCustom) {
+        } else if (current instanceof z.ZodCustom) {
             current = z.unknown().optional();
             
             break; // Stop further processing
