@@ -153,7 +153,7 @@ const valuesTable: ValueTest[] = [
     } },
     { value: { $push: { tags: { $each: ["a"], $unknown: 1 } } }, message: 'should invalidate with $push unknown modifier', exceptions: {
         mongodb: { code: 2, codeName: undefined, message: "Unrecognized clause in $push" },
-        zod: { code: 'invalid_union', message: 'Invalid input' }
+        zod: { code: 'unrecognized_keys', message: 'Unrecognized key: "$unknown"' }
     } },
     { value: { $push: { metadata: { $ne: null } } }, message: 'should invalidate with $push dollar property in value', exceptions: {
         zod: { code: 'invalid_union', message: 'Invalid input' }

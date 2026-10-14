@@ -82,7 +82,7 @@ const valuesTable: ValueTest[] = [
             ]
         }
     }, message: 'should invalidate compound with invalid compound operator', exceptions: {
-        zod: { code: 'invalid_union', message: 'Invalid input' }
+        zod: { code: 'unrecognized_keys', message: 'Unrecognized key: "abc"' }
     } },
     { value: { 
         compound: {
