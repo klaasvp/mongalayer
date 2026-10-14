@@ -24,9 +24,9 @@
         "@mongalayer/core": "1.0.12"
     },
     "devDependencies": {
+        "@faker-js/faker": "^10.6.0",
         "@types/node": "^24.12.2",
-        "@faker-js/faker": "^10.5.0",
-        "mongodb-memory-server": "^11.2.0"
+        "mongodb-memory-server": "^11.3.0"
     },
     "engines": {
         "node": ">=22"
