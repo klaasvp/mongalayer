@@ -1,5 +1,5 @@
 import type { Document, MongoClient } from "mongodb";
-import { AccessConfig, AccessDefaults, AccessPayload, AccessPermissions } from "../access.js";
+import { AccessConfig, AccessDefaults, AccessPayload, AccessPermissions, RoleStages } from "../access.js";
 import { AccessService } from "../access.js";
 import { isLookupStage, PipelineSchema, StageSchema } from "../schema/aggregate.js";
 import { KeysOfUnion } from "type-fest";
@@ -90,11 +90,16 @@ export class AggregationAccessService<TAccessPayload extends AccessPayload = Acc
         const { accessFilterIndex, existingFilterIndex, firstFilterStage } = this.addFilterStage(pipeline);
 
         const filterStages = pipeline.splice(0, existingFilterIndex + 1);
+        const localRoleStage = this.getLocalRoleStage();
 
-        let roleStages: Document[] | null = null;
+        if (localRoleStage) {
+            filterStages.push(localRoleStage);
+        }
+
+        let roleStages: RoleStages | null = null;
 
         if (accessFilterIndex >= 0 || this.hasRolesWithAlternativeAccessCollection) {
-            roleStages = this.getRoleStages(firstFilterStage);
+            roleStages = this.getRoleStages();
         }
 
         const newPipelineBase = this.getBasePipeline(filterStages, roleStages, isNested);

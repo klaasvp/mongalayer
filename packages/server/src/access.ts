@@ -1,9 +1,9 @@
 import type { Document, Filter, MongoClient, OptionalUnlessRequiredId } from "mongodb";
 import { iteratePrimitives, ValidationError } from "@mongalayer/core";
 import * as z from "zod";
-import { AccessFilter, customOperatorKeys } from "./schema/access/filter.js";
+import { AccessFilter, AccessFilterExpressions, AccessFilterPropertyValue, CustomOperatorKey, customOperatorKeys, hasAccessFilterPropertyOperators, isCustomOperatorKey, isLogicalOperatorKey, isPropertyOperatorKey, PropertyOperatorKey } from "./schema/access/filter.js";
 import { deleteObjectProperty, getValueByPath, isArray, isObject } from "@mongalayer/core";
-import { SetRequired } from "type-fest";
+import { LiteralUnion, SetRequired, StringSlice } from "type-fest";
 import { UpdateSchema } from "./schema/update.js";
 import { hasNearQuery } from "./query/near.js";
 
@@ -129,6 +129,8 @@ export type AccessDefaults = {
     delete: boolean
 }
 
+export type RoleStages = { roleCollectionStages: Document[]; roleAssignmentStages: [Document, ...Document[]] }
+
 export abstract class AccessService {
     protected hydratedRawConfig: AccessConfig;
     protected hydratedConfig: InternalAccessConfig;
@@ -188,6 +190,10 @@ export abstract class AccessService {
         return translatedFilter;
     }
 
+    private translateLocalRoleAccessFilter (filter: AccessFilter): Filter<Document> {
+        return accessFilterToExpressionFilter(structuredClone(filter));
+    }
+
     protected getAccessFilters (): Filter<Document> | null {
         const filters: Filter<Document>[] = [];
 
@@ -201,6 +207,28 @@ export abstract class AccessService {
         if (filters.length === 0) return null;
 
         return { $or: filters };
+    }
+
+    protected getLocalRoleStage (): Filter<Document> | null {
+        const expressionFilters = this.hydratedConfig.filter(acces => isObject(acces.filter)).map(access => ({
+            $cond: [
+                this.translateLocalRoleAccessFilter(access.filter),
+                [access.role],
+                []
+            ]
+        }));
+
+        if (expressionFilters.length === 0) return null;
+
+        return {
+            $set: {
+                __mongalayer_role: {
+                    local: {
+                       $concatArrays: expressionFilters
+                    }
+                }
+            }
+        };
     }
 
     protected getTargetRoleState (accessRoleName: string, accessCollection: AccessAlternativeCollection): { $lookup: { from: string,  pipeline: Document[], as: string } } {
@@ -235,17 +263,20 @@ export abstract class AccessService {
      * As of 1.0.8 the role assignment happens on the "data" property which is unwinded afterwards to get the original document structure back.
      * In tested scenarios with access configs using alternative access collections this resulted in a decrease of up to 75% in execution time
      */
-    protected getBasePipeline (filterStages: Document[], roleStages: Document[] | null, isNested = false): Document[] {
+    protected getBasePipeline (filterStages: Document[], roleStages: RoleStages | null, isNested = false): Document[] {
         // This is a little hacky but allows us to run the aggregation pipeline on database-level & in-case of nested lookups we use a wrapping $group stage
         const $pipeline: Document[] = isNested 
-            ? [{
-                $group: {
-                    _id: null,
-                    data: {
-                        $push: "$$ROOT"
+            ? [
+                ...(filterStages.filter(stage => stage.$set?.__mongalayer_role?.local !== void 0)), 
+                {
+                    $group: {
+                        _id: null,
+                        data: {
+                            $push: "$$ROOT"
+                        }
                     }
                 }
-            }]
+            ]
             : [{ 
                 $documents: [ { data: [] } ] 
             }, {
@@ -258,106 +289,85 @@ export abstract class AccessService {
             }];
 
         if (roleStages) {
-            $pipeline.push(...roleStages);
+            $pipeline.push(...roleStages.roleCollectionStages);
         }
 
-        $pipeline.push(
-            { $unwind: "$data" },
-            { $replaceRoot: { newRoot: "$data" } }
-        );
+        $pipeline.push({ $unwind: "$data" });
+
+        if (roleStages) {
+            $pipeline.push(...roleStages.roleAssignmentStages);
+        }
+
+        $pipeline.push({ $replaceRoot: { newRoot: "$data" } });
 
         return $pipeline;
     }
 
-    protected getRoleStages (currentFilter: Filter<Document> = {}): Document[] | null {
+    protected getRoleStages (): RoleStages | null {
         if (this.hydratedConfig.length > 0) {
             // The lookup workaround is to support query predicates in the role filter mechanism.
             // On of the more powerfull features or this is that $in supports array on array matching. ["a", "b"] in ["b", "c"] will return true.
-            const rolePipeline: Document[] = [];
+            const roleCollectionStages: Document[] = [];
 
             for (const access of this.hydratedConfig) {
                 if (access.collection !== void 0) {
-                    rolePipeline.push(this.getTargetRoleState(access.role, access.collection));
-                }
-
-                // An empty filter is only necessary when there's no alternative collection
-                if (access.collection === void 0 || Object.keys(access.filter).length > 0) {
-                    rolePipeline.push({
-                        $lookup: {
-                            from: this.collection,
-                            pipeline: [
-                                { 
-                                    $match: Object.keys(currentFilter).length > 0 && !hasNearQuery(currentFilter) 
-                                        ? { $and: [currentFilter, access.filter] } // Only apply the current filter when there's one and has no near query
-                                        : access.filter 
-                                },
-                                { $project: { _id: 1 } }, // Project only the ID
-                                { $unwind: `$_id` }, // Unwind also works for non-array fields, it interprets the field as an array with a single value
-                                { $replaceWith: { __mongalayer_role_id: `$_id` } },
-                            ],
-                            as: `__mongalayer_role.local.${access.role}`
+                    roleCollectionStages.push(
+                        // The lookup stage
+                        this.getTargetRoleState(access.role, access.collection),
+                        // The lookup stage returns a array of objects with __mongalayer_role_id, here we transform it into an array of IDs which is more performant in the role matching later
+                        {
+                            $set: {
+                                [`__mongalayer_role.target.${access.role}`]: {
+                                    $map: {
+                                        input: `$__mongalayer_role.target.${access.role}`,
+                                        as: "role",
+                                        in: "$$role.__mongalayer_role_id"
+                                    }
+                                }
+                            }
                         }
-                    });
+                    );
                 }
             }
 
-            const roleAssignmentStagePipeline: Document[] = [{
-                $documents: "$$records"
+            const roleAssignmentStages: [Document, ...Document[]] = [{ 
+                $addFields: { 
+                    "data.__mongalayer_role": {
+                        $switch: {
+                            branches: this.hydratedConfig.map(access => {
+                                const cases: Filter<Document>[] = [];
+
+                                if (access.collection !== void 0) {
+                                    cases.push({$in: [
+                                        `$data.${access.collection.localField}`, // Match the projected ID
+                                        `$__mongalayer_role.target.${access.role}`
+                                    ]});
+                                }
+
+                                // An empty filter is only necessary when there's no alternative collection
+                                if (access.collection === void 0 || Object.keys(access.filter).length > 0) {
+                                    cases.push({$in: [
+                                        access.role, 
+                                        `$data.__mongalayer_role.local`
+                                    ]});
+                                }
+
+                                return {
+                                    case: cases.length === 1 ? cases[0] : { $and: cases },
+                                    then: access.role
+                                }
+                            }),
+                            default: null
+                        }
+                    }
+                } 
+            }, { 
+                $match: {
+                    "data.__mongalayer_role": { $ne: null }
+                } 
             }];
 
-            roleAssignmentStagePipeline.push({ $addFields: { 
-                __mongalayer_role: {
-                    $switch: {
-                        branches: this.hydratedConfig.map(access => {
-                            const cases: Filter<Document>[] = [];
-
-                            if (access.collection !== void 0) {
-                                cases.push({$in: [
-                                    { __mongalayer_role_id: `$${access.collection.localField}` }, // Match the projected ID
-                                    `$$mongalayer_role.target.${access.role}`
-                                ]});
-                            }
-
-                            // An empty filter is only necessary when there's no alternative collection
-                            if (access.collection === void 0 || Object.keys(access.filter).length > 0) {
-                                cases.push({$in: [
-                                    { __mongalayer_role_id: `$_id` }, // Match the projected ID
-                                    `$$mongalayer_role.local.${access.role}`
-                                ]});
-                            }
-
-                            return {
-                                case: cases.length === 1 ? cases[0] : { $and: cases },
-                                then: access.role
-                            }
-                        }),
-                        default: null
-                    }
-                }
-            } })
-
-            // Normally null roles are not present due to the access filter, but when using alternative collections this is possible.
-            // So we need to filter them out here.
-            if (this.hasRolesWithAlternativeAccessCollection) {
-                roleAssignmentStagePipeline.push({ $match: {
-                    __mongalayer_role: { $ne: null }
-                } });
-            }
-
-            const roleAssignmentStage: Document = {
-                $lookup: {
-                    let: {
-                        records: "$data",
-                        mongalayer_role: "$__mongalayer_role"
-                    },
-                    pipeline: roleAssignmentStagePipeline,
-                    as: "data"
-                }
-            }
-
-            rolePipeline.push(roleAssignmentStage);
-
-            return rolePipeline;
+            return { roleCollectionStages, roleAssignmentStages };
         }
 
         return null;
@@ -516,4 +526,82 @@ export function replaceAccessFilterKeys (instance: any[] | Record<string, unknow
             }
         }
     } 
+}
+
+export function accessFilterToExpressionFilter (filter: AccessFilter | AccessFilter[]): Filter<Document>[] | { $and: Filter<Document>[] } {
+    const queryItems: Filter<Document>[] = [];
+
+    if (isArray(filter)) {
+        for (const item of filter) {
+            queryItems.push(accessFilterToExpressionFilter(item));
+        }
+
+        return queryItems;
+    } else if (isObject(filter)) {
+
+        const keys = Object.keys(filter) as LiteralUnion<keyof AccessFilterExpressions, string>[];
+
+        for (const key of keys) {
+            // $expr is added by replaceAccessFilterKeys. In case we find it, just unwrap it.
+            if (key === "$expr") {
+                queryItems.push(filter[key] as Document);
+            } else if (isCustomOperatorKey(key)) {
+                const value = filter[key]!;
+
+                if (key === "$$nin") {
+                    queryItems.push({ $not: [ { $in: value } ] });
+                } else {
+                    const newKey = key.slice(1) as StringSlice<Exclude<CustomOperatorKey, "$$nin">, 1>;
+
+                    queryItems.push({ [newKey]: value });
+                }
+            } else if (isLogicalOperatorKey(key)) {
+                const value = filter[key]!;
+
+                if (key === "$nor") {
+                    queryItems.push({ $not: [ { $or: accessFilterToExpressionFilter(value) } ] });
+                } else {
+                    queryItems.push({ [key]: accessFilterToExpressionFilter(value) });
+                }
+            } else {
+                const value = filter[key]!;
+
+                if (hasAccessFilterPropertyOperators(value)) {
+                    const propertyKey = `$${key}`;
+
+                    for (const propertyOperator of Object.keys(value) as PropertyOperatorKey[]) {
+                        if (propertyOperator === "$exists") {
+                            // { $exists: true } or { $exists: false }
+                            const existsBoolean = value[propertyOperator] as boolean;
+
+                            // If $exists is true, we want to check that the field is not missing.
+                            // If $exists is false, we want to check that the field is missing.
+                            queryItems.push({ [ existsBoolean ? "$ne" : "$eq" ]: [ { $type: propertyKey }, "missing" ] });
+                        } else if (propertyOperator === "$nin" || propertyOperator === "$in") {
+                            const query = Array.isArray(value[propertyOperator]) 
+                                ? { $or: value[propertyOperator].map(v => ({ $in: [ v, propertyKey ] }))}
+                                : { $in: [ value[propertyOperator], propertyKey ] };
+
+                            if (propertyOperator === "$nin") {
+                                queryItems.push({ $not: [ query ] });
+                            } else {
+                                queryItems.push(query);
+                            }
+                        } else {
+                            queryItems.push({ [propertyOperator]: [ value[propertyOperator], propertyKey ] });
+                        }
+                    }
+                } 
+                // Every other case is treated as an equality check for the property.
+                // Ex: { name: "John" } will be treated as { $eq: [ "$name", "John" ] }
+                else {
+                    queryItems.push({ $eq: [ `$${key}`, value ] });
+                }
+            }
+        }
+    
+        return { $and: queryItems };
+    } 
+
+    throw new Error("Invalid access filter");
 }

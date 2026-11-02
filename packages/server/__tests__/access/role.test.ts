@@ -8,6 +8,23 @@ import { Db, Document, MongoClient } from "mongodb";
 import { QueryAccessService } from "#src/access/query";
 import { ProjectAsset, projectAssetSchema } from "#test/data/projectAsset.js";
 
+const replaceWithFullMatch = (pipeline: Document[], specificFrom?: string) => {
+    const lookupDataStage = pipeline.find(stage => stage.$lookup && (!specificFrom || stage.$lookup.from === specificFrom));
+
+    if (lookupDataStage) {
+        const lookupDataStagePipeline = lookupDataStage.$lookup.pipeline as Document[];
+        const overwritePipeline: Document[] = [{ $match: {} }];
+
+        const localRoleStage = lookupDataStagePipeline.find(stage => stage.$set?.__mongalayer_role?.local !== void 0);
+
+        if (localRoleStage) {
+            overwritePipeline.push(localRoleStage);
+        }
+
+        lookupDataStagePipeline.splice(0, Infinity, ...overwritePipeline);
+    }
+};
+
 describe('Access - Roles', () => {
     let client: MongoClient, database: Db, userZero = userObjects[0], userOne = userObjects[0];
 
@@ -29,7 +46,7 @@ describe('Access - Roles', () => {
         const pipeline: Document[] = stages.$pipeline;
 
         // Overwrite the access filter so all role assignments are exposed, even the null ones.
-        pipeline.find(stage => stage.$lookup && stage.$lookup.from === "users")?.$lookup.pipeline.splice(0, Infinity, { $match: {  } });
+        replaceWithFullMatch(pipeline, "users");
 
         pipeline.push({ $limit: 1 });
         
@@ -58,7 +75,7 @@ describe('Access - Roles', () => {
         const pipeline: Document[] = stages.$pipeline;
 
         // Overwrite the access filter so all role assignments are exposed, even the null ones.
-        pipeline.find(stage => stage.$lookup && stage.$lookup.from === "users")?.$lookup.pipeline.splice(0, Infinity, { $match: { _id: userZero._id } });
+        replaceWithFullMatch(pipeline, "users");
 
         pipeline.push({ $limit: 1 });
         
@@ -110,11 +127,13 @@ describe('Access - Roles', () => {
 
         const pipeline: Document[] = stages.$pipeline;
 
-        pipeline.find(stage => stage.$lookup)?.$lookup.pipeline.splice(0, Infinity, { $match: {} });
+        replaceWithFullMatch(pipeline);
         
         const result = await database.aggregate<WithAccessRole<Project>>(pipeline).toArray();
 
-        expect(result.length).toEqual(projectObjects.length);
+        const projectWithRole = Object.entries(projectRoleMapping).filter(([_, role]) => role !== null);
+
+        expect(result.length).toEqual(projectWithRole.length);
 
         result.forEach(project => {
             expect(project).toHaveProperty("__mongalayer_role");
@@ -178,7 +197,7 @@ describe('Access - Roles', () => {
 
         const pipeline: Document[] = stages.$pipeline;
 
-        pipeline.find(stage => stage.$lookup)?.$lookup.pipeline.splice(0, Infinity, { $match: {} });
+        replaceWithFullMatch(pipeline);
 
         const result = await database.aggregate<WithAccessRole<ProjectAsset>>(pipeline).toArray();
 
@@ -248,7 +267,7 @@ describe('Access - Roles', () => {
 
         const pipeline: Document[] = stages.$pipeline;
 
-        pipeline.find(stage => stage.$lookup)?.$lookup.pipeline.splice(0, Infinity, { $match: {} });
+        replaceWithFullMatch(pipeline);
 
         const result = await database.aggregate<WithAccessRole<ProjectAsset>>(pipeline).toArray();
 
@@ -319,7 +338,7 @@ describe('Access - Roles', () => {
 
         const pipeline: Document[] = stages.$pipeline;
 
-        pipeline.find(stage => stage.$lookup)?.$lookup.pipeline.splice(0, Infinity, { $match: {} });
+        replaceWithFullMatch(pipeline);
 
         const result = await database.aggregate<WithAccessRole<ProjectAsset>>(pipeline).toArray();
 

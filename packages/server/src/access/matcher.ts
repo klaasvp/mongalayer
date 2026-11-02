@@ -1,5 +1,5 @@
 import { getValueByPathWithExists, isObject, typedEntries } from "@mongalayer/core";
-import { AccessFilter, AccessFilterPropertyOperators, AccessFilterPropertyValue, propertyOperatorKeys, rootOperatorKeys } from "../schema/access/filter.js";
+import { AccessFilter, AccessFilterPropertyOperators, AccessFilterPropertyValue, PropertyOperatorKey, propertyOperatorKeys, rootOperatorKeys } from "../schema/access/filter.js";
 import type { Document } from "mongodb";
 
 export const isPrimitive = (value: string): boolean => {
@@ -62,7 +62,7 @@ function $nin(fieldValue: any, candidates: any[]): boolean {
 
 function matchesFieldCondition(keyValue: any, cond: AccessFilterPropertyValue, exists: boolean, doc: Document): boolean {
     // Bare value means implicit $eq
-    if (isObject(cond) && Object.keys(cond).every((k) => propertyOperatorKeys.includes(k))) {
+    if (isObject(cond) && (Object.keys(cond) as PropertyOperatorKey[]).every((k) => propertyOperatorKeys.includes(k))) {
         const results: boolean[] = [], operators = typedEntries(cond as AccessFilterPropertyOperators);
 
         for (const [ operator, value ] of operators) {
