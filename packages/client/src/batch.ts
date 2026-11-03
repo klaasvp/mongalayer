@@ -1,6 +1,6 @@
 import type { Document } from "mongodb";
 import { AggregatePayload, AggregateReturnType, FindOnePayload, FindOneReturnType, FindPayload, FindReturnType, Operation } from "@mongalayer/server/client";
-import { CollectionName } from "./collection";
+import { CollectionName } from "./collection.js";
 
 type SupportedBatchOperation = Extract<Operation, "findOne" | "find" | "aggregate">;
 

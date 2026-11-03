@@ -1,6 +1,6 @@
 import { parseReviver, ServerError, serverErrorName, stringifyReplacer } from "@mongalayer/core";
-import { ClientOptions } from "./client";
-import { MongalayerAPIError } from "./error";
+import { ClientOptions } from "./client.js";
+import { MongalayerAPIError } from "./error.js";
 
 export const request = async (url: URL, body: any, clientOptions: ClientOptions, context?: any): Promise<any> => {    
     if (context !== void 0) {
